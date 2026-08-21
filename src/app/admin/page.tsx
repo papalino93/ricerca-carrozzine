@@ -1,4 +1,5 @@
 import { listDevices } from "@/lib/devices";
+import { getSettings } from "@/lib/settings";
 import { AdminDevicesClient } from "@/components/AdminDevicesClient";
 
 export const dynamic = "force-dynamic";
@@ -22,5 +23,9 @@ export default async function AdminPage() {
     );
   }
 
-  return <AdminDevicesClient initialDevices={devices} />;
+  const logoUrl = await getSettings()
+    .then((s) => s.logoUrl || null)
+    .catch(() => null);
+
+  return <AdminDevicesClient initialDevices={devices} logoUrl={logoUrl} />;
 }

@@ -1,10 +1,10 @@
 import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 import type { CompanySettings } from "@/lib/settings";
 
-const INK = "#16302e";
-const INK_SOFT = "#4a615f";
-const ACCENT = "#c98a3a";
-const LINE = "#dde5e3";
+const INK = "#17301b";
+const INK_SOFT = "#5c6b5e";
+const ACCENT = "#175c22";
+const LINE = "#e1e7df";
 
 export type DocumentoTipo = "consegna" | "restituzione";
 
@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
     color: INK_SOFT,
     borderRightWidth: 1,
     borderRightColor: LINE,
-    backgroundColor: "#f4f6f5",
+    backgroundColor: "#f2f5f0",
   },
   cellValue: {
     width: "66%",

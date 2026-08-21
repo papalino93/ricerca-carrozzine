@@ -124,6 +124,11 @@ chiaro) e possono accedere a `/admin` con le proprie credenziali da subito,
 senza redeploy né variabili d'ambiente da toccare. Per revocare l'accesso
 a qualcuno, usa "Revoca" nella stessa sezione.
 
+Non c'è (ancora) un "password dimenticata?" self-service via email: se un
+utente perde la password, chi ha accesso a Impostazioni azienda usa
+"Reimposta password" sulla riga di quell'utente per impostargliene una
+nuova da comunicargli direttamente.
+
 ## Logo aziendale (nessuno storage esterno)
 
 Il logo caricato da **Impostazioni azienda** non va su Vercel Blob o altri

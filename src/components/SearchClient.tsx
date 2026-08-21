@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { STATUS_COLOR, STATUS_OPTIONS, type Device } from "@/lib/device-types";
 import { DeviceCard } from "./DeviceCard";
-import { Logo } from "./Logo";
+import { BrandHeader } from "./BrandHeader";
 
 const WMIN = 33;
 const WMAX = 55;
@@ -14,9 +14,10 @@ function clamp(v: number, a: number, b: number): number {
 
 interface SearchClientProps {
   initialDevices: Device[];
+  logoUrl?: string | null;
 }
 
-export function SearchClient({ initialDevices }: SearchClientProps) {
+export function SearchClient({ initialDevices, logoUrl }: SearchClientProps) {
   const [devices] = useState(initialDevices);
   const [width, setWidth] = useState<number | null>(null);
   const [category, setCategory] = useState("Tutte");
@@ -66,14 +67,21 @@ export function SearchClient({ initialDevices }: SearchClientProps) {
     });
   }
 
+  function handleWidthInput(e: React.ChangeEvent<HTMLInputElement>) {
+    const raw = e.target.value;
+    if (raw === "") {
+      setWidth(null);
+      return;
+    }
+    const n = Number(raw);
+    if (!Number.isNaN(n)) setWidth(clamp(n, WMIN, WMAX));
+  }
+
   return (
     <div className="wrap">
+      <BrandHeader logoUrl={logoUrl} eyebrow="Magazzino noleggio" />
       <header className="page-header">
-        <p className="eyebrow">Magazzino noleggio</p>
-        <div className="brand-row">
-          <Logo />
-          <h1>Ricerca Ausili</h1>
-        </div>
+        <h1>Trova un ausilio disponibile</h1>
         <p className="sub">
           {devices.length} unità censite · ricerca disponibilità per carrozzine e altri
           dispositivi a noleggio
@@ -87,11 +95,22 @@ export function SearchClient({ initialDevices }: SearchClientProps) {
             <button aria-label="diminuisci" type="button" onClick={() => setWidth(clamp((width ?? 44) - 1, WMIN, WMAX))}>
               −
             </button>
-            <div className="val">{width ? `${width} cm` : "—"}</div>
+            <input
+              className="val"
+              type="number"
+              inputMode="numeric"
+              min={WMIN}
+              max={WMAX}
+              placeholder="—"
+              value={width ?? ""}
+              onChange={handleWidthInput}
+              aria-label="Larghezza seduta in centimetri"
+            />
             <button aria-label="aumenta" type="button" onClick={() => setWidth(clamp((width ?? 40) + 1, WMIN, WMAX))}>
               +
             </button>
           </div>
+          <span className="hint" style={{ margin: 0 }}>cm</span>
           <button className="clear-width" type="button" onClick={() => setWidth(null)}>
             Nessun filtro larghezza
           </button>

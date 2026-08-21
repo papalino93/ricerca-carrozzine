@@ -1,13 +1,14 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #f4f6f5;
-  --surface: #ffffff;
-  --ink: #16302e;
-  --ink-soft: #4a615f;
-  --line: #dde5e3;
-  --accent: #c98a3a;
-  --accent-ink: #7a5320;
+  --bg: #f6f5ee;
+  --surface: #fffdf9;
+  --ink: #17301b;
+  --ink-soft: #5c6b5e;
+  --line: #e1e7df;
+  --accent: #175c22;
+  --accent-ink: #0f401a;
+  --accent-bg: #e7f0e3;
 
   --ok-fg: #1f7a3d;
   --ok-bg: #e4f4e8;
@@ -28,6 +29,7 @@
   --mono: ui-monospace, "SF Mono", "Roboto Mono", Menlo, Consolas, monospace;
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial,
     sans-serif;
+  --serif: var(--font-heading), Georgia, "Iowan Old Style", serif;
 }
 
 * {
@@ -67,6 +69,37 @@ header.page-header {
   gap: 10px;
 }
 
+.brand-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.brand-header img {
+  height: 32px;
+  width: auto;
+  display: block;
+}
+
+.brand-header .tag {
+  text-align: right;
+}
+
+.brand-header .tag .eyebrow {
+  margin-bottom: 2px;
+}
+
+.brand-header .tag .name {
+  font-family: var(--serif);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
 .eyebrow {
   font-family: var(--mono);
   font-size: 11px;
@@ -77,8 +110,9 @@ header.page-header {
 }
 
 h1 {
+  font-family: var(--serif);
   font-size: 26px;
-  font-weight: 800;
+  font-weight: 600;
   margin: 0 0 2px;
   letter-spacing: -0.01em;
 }
@@ -92,18 +126,17 @@ h1 {
 .panel {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 18px;
-  margin-bottom: 14px;
+  border-radius: 22px;
+  padding: 22px;
+  margin-bottom: 16px;
 }
 
 .panel h2 {
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--ink-soft);
-  margin: 0 0 12px;
-  font-weight: 700;
+  font-family: var(--serif);
+  font-size: 15px;
+  color: var(--ink);
+  margin: 0 0 15px;
+  font-weight: 600;
 }
 
 .width-row {
@@ -143,12 +176,29 @@ h1 {
   font-family: var(--mono);
   font-size: 20px;
   font-weight: 700;
+  color: var(--ink);
+  border: none;
   border-left: 1px solid var(--line);
   border-right: 1px solid var(--line);
+  border-radius: 0;
   height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  padding: 0;
+  background: var(--surface);
+}
+
+.stepper .val:focus {
+  outline: none;
+  background: var(--accent-bg);
+}
+
+.stepper .val::-webkit-inner-spin-button,
+.stepper .val::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.stepper .val {
+  -moz-appearance: textfield;
 }
 
 .clear-width {
@@ -232,24 +282,27 @@ h1 {
 
 .chip {
   font-size: 13px;
-  padding: 7px 13px;
+  padding: 8px 15px;
   border-radius: 999px;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  color: var(--ink);
+  border: none;
+  background: var(--accent-bg);
+  color: var(--accent-ink);
   cursor: pointer;
   font-weight: 600;
   transition: all 0.12s ease;
 }
 
 .chip:hover {
-  background: #f0f3f2;
+  background: #dcebd7;
 }
 
 .chip.active {
-  background: var(--ink);
+  background: var(--accent);
   color: #fff;
-  border-color: var(--ink);
+}
+
+.chip.active:hover {
+  background: var(--accent-ink);
 }
 
 .toggle-row {
@@ -300,24 +353,24 @@ h1 {
 .card {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 14px 16px;
-  margin-bottom: 10px;
+  border-radius: 18px;
+  padding: 16px 18px;
+  margin-bottom: 12px;
   display: flex;
-  gap: 14px;
+  gap: 16px;
   align-items: flex-start;
 }
 
 .card .w-badge {
-  font-family: var(--mono);
-  font-weight: 800;
+  font-family: var(--serif);
+  font-weight: 600;
   font-size: 20px;
-  color: var(--ink);
-  background: #f0f3f2;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  width: 56px;
-  height: 56px;
+  color: var(--accent-ink);
+  background: var(--accent-bg);
+  border: none;
+  border-radius: 14px;
+  width: 58px;
+  height: 58px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -327,6 +380,7 @@ h1 {
 }
 
 .w-badge small {
+  font-family: var(--sans);
   font-size: 9px;
   font-weight: 600;
   color: var(--ink-soft);
@@ -348,15 +402,14 @@ h1 {
 }
 
 .code {
-  font-family: var(--mono);
-  font-weight: 700;
-  font-size: 13px;
+  font-size: 12.5px;
   color: var(--ink-soft);
 }
 
 .model {
-  font-weight: 700;
-  font-size: 15px;
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: 16px;
 }
 
 .pill {
@@ -438,9 +491,9 @@ h1 {
 
 .btn {
   font-size: 13px;
-  font-weight: 700;
-  padding: 8px 14px;
-  border-radius: 9px;
+  font-weight: 600;
+  padding: 9px 16px;
+  border-radius: 12px;
   border: 1px solid var(--line);
   background: var(--surface);
   color: var(--ink);
@@ -568,8 +621,9 @@ table.admin-table th {
 }
 
 .modal-head h3 {
-  font-size: 17px;
-  font-weight: 800;
+  font-family: var(--serif);
+  font-size: 18px;
+  font-weight: 600;
   margin: 0;
 }
 

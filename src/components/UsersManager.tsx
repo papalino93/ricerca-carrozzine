@@ -36,6 +36,27 @@ export function UsersManager({ initialUsers }: UsersManagerProps) {
     }
   }
 
+  async function handleReset(u: string) {
+    const newPassword = prompt(`Nuova password per "${u}" (almeno 6 caratteri):`);
+    if (!newPassword) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/utenti", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: u, password: newPassword }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Impossibile reimpostare la password");
+      alert(`Password aggiornata per "${u}".`);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function handleRemove(u: string) {
     if (!confirm(`Revocare l'accesso a "${u}"?`)) return;
     setSaving(true);
@@ -78,9 +99,14 @@ export function UsersManager({ initialUsers }: UsersManagerProps) {
               <tr key={u.username}>
                 <td>{u.username}</td>
                 <td>
-                  <button className="btn danger" type="button" onClick={() => handleRemove(u.username)} disabled={saving}>
-                    Revoca
-                  </button>
+                  <div className="card-actions" style={{ marginTop: 0 }}>
+                    <button className="btn" type="button" onClick={() => handleReset(u.username)} disabled={saving}>
+                      Reimposta password
+                    </button>
+                    <button className="btn danger" type="button" onClick={() => handleRemove(u.username)} disabled={saving}>
+                      Revoca
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

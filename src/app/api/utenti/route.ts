@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { addUser, listUsers, removeUser } from "@/lib/users";
+import { addUser, listUsers, removeUser, resetPassword } from "@/lib/users";
 
 export const runtime = "nodejs";
 
@@ -23,6 +23,22 @@ export async function POST(req: NextRequest) {
       password: string;
     };
     const users = await addUser(username, password);
+    return NextResponse.json({ users });
+  } catch (err) {
+    return NextResponse.json(
+      { error: (err as Error).message },
+      { status: 400 }
+    );
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const { username, password } = (await req.json()) as {
+      username: string;
+      password: string;
+    };
+    const users = await resetPassword(username, password);
     return NextResponse.json({ users });
   } catch (err) {
     return NextResponse.json(

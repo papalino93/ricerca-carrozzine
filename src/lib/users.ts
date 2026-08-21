@@ -53,6 +53,18 @@ export async function addUser(username: string, password: string): Promise<Admin
   return users.map((u) => ({ username: u.username }));
 }
 
+export async function resetPassword(username: string, newPassword: string): Promise<AdminUser[]> {
+  if (!newPassword || newPassword.length < 6) {
+    throw new Error("La password deve avere almeno 6 caratteri");
+  }
+  const users = await readUsers();
+  const idx = users.findIndex((u) => u.username.toLowerCase() === username.toLowerCase());
+  if (idx < 0) throw new Error(`Utente "${username}" non trovato`);
+  users[idx] = { ...users[idx], hash: hashPassword(newPassword) };
+  await writeSheet(TAB, [HEADER, ...users.map((u) => [u.username, u.hash])]);
+  return users.map((u) => ({ username: u.username }));
+}
+
 export async function removeUser(username: string): Promise<AdminUser[]> {
   const users = await readUsers();
   const remaining = users.filter((u) => u.username.toLowerCase() !== username.toLowerCase());

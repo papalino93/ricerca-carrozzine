@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import type { CompanySettings } from "@/lib/settings";
 import type { AdminUser } from "@/lib/users";
-import { Logo } from "./Logo";
+import { BrandHeader } from "./BrandHeader";
 import { UsersManager } from "./UsersManager";
 
 interface SettingsClientProps {
@@ -62,15 +62,10 @@ export function SettingsClient({ initialSettings, initialUsers }: SettingsClient
 
   return (
     <div className="wrap">
+      <BrandHeader logoUrl={settings.logoUrl} eyebrow="Amministrazione" />
       <header className="page-header">
         <div className="top-nav">
-          <div>
-            <p className="eyebrow">Amministrazione</p>
-            <div className="brand-row">
-              <Logo />
-              <h1>Impostazioni azienda</h1>
-            </div>
-          </div>
+          <h1>Impostazioni azienda</h1>
           <a href="/admin">← Dispositivi</a>
         </div>
         <p className="sub">

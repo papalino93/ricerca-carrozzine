@@ -5,7 +5,7 @@ import { STATUS_LABEL, STATUS_OPTIONS, type Device, type DeviceStatus } from "@/
 import { DocumentPanel } from "./DocumentPanel";
 import { RentDeviceModal } from "./RentDeviceModal";
 import { HistoryPanel } from "./HistoryPanel";
-import { Logo } from "./Logo";
+import { BrandHeader } from "./BrandHeader";
 
 const EMPTY_FORM: Device = {
   codice: "",
@@ -24,9 +24,10 @@ const EMPTY_FORM: Device = {
 
 interface AdminDevicesClientProps {
   initialDevices: Device[];
+  logoUrl?: string | null;
 }
 
-export function AdminDevicesClient({ initialDevices }: AdminDevicesClientProps) {
+export function AdminDevicesClient({ initialDevices, logoUrl }: AdminDevicesClientProps) {
   const [devices, setDevices] = useState(initialDevices);
   const [form, setForm] = useState<Device>(EMPTY_FORM);
   const [editingCodice, setEditingCodice] = useState<string | null>(null);
@@ -160,15 +161,10 @@ export function AdminDevicesClient({ initialDevices }: AdminDevicesClientProps) 
 
   return (
     <div className="wrap wide">
+      <BrandHeader logoUrl={logoUrl} eyebrow="Amministrazione" />
       <header className="page-header">
         <div className="top-nav">
-          <div>
-            <p className="eyebrow">Amministrazione</p>
-            <div className="brand-row">
-              <Logo />
-              <h1>Dispositivi</h1>
-            </div>
-          </div>
+          <h1>Dispositivi</h1>
           <a href="/admin/impostazioni">Impostazioni azienda →</a>
         </div>
         <p className="sub">{devices.length} unità in magazzino</p>
