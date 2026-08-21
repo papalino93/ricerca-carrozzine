@@ -1,0 +1,48 @@
+// Tipi e costanti condivisi tra client e server. Nessuna dipendenza da
+// googleapis: questo file può essere importato anche dai componenti client.
+
+export type DeviceStatus =
+  | "disponibile"
+  | "noleggiato"
+  | "da_pulire"
+  | "guasto"
+  | "da_verificare";
+
+export const STATUS_OPTIONS: { key: DeviceStatus; label: string }[] = [
+  { key: "disponibile", label: "Disponibile" },
+  { key: "da_pulire", label: "Da pulire" },
+  { key: "noleggiato", label: "Noleggiato" },
+  { key: "guasto", label: "Guasto" },
+  { key: "da_verificare", label: "Da verificare" },
+];
+
+export const STATUS_LABEL: Record<DeviceStatus, string> = Object.fromEntries(
+  STATUS_OPTIONS.map((o) => [o.key, o.label])
+) as Record<DeviceStatus, string>;
+
+export const STATUS_COLOR: Record<DeviceStatus, string> = {
+  disponibile: "#1F7A3D",
+  noleggiato: "#2F5A8A",
+  da_pulire: "#B4590A",
+  guasto: "#B23325",
+  da_verificare: "#6B4E93",
+};
+
+export interface Device {
+  /** Identificativo univoco dell'unità (es. codice inventario). */
+  codice: string;
+  /** Famiglia/tipologia del dispositivo (es. Autospinta, Transito, Bimbi, oppure altre categorie per dispositivi non-carrozzina). */
+  categoria: string;
+  marca: string;
+  modello: string;
+  /** Larghezza seduta in cm, se applicabile (può essere assente per dispositivi diversi dalle carrozzine). */
+  larghezza: number | null;
+  stato: DeviceStatus;
+  cliente: string | null;
+  telefono: string | null;
+  /** Data inizio noleggio, ISO yyyy-mm-dd. */
+  dal: string | null;
+  /** Data ultima sanificazione, ISO yyyy-mm-dd. */
+  sanificazione: string | null;
+  nota: string | null;
+}

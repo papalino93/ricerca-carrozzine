@@ -1,0 +1,312 @@
+import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+import type { CompanySettings } from "@/lib/settings";
+
+const INK = "#16302e";
+const INK_SOFT = "#4a615f";
+const ACCENT = "#c98a3a";
+const LINE = "#dde5e3";
+
+export type DocumentoTipo = "consegna" | "restituzione";
+
+export interface VerbaleDocumentProps {
+  tipo: DocumentoTipo;
+  numeroContratto: string;
+  data: string;
+  settings: CompanySettings;
+  dispositivo: {
+    codice: string;
+    categoria: string;
+    marca: string;
+    modello: string;
+    larghezza: number | null;
+  };
+  cliente: {
+    nome: string;
+    telefono: string;
+  };
+  note: string;
+}
+
+const styles = StyleSheet.create({
+  page: {
+    padding: 48,
+    fontSize: 10,
+    color: INK,
+    fontFamily: "Helvetica",
+  },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  logo: {
+    maxWidth: 150,
+    maxHeight: 60,
+    objectFit: "contain",
+  },
+  companyName: {
+    fontSize: 14,
+    fontWeight: 700,
+    color: INK,
+  },
+  companyBlock: {
+    alignItems: "flex-end",
+    maxWidth: 260,
+  },
+  companyLine: {
+    fontSize: 9,
+    color: INK_SOFT,
+    textAlign: "right",
+  },
+  titleRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+    marginTop: 26,
+  },
+  title: {
+    fontSize: 17,
+    fontWeight: 700,
+    color: INK,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    maxWidth: 320,
+  },
+  metaBlock: {
+    alignItems: "flex-end",
+  },
+  metaLine: {
+    fontSize: 9,
+    color: INK_SOFT,
+    textAlign: "right",
+  },
+  metaValue: {
+    fontSize: 10,
+    fontWeight: 700,
+    color: INK,
+    textAlign: "right",
+  },
+  accentBar: {
+    height: 3,
+    backgroundColor: ACCENT,
+    borderRadius: 2,
+    marginTop: 10,
+    marginBottom: 22,
+  },
+  sectionLabel: {
+    fontSize: 9,
+    fontWeight: 700,
+    color: INK_SOFT,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 6,
+    marginTop: 16,
+  },
+  table: {
+    borderWidth: 1,
+    borderColor: LINE,
+    borderRadius: 4,
+  },
+  row: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: LINE,
+  },
+  rowLast: {
+    flexDirection: "row",
+  },
+  cellLabel: {
+    width: "34%",
+    padding: 8,
+    fontSize: 9,
+    color: INK_SOFT,
+    borderRightWidth: 1,
+    borderRightColor: LINE,
+    backgroundColor: "#f4f6f5",
+  },
+  cellValue: {
+    width: "66%",
+    padding: 8,
+    fontSize: 10,
+    color: INK,
+    fontWeight: 700,
+  },
+  noteBox: {
+    marginTop: 20,
+    borderWidth: 1,
+    borderColor: ACCENT,
+    borderRadius: 4,
+    padding: 10,
+  },
+  noteLabel: {
+    fontSize: 9,
+    fontWeight: 700,
+    color: ACCENT,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  noteText: {
+    fontSize: 10,
+    color: INK,
+    lineHeight: 1.4,
+  },
+  signatureRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 60,
+  },
+  signatureBlock: {
+    width: "45%",
+  },
+  signatureLine: {
+    borderTopWidth: 1,
+    borderTopColor: INK,
+    marginBottom: 6,
+    height: 34,
+  },
+  signatureLabel: {
+    fontSize: 9,
+    color: INK_SOFT,
+    textAlign: "center",
+  },
+  conditions: {
+    marginTop: 28,
+    fontSize: 7.5,
+    color: INK_SOFT,
+    lineHeight: 1.4,
+  },
+});
+
+const TITLE: Record<DocumentoTipo, string> = {
+  consegna: "Verbale di consegna ausilio",
+  restituzione: "Verbale di restituzione ausilio",
+};
+
+const DATE_LABEL: Record<DocumentoTipo, string> = {
+  consegna: "Data di consegna",
+  restituzione: "Data di restituzione",
+};
+
+function fmtDate(iso: string): string {
+  if (!iso) return "—";
+  const [y, m, d] = iso.split("-");
+  if (!y || !m || !d) return iso;
+  return `${d}/${m}/${y}`;
+}
+
+export function VerbaleDocument({
+  tipo,
+  numeroContratto,
+  data,
+  settings,
+  dispositivo,
+  cliente,
+  note,
+}: VerbaleDocumentProps) {
+  const hasLogo = Boolean(settings.logoUrl);
+
+  return (
+    <Document>
+      <Page size="A4" style={styles.page}>
+        <View style={styles.headerRow}>
+          <View>
+            {hasLogo ? (
+              // eslint-disable-next-line jsx-a11y/alt-text
+              <Image style={styles.logo} src={settings.logoUrl} />
+            ) : (
+              <Text style={styles.companyName}>
+                {settings.ragioneSociale || "Ragione sociale non impostata"}
+              </Text>
+            )}
+          </View>
+          <View style={styles.companyBlock}>
+            {hasLogo && settings.ragioneSociale ? (
+              <Text style={[styles.companyLine, { fontWeight: 700, color: INK }]}>
+                {settings.ragioneSociale}
+              </Text>
+            ) : null}
+            {settings.indirizzo ? (
+              <Text style={styles.companyLine}>{settings.indirizzo}</Text>
+            ) : null}
+            {settings.partitaIva ? (
+              <Text style={styles.companyLine}>P.IVA {settings.partitaIva}</Text>
+            ) : null}
+            {settings.telefono ? (
+              <Text style={styles.companyLine}>Tel. {settings.telefono}</Text>
+            ) : null}
+          </View>
+        </View>
+
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>{TITLE[tipo]}</Text>
+          <View style={styles.metaBlock}>
+            <Text style={styles.metaLine}>Contratto</Text>
+            <Text style={styles.metaValue}>{numeroContratto || "—"}</Text>
+            <Text style={[styles.metaLine, { marginTop: 6 }]}>Data</Text>
+            <Text style={styles.metaValue}>{fmtDate(data)}</Text>
+          </View>
+        </View>
+        <View style={styles.accentBar} />
+
+        <Text style={styles.sectionLabel}>Cliente</Text>
+        <View style={styles.table}>
+          <View style={styles.row}>
+            <Text style={styles.cellLabel}>Nome e cognome</Text>
+            <Text style={styles.cellValue}>{cliente.nome || "—"}</Text>
+          </View>
+          <View style={styles.rowLast}>
+            <Text style={styles.cellLabel}>Telefono</Text>
+            <Text style={styles.cellValue}>{cliente.telefono || "—"}</Text>
+          </View>
+        </View>
+
+        <Text style={styles.sectionLabel}>Dispositivo</Text>
+        <View style={styles.table}>
+          <View style={styles.row}>
+            <Text style={styles.cellLabel}>Codice</Text>
+            <Text style={styles.cellValue}>{dispositivo.codice || "—"}</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.cellLabel}>Categoria</Text>
+            <Text style={styles.cellValue}>{dispositivo.categoria || "—"}</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.cellLabel}>Marca e modello</Text>
+            <Text style={styles.cellValue}>
+              {[dispositivo.marca, dispositivo.modello].filter(Boolean).join(" ") || "—"}
+            </Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.cellLabel}>Larghezza seduta</Text>
+            <Text style={styles.cellValue}>
+              {dispositivo.larghezza != null ? `${dispositivo.larghezza} cm` : "n/d"}
+            </Text>
+          </View>
+          <View style={styles.rowLast}>
+            <Text style={styles.cellLabel}>{DATE_LABEL[tipo]}</Text>
+            <Text style={styles.cellValue}>{fmtDate(data)}</Text>
+          </View>
+        </View>
+
+        <View style={styles.noteBox}>
+          <Text style={styles.noteLabel}>Note</Text>
+          <Text style={styles.noteText}>{note || "—"}</Text>
+        </View>
+
+        <View style={styles.signatureRow}>
+          <View style={styles.signatureBlock}>
+            <View style={styles.signatureLine} />
+            <Text style={styles.signatureLabel}>Firma cliente</Text>
+          </View>
+          <View style={styles.signatureBlock}>
+            <View style={styles.signatureLine} />
+            <Text style={styles.signatureLabel}>Firma operatore</Text>
+          </View>
+        </View>
+
+        <Text style={styles.conditions}>{settings.condizioniGenerali}</Text>
+      </Page>
+    </Document>
+  );
+}

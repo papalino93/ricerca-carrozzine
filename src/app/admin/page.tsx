@@ -1,9 +1,9 @@
 import { listDevices } from "@/lib/devices";
-import { SearchClient } from "@/components/SearchClient";
+import { AdminDevicesClient } from "@/components/AdminDevicesClient";
 
 export const dynamic = "force-dynamic";
 
-export default async function HomePage() {
+export default async function AdminPage() {
   let devices: Awaited<ReturnType<typeof listDevices>> = [];
   let loadError: string | null = null;
   try {
@@ -22,5 +22,5 @@ export default async function HomePage() {
     );
   }
 
-  return <SearchClient initialDevices={devices} />;
+  return <AdminDevicesClient initialDevices={devices} />;
 }
