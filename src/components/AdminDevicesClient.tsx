@@ -294,7 +294,13 @@ export function AdminDevicesClient({ initialDevices, categories }: AdminDevicesC
         <div className="top-nav" style={{ marginBottom: 12 }}>
           <h2 style={{ margin: 0 }}>Tutti i dispositivi</h2>
           <div className="field" style={{ minWidth: 200, margin: 0 }}>
-            <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+            <select
+              value={categoryFilter}
+              onChange={(e) => {
+                setIssueFilter(null);
+                setCategoryFilter(e.target.value);
+              }}
+            >
               <option value="Tutte">Tutte le categorie</option>
               {categories.map((c) => (
                 <option key={c} value={c}>
@@ -335,7 +341,17 @@ export function AdminDevicesClient({ initialDevices, categories }: AdminDevicesC
           </thead>
           <tbody>
             {visibleDevices.map((d) => (
-              <tr key={d.codice} className="clickable-row" onClick={() => openExisting(d)}>
+              <tr
+                key={d.codice}
+                className="clickable-row"
+                onClick={() => {
+                  // Con un'azione rapida in corso (restituzione/sanificazione),
+                  // aprire un'altra riga sovrapporrebbe due modali e, se la
+                  // riga aperta è la stessa appena aggiornata dal server,
+                  // rischierebbe di ripetere l'azione su dati già superati.
+                  if (!saving) openExisting(d);
+                }}
+              >
                 <td>{d.foto ? <img className="photo-thumb" src={d.foto} alt="" /> : null}</td>
                 <td>{d.codice}</td>
                 <td>{d.categoria}</td>
@@ -379,6 +395,22 @@ export function AdminDevicesClient({ initialDevices, categories }: AdminDevicesC
             ))}
           </tbody>
         </table>
+        {visibleDevices.length === 0 ? (
+          <div className="hint" style={{ padding: "20px 0", textAlign: "center" }}>
+            Nessun dispositivo corrisponde ai filtri attivi.{" "}
+            <button
+              className="btn"
+              type="button"
+              onClick={() => {
+                setIssueFilter(null);
+                setCategoryFilter("Tutte");
+                setStatusFilter(new Set(STATUS_OPTIONS.map((o) => o.key)));
+              }}
+            >
+              Azzera filtri
+            </button>
+          </div>
+        ) : null}
       </div>
 
       {detail ? (

@@ -68,6 +68,11 @@ export function DeviceDetailModal({
   onDuplicate,
 }: DeviceDetailModalProps) {
   const [form, setForm] = useState<Device>(device);
+  // Stato realmente persistito (non l'eventuale bozza non salvata in `form`):
+  // pillola e pulsanti di ciclo vita si basano su questo, non su `form.stato`,
+  // altrimenti cambiare la tendina "Stato" senza salvare farebbe comparire i
+  // pulsanti sbagliati e attiverebbe noleggi/restituzioni su dati non reali.
+  const [current, setCurrent] = useState<Device>(device);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -89,10 +94,7 @@ export function DeviceDetailModal({
     toastTimer.current = setTimeout(() => setToast(null), 2400);
   }
 
-  // Il componente è montato con una `key` diversa ogni volta che si apre un
-  // dispositivo diverso (o si passa a "Duplica"): niente da sincronizzare
-  // qui, lo stato iniziale sopra riflette già il device corretto.
-  useEffect(() => {
+  function loadHistory() {
     if (isNew) return;
     let cancelled = false;
     fetch(`/api/dispositivi/${encodeURIComponent(device.codice)}/eventi`)
@@ -107,12 +109,35 @@ export function DeviceDetailModal({
     return () => {
       cancelled = true;
     };
+  }
+
+  // Il componente è montato con una `key` diversa ogni volta che si apre un
+  // dispositivo diverso (o si passa a "Duplica"): niente da sincronizzare
+  // qui, lo stato iniziale sopra riflette già il device corretto.
+  useEffect(() => {
+    const cancel = loadHistory();
+    return cancel;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [device.codice, isNew]);
 
-  function applyUpdate(devices: Device[]) {
+  /**
+   * Applica il risultato di un'operazione server-side. `fields`, se passato,
+   * limita quali campi del form vengono sovrascritti (es. solo "stato" e i
+   * dati del cliente per un noleggio): senza, un'azione come il caricamento
+   * foto rischierebbe di far perdere una nota o una modifica non ancora
+   * salvata nel resto del form.
+   */
+  function applyUpdate(devices: Device[], fields?: (keyof Device)[]) {
     onSaved(devices);
-    const updated = devices.find((d) => d.codice === form.codice);
-    if (updated) setForm(updated);
+    const updated = devices.find((d) => d.codice === current.codice);
+    if (!updated) return;
+    setCurrent(updated);
+    if (fields) {
+      const patch = Object.fromEntries(fields.map((key) => [key, updated[key]])) as Partial<Device>;
+      setForm((f) => ({ ...f, ...patch }));
+    } else {
+      setForm(updated);
+    }
   }
 
   async function handleSave(e: React.FormEvent) {
@@ -137,8 +162,13 @@ export function DeviceDetailModal({
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || "Salvataggio non riuscito");
       onSaved(body.devices);
+      const saved = body.devices.find((d: Device) => d.codice === codice);
+      if (saved) setCurrent(saved);
       showToast(isNew ? "Dispositivo aggiunto" : "Modifiche salvate");
-      if (isNew) onClose();
+      // Chiude con un piccolo ritardo (invece che subito) per lasciare
+      // visibile la conferma: il Toast vive dentro questo stesso componente,
+      // quindi un onClose immediato lo smonterebbe prima che compaia.
+      if (isNew) setTimeout(onClose, 900);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -164,6 +194,18 @@ export function DeviceDetailModal({
     }
   }
 
+  function resetRentForm() {
+    setRentCliente("");
+    setRentTelefono("");
+    setRentContratto("");
+    setRentDal(todayIso());
+  }
+
+  function openRent() {
+    resetRentForm();
+    setRenting(true);
+  }
+
   async function handleConfirmRent(e: React.FormEvent) {
     e.preventDefault();
     if (!rentCliente.trim()) {
@@ -173,7 +215,7 @@ export function DeviceDetailModal({
     setSaving(true);
     setError(null);
     try {
-      const res = await fetch(`/api/dispositivi/${encodeURIComponent(form.codice)}/eventi`, {
+      const res = await fetch(`/api/dispositivi/${encodeURIComponent(current.codice)}/eventi`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -186,10 +228,12 @@ export function DeviceDetailModal({
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || "Operazione non riuscita");
-      applyUpdate(body.devices);
+      applyUpdate(body.devices, ["stato", "cliente", "telefono", "contratto", "dal"]);
+      loadHistory();
       setRenting(false);
+      resetRentForm();
       showToast("Noleggio confermato");
-      setDocDevice(body.devices.find((d: Device) => d.codice === form.codice) ?? form);
+      setDocDevice(body.devices.find((d: Device) => d.codice === current.codice) ?? form);
       setDocForcedTipo("consegna");
       setShowDoc(true);
     } catch (err) {
@@ -200,21 +244,27 @@ export function DeviceDetailModal({
   }
 
   async function handleLifecycle(tipo: "restituzione" | "sanificazione") {
-    if (tipo === "restituzione" && !confirm(`Segnare ${form.codice} come restituito?`)) return;
+    if (tipo === "restituzione" && !confirm(`Segnare ${current.codice} come restituito?`)) return;
     // Il ritorno svuota cliente/telefono/contratto sul dispositivo: per il
     // verbale di restituzione servono i dati di PRIMA della restituzione.
-    const preReturnDevice = form;
+    const preReturnDevice = current;
     setSaving(true);
     setError(null);
     try {
-      const res = await fetch(`/api/dispositivi/${encodeURIComponent(form.codice)}/eventi`, {
+      const res = await fetch(`/api/dispositivi/${encodeURIComponent(current.codice)}/eventi`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tipo }),
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || "Operazione non riuscita");
-      applyUpdate(body.devices);
+      applyUpdate(
+        body.devices,
+        tipo === "restituzione"
+          ? ["stato", "cliente", "telefono", "contratto", "dal"]
+          : ["stato", "sanificazione"]
+      );
+      loadHistory();
       showToast(tipo === "restituzione" ? "Segnato come restituito" : "Segnato come sanificato");
       if (tipo === "restituzione") {
         setDocDevice(preReturnDevice);
@@ -243,7 +293,7 @@ export function DeviceDetailModal({
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || "Caricamento foto non riuscito");
-      applyUpdate(body.devices);
+      applyUpdate(body.devices, ["foto"]);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -260,7 +310,7 @@ export function DeviceDetailModal({
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || "Rimozione foto non riuscita");
-      applyUpdate(body.devices);
+      applyUpdate(body.devices, ["foto"]);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -283,13 +333,13 @@ export function DeviceDetailModal({
 
           {!isNew ? (
             <div className="detail-status-row">
-              <span className={`pill ${form.stato}`}>{STATUS_LABEL[form.stato]}</span>
-              {form.stato === "disponibile" && !renting ? (
-                <button className="btn primary" type="button" onClick={() => setRenting(true)}>
+              <span className={`pill ${current.stato}`}>{STATUS_LABEL[current.stato]}</span>
+              {current.stato === "disponibile" && !renting ? (
+                <button className="btn primary" type="button" onClick={openRent}>
                   Noleggia
                 </button>
               ) : null}
-              {form.stato === "noleggiato" ? (
+              {current.stato === "noleggiato" ? (
                 <button
                   className="btn primary"
                   type="button"
@@ -299,7 +349,7 @@ export function DeviceDetailModal({
                   Segna restituito
                 </button>
               ) : null}
-              {form.stato === "da_pulire" ? (
+              {current.stato === "da_pulire" ? (
                 <button
                   className="btn primary"
                   type="button"
@@ -339,7 +389,14 @@ export function DeviceDetailModal({
                 <input type="date" value={rentDal} onChange={(e) => setRentDal(e.target.value)} />
               </div>
               <div className="card-actions">
-                <button className="btn" type="button" onClick={() => setRenting(false)}>
+                <button
+                  className="btn"
+                  type="button"
+                  onClick={() => {
+                    setRenting(false);
+                    resetRentForm();
+                  }}
+                >
                   Annulla
                 </button>
                 <button className="btn primary" type="submit" disabled={saving}>

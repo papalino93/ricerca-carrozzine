@@ -22,7 +22,12 @@ export function DocumentPanel({ device, onClose, forcedTipo }: DocumentPanelProp
     forcedTipo ?? (device.stato === "noleggiato" ? "restituzione" : "consegna")
   );
   const [numeroContratto, setNumeroContratto] = useState(device.contratto ?? "");
-  const [data, setData] = useState(todayIso());
+  // Se il dispositivo ha già una data di inizio noleggio (es. subito dopo
+  // "Conferma noleggio", con una data passata inserita dall'operatore),
+  // il verbale di consegna deve partire da quella e non da oggi.
+  const [data, setData] = useState(
+    tipo === "consegna" && device.dal ? device.dal : todayIso()
+  );
   const [clienteNome, setClienteNome] = useState(device.cliente ?? "");
   const [clienteTelefono, setClienteTelefono] = useState(device.telefono ?? "");
   const [note, setNote] = useState(device.nota ?? "");

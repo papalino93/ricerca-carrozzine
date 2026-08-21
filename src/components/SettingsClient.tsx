@@ -103,7 +103,12 @@ export function SettingsClient({
 
       {error ? <div className="banner error">{error}</div> : null}
 
-      {tab === "azienda" ? (
+      {/* I tre pannelli restano tutti montati (nascosti con CSS, non
+          smontati): CategoriesManager e UsersManager gestiscono la propria
+          lista internamente, e smontarli ad ogni cambio tab la faceva
+          ripartire dai dati iniziali della pagina, perdendo aggiunte o
+          rimozioni fatte poco prima. */}
+      <div style={{ display: tab === "azienda" ? "block" : "none" }}>
         <form className="panel" onSubmit={handleSubmit}>
           <h2>Dati aziendali</h2>
           <p className="hint" style={{ marginBottom: 14 }}>
@@ -178,11 +183,15 @@ export function SettingsClient({
             </button>
           </div>
         </form>
-      ) : null}
+      </div>
 
-      {tab === "categorie" ? <CategoriesManager initialCategories={initialCategories} /> : null}
+      <div style={{ display: tab === "categorie" ? "block" : "none" }}>
+        <CategoriesManager initialCategories={initialCategories} />
+      </div>
 
-      {tab === "utenti" ? <UsersManager initialUsers={initialUsers} /> : null}
+      <div style={{ display: tab === "utenti" ? "block" : "none" }}>
+        <UsersManager initialUsers={initialUsers} />
+      </div>
 
       <Toast message={toast} />
     </div>

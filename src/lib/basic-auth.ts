@@ -1,8 +1,17 @@
-import { createHash } from "crypto";
+import "server-only";
+import { createHash, timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { verifySheetCredential } from "./users";
 
 const REALM = "Area amministrazione";
+
+/** Confronto a tempo costante, per non far filtrare la lunghezza corretta
+ * delle credenziali d'ambiente tramite il tempo di risposta. */
+function safeEqual(a: string, b: string): boolean {
+  const ah = createHash("sha256").update(a).digest();
+  const bh = createHash("sha256").update(b).digest();
+  return timingSafeEqual(ah, bh);
+}
 
 // Piccola cache in memoria per evitare di interrogare il foglio Google ad
 // ogni richiesta mentre l'istanza serverless resta calda. Best-effort: in
@@ -36,7 +45,7 @@ async function isAuthorized(req: NextRequest): Promise<boolean> {
   // chiamata a Google Sheets necessaria.
   const envUser = process.env.ADMIN_USER;
   const envPass = process.env.ADMIN_PASSWORD;
-  if (envUser && envPass && username === envUser && password === envPass) {
+  if (envUser && envPass && safeEqual(username, envUser) && safeEqual(password, envPass)) {
     return true;
   }
 

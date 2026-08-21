@@ -222,7 +222,7 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
             <h2>Larghezza seduta richiesta (se applicabile)</h2>
             <div className="width-row">
               <div className="stepper">
-                <button aria-label="diminuisci" type="button" onClick={() => setWidth(clamp((width ?? 44) - 1, WMIN, WMAX))}>
+                <button aria-label="diminuisci" type="button" onClick={() => setWidth(clamp((width ?? 41) - 1, WMIN, WMAX))}>
                   −
                 </button>
                 <input

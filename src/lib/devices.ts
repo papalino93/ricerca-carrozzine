@@ -115,6 +115,9 @@ export async function upsertDevice(device: Device): Promise<Device[]> {
   if ((device.nota?.length ?? 0) > MAX_NOTA_LENGTH) {
     throw new Error(`La nota supera i ${MAX_NOTA_LENGTH} caratteri: abbreviala prima di salvare.`);
   }
+  if (!(VALID_STATUSES as string[]).includes(device.stato)) {
+    throw new Error(`Stato "${device.stato}" non valido.`);
+  }
   const devices = await listDevices();
   const idx = devices.findIndex((d) => d.codice === device.codice);
   if (idx >= 0) devices[idx] = device;
@@ -134,6 +137,9 @@ export async function setDevicePhoto(codice: string, foto: string | null): Promi
 export async function deleteDevice(codice: string): Promise<Device[]> {
   const devices = await listDevices();
   const remaining = devices.filter((d) => d.codice !== codice);
+  if (remaining.length === devices.length) {
+    throw new Error(`Dispositivo ${codice} non trovato`);
+  }
   await saveAllDevices(remaining);
   return remaining;
 }
@@ -158,7 +164,9 @@ export async function rentDevice(codice: string, input: RentDeviceInput): Promis
     contratto: input.contratto,
     dal,
   };
-  await saveAllDevices(devices);
+  // Registra prima lo storico e solo dopo muta il dispositivo: se il
+  // salvataggio del dispositivo falisce, resta comunque una traccia che il
+  // noleggio è avvenuto (recuperabile a mano), invece del contrario.
   await appendHistoryEvent({
     data: dal,
     codice,
@@ -168,12 +176,20 @@ export async function rentDevice(codice: string, input: RentDeviceInput): Promis
     contratto: input.contratto,
     nota: null,
   });
-  await upsertClient({
-    nome: input.cliente,
-    telefono: input.telefono,
-    contratto: input.contratto,
-    dal,
-  });
+  await saveAllDevices(devices);
+  try {
+    // Anagrafica clienti: informativa, non deve far fallire (né far
+    // ripetere all'operatore, duplicando lo storico) un noleggio già
+    // registrato con successo.
+    await upsertClient({
+      nome: input.cliente,
+      telefono: input.telefono,
+      contratto: input.contratto,
+      dal,
+    });
+  } catch {
+    // best-effort
+  }
   return devices;
 }
 
@@ -192,7 +208,6 @@ export async function returnDevice(codice: string): Promise<Device[]> {
     contratto: null,
     dal: null,
   };
-  await saveAllDevices(devices);
   await appendHistoryEvent({
     data: todayIso(),
     codice,
@@ -202,6 +217,7 @@ export async function returnDevice(codice: string): Promise<Device[]> {
     contratto: previousContratto,
     nota: null,
   });
+  await saveAllDevices(devices);
   return devices;
 }
 
@@ -215,7 +231,6 @@ export async function sanitizeDevice(codice: string): Promise<Device[]> {
     stato: "disponibile",
     sanificazione,
   };
-  await saveAllDevices(devices);
   await appendHistoryEvent({
     data: sanificazione,
     codice,
@@ -225,5 +240,6 @@ export async function sanitizeDevice(codice: string): Promise<Device[]> {
     contratto: null,
     nota: null,
   });
+  await saveAllDevices(devices);
   return devices;
 }

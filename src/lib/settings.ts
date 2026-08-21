@@ -64,6 +64,14 @@ export async function saveSettings(settings: CompanySettings): Promise<void> {
       `Le condizioni generali superano i ${MAX_CONDIZIONI_LENGTH} caratteri: abbreviale prima di salvare.`
     );
   }
+  // Il generatore PDF (@react-pdf/renderer) carica logoUrl come farebbe un
+  // browser: un URL http(s) o un percorso locale verrebbero risolti e
+  // richiesti dal server. Ammettiamo solo un data URI (o vuoto), come
+  // produce /api/upload-logo, per non trasformare questo campo in un modo
+  // di far contattare al server host arbitrari.
+  if (settings.logoUrl && !settings.logoUrl.startsWith("data:image/")) {
+    throw new Error("Logo non valido: usa il caricamento immagine, non un URL esterno.");
+  }
   await writeSheet(TAB, [
     HEADER,
     [

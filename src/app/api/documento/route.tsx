@@ -32,7 +32,7 @@ function buildDocument(body: DocumentoRequestBody, settings: CompanySettings) {
       data={body.data ?? ""}
       settings={settings}
       dispositivo={body.dispositivo}
-      cliente={body.cliente}
+      cliente={{ nome: body.cliente?.nome ?? "", telefono: body.cliente?.telefono ?? "" }}
       note={body.note ?? ""}
     />
   );
@@ -67,8 +67,11 @@ export async function POST(req: NextRequest) {
         cliente: body.cliente?.nome || null,
         telefono: body.cliente?.telefono || null,
       });
-    } catch {
-      // best-effort
+    } catch (logErr) {
+      // best-effort: non deve bloccare il download, ma va comunque tracciato
+      // (altrimenti il registro Documenti può smettere di aggiornarsi senza
+      // che nessuno se ne accorga).
+      console.error("Registrazione documento non riuscita:", logErr);
     }
 
     const bytes = new Uint8Array(buffer);
