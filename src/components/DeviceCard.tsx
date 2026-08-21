@@ -24,8 +24,8 @@ export function DeviceCard({ device: d, exactWidth, statusColor, adminActions }:
   return (
     <div className="card">
       <div className="w-badge" style={exactWidth ? { borderColor: statusColor } : undefined}>
-        {d.larghezza ?? "?"}
-        <small>CM SEDUTA</small>
+        {d.larghezza ?? "—"}
+        <small>{d.larghezza != null ? "CM SEDUTA" : "N/D"}</small>
       </div>
       <div className="card-body">
         <div className="card-top">

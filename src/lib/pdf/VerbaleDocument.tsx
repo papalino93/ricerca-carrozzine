@@ -277,12 +277,12 @@ export function VerbaleDocument({
               {[dispositivo.marca, dispositivo.modello].filter(Boolean).join(" ") || "—"}
             </Text>
           </View>
-          <View style={styles.row}>
-            <Text style={styles.cellLabel}>Larghezza seduta</Text>
-            <Text style={styles.cellValue}>
-              {dispositivo.larghezza != null ? `${dispositivo.larghezza} cm` : "n/d"}
-            </Text>
-          </View>
+          {dispositivo.larghezza != null ? (
+            <View style={styles.row}>
+              <Text style={styles.cellLabel}>Larghezza seduta</Text>
+              <Text style={styles.cellValue}>{dispositivo.larghezza} cm</Text>
+            </View>
+          ) : null}
           <View style={styles.rowLast}>
             <Text style={styles.cellLabel}>{DATE_LABEL[tipo]}</Text>
             <Text style={styles.cellValue}>{fmtDate(data)}</Text>
