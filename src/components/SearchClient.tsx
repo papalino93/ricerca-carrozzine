@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { STATUS_COLOR, STATUS_OPTIONS, type Device } from "@/lib/device-types";
+import { STATUS_COLOR, STATUS_OPTIONS, type Device, type DeviceStatus } from "@/lib/device-types";
 import { DeviceCard } from "./DeviceCard";
 import { BrandHeader } from "./BrandHeader";
 
@@ -10,6 +10,43 @@ const WMAX = 55;
 
 function clamp(v: number, a: number, b: number): number {
   return Math.max(a, Math.min(b, v));
+}
+
+// Distanza di Levenshtein: usata solo per tollerare piccoli errori di
+// battitura nella ricerca libera (es. "betatx" trova "BETATEX").
+function levenshtein(a: string, b: string): number {
+  const m = a.length;
+  const n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+  const dp: number[][] = Array.from({ length: m + 1 }, () => new Array<number>(n + 1).fill(0));
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] =
+        a[i - 1] === b[j - 1] ? dp[i - 1][j - 1] : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+    }
+  }
+  return dp[m][n];
+}
+
+// Un match esatto (substring) vince sempre; per parole di almeno 4
+// caratteri si accetta anche una piccola distanza di edit, per tollerare
+// refusi senza dare troppi falsi positivi su query corte.
+function matchesQuery(haystack: string, query: string): boolean {
+  if (!query) return true;
+  if (haystack.includes(query)) return true;
+  const qTokens = query.split(/\s+/).filter(Boolean);
+  const hTokens = haystack.split(/\s+/).filter(Boolean);
+  return qTokens.every((qt) =>
+    hTokens.some((ht) => {
+      if (ht.includes(qt)) return true;
+      if (qt.length < 4) return false;
+      const maxDist = qt.length > 6 ? 2 : 1;
+      return levenshtein(ht, qt) <= maxDist;
+    })
+  );
 }
 
 interface SearchClientProps {
@@ -27,6 +64,8 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: "stato", label: "Stato" },
   { key: "cliente", label: "Cliente" },
 ];
+
+const ALL_STATUSES = new Set(STATUS_OPTIONS.map((o) => o.key));
 
 export function SearchClient({ initialDevices, logoUrl, categories }: SearchClientProps) {
   const [devices] = useState(initialDevices);
@@ -47,6 +86,18 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
     return values as string[];
   }, [devices, category]);
 
+  const stats = useMemo(() => {
+    const counts: Record<DeviceStatus, number> = {
+      disponibile: 0,
+      noleggiato: 0,
+      da_pulire: 0,
+      guasto: 0,
+      da_verificare: 0,
+    };
+    for (const d of devices) counts[d.stato] += 1;
+    return counts;
+  }, [devices]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     let list = devices.filter((d) => {
@@ -58,7 +109,7 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
           .filter(Boolean)
           .join(" ")
           .toLowerCase();
-        if (!hay.includes(q)) return false;
+        if (!matchesQuery(hay, q)) return false;
       }
       return true;
     });
@@ -88,6 +139,10 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
     });
   }
 
+  function selectOnlyStatus(key: DeviceStatus) {
+    setStatuses((prev) => (prev.size === 1 && prev.has(key) ? new Set(ALL_STATUSES) : new Set([key])));
+  }
+
   function handleWidthInput(e: React.ChangeEvent<HTMLInputElement>) {
     const raw = e.target.value;
     if (raw === "") {
@@ -112,14 +167,44 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
       <BrandHeader logoUrl={logoUrl} eyebrow="Magazzino noleggio" />
       <header className="page-header">
         <div className="top-nav">
-          <h1>Trova un ausilio disponibile</h1>
+          <h1>Trova l&apos;ausilio giusto</h1>
           <a href="/admin">Area amministrazione →</a>
         </div>
-        <p className="sub">
-          {devices.length} unità censite · ricerca disponibilità per carrozzine e altri
-          dispositivi a noleggio
-        </p>
+        <p className="sub">{devices.length} ausili in magazzino</p>
       </header>
+
+      <div className="panel hero-search">
+        <input
+          className="searchbox hero-searchbox"
+          placeholder="Cerca codice, marca, modello, larghezza…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          autoFocus
+        />
+      </div>
+
+      <div className="stats-row">
+        <button
+          className={`stat-tile ${statuses.size === ALL_STATUSES.size ? "active" : ""}`}
+          type="button"
+          onClick={() => setStatuses(new Set(ALL_STATUSES))}
+        >
+          <span className="stat-count">{devices.length}</span>
+          <span className="stat-label">Totale</span>
+        </button>
+        {STATUS_OPTIONS.map((o) => (
+          <button
+            key={o.key}
+            className={`stat-tile ${statuses.size === 1 && statuses.has(o.key) ? "active" : ""}`}
+            type="button"
+            style={{ "--stat-color": STATUS_COLOR[o.key] } as React.CSSProperties}
+            onClick={() => selectOnlyStatus(o.key)}
+          >
+            <span className="stat-count">{stats[o.key]}</span>
+            <span className="stat-label">{o.label}</span>
+          </button>
+        ))}
+      </div>
 
       <div className="panel">
         <h2>Larghezza seduta richiesta (se applicabile)</h2>
@@ -216,27 +301,19 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
       </div>
 
       <div className="panel">
-        <h2>Stato e ricerca libera</h2>
-        <div className="toggle-row" style={{ marginBottom: 12 }}>
-          <div className="chips">
-            {STATUS_OPTIONS.map((o) => (
-              <button
-                key={o.key}
-                className={`chip ${statuses.has(o.key) ? "active" : ""}`}
-                type="button"
-                onClick={() => toggleStatus(o.key)}
-              >
-                {o.label}
-              </button>
-            ))}
-          </div>
+        <h2>Stato</h2>
+        <div className="chips">
+          {STATUS_OPTIONS.map((o) => (
+            <button
+              key={o.key}
+              className={`chip ${statuses.has(o.key) ? "active" : ""}`}
+              type="button"
+              onClick={() => toggleStatus(o.key)}
+            >
+              {o.label}
+            </button>
+          ))}
         </div>
-        <input
-          className="searchbox"
-          placeholder="Cerca per cliente, telefono, contratto, marca, modello o codice…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
       </div>
 
       <div className="results-head">

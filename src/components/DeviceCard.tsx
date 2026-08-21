@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { STATUS_LABEL, type Device } from "@/lib/device-types";
 import { DocumentPanel } from "./DocumentPanel";
+import { DevicePublicViewModal } from "./DevicePublicViewModal";
 
 function fmtDate(iso: string | null): string {
   if (!iso) return "";
@@ -15,11 +16,11 @@ interface DeviceCardProps {
   device: Device;
   exactWidth?: boolean;
   statusColor: string;
-  adminActions?: React.ReactNode;
 }
 
-export function DeviceCard({ device: d, exactWidth, statusColor, adminActions }: DeviceCardProps) {
+export function DeviceCard({ device: d, exactWidth, statusColor }: DeviceCardProps) {
   const [showDoc, setShowDoc] = useState(false);
+  const [showView, setShowView] = useState(false);
 
   return (
     <div className="card">
@@ -47,13 +48,16 @@ export function DeviceCard({ device: d, exactWidth, statusColor, adminActions }:
         </div>
         {d.nota ? <div className="note">{d.nota}</div> : null}
         <div className="card-actions">
+          <button className="btn" type="button" onClick={() => setShowView(true)}>
+            Visualizza
+          </button>
           <button className="btn" type="button" onClick={() => setShowDoc(true)}>
             Genera documento
           </button>
-          {adminActions}
         </div>
       </div>
       {showDoc ? <DocumentPanel device={d} onClose={() => setShowDoc(false)} /> : null}
+      {showView ? <DevicePublicViewModal device={d} onClose={() => setShowView(false)} /> : null}
     </div>
   );
 }
