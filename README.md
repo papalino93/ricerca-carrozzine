@@ -21,8 +21,9 @@ documenti di noleggio in PDF.
 
 Next.js (App Router) · TypeScript · Google Sheets come "database" ·
 `@react-pdf/renderer` per i PDF (generati lato server, nessun browser
-headless: compatibile con le funzioni serverless di Vercel) · `@vercel/blob`
-per il logo aziendale.
+headless: compatibile con le funzioni serverless di Vercel) · `sharp` per
+comprimere il logo aziendale, salvato come data URI nel foglio stesso
+(nessuno storage esterno).
 
 ## Il foglio Google Sheets
 
@@ -78,28 +79,48 @@ Vedi `.env.example`. In sintesi:
 - `ADMIN_USER` / `ADMIN_PASSWORD` — credenziali della Basic Auth per
   `/admin`.
 
-## Vercel Blob Storage (logo aziendale)
+## Logo aziendale (nessuno storage esterno)
 
-Il logo caricato da **Impostazioni azienda** viene salvato su Vercel Blob
-Storage, non nel repository né nel foglio (nel foglio viene salvato solo
-l'URL pubblico del file).
+Il logo caricato da **Impostazioni azienda** non va su Vercel Blob o altri
+storage: la route `/api/upload-logo` lo ridimensiona e comprime con `sharp`
+(convertendolo in JPEG, sfondo trasparente appiattito su bianco) finché non
+entra in una cella del foglio Google come **data URI**, poi lo scrive
+direttamente nella colonna `LogoURL` della tab `Impostazioni`. Zero
+variabili d'ambiente da configurare, zero account terzi.
 
-Per abilitarlo sul progetto Vercel:
-
-1. Nel progetto su [vercel.com](https://vercel.com), vai su
-   **Storage → Create Database → Blob**.
-2. Crea lo store (piano gratuito incluso) e collegalo al progetto: Vercel
-   imposta automaticamente la variabile `BLOB_READ_WRITE_TOKEN`.
-3. Se sviluppi in locale, copia quel token in `.env.local` come
-   `BLOB_READ_WRITE_TOKEN` (lo trovi in **Storage → il tuo Blob store →
-   Settings**, oppure con `vercel env pull`).
+Il limite è quello di una cella di Google Sheets (50.000 caratteri): per un
+logo semplice non è un problema, ma un'immagine molto ricca di dettagli
+potrebbe non entrarci nemmeno dopo la compressione massima — in quel caso
+l'upload risponde con un errore che chiede un'immagine più semplice o più
+piccola.
 
 **Primo caricamento del logo**: vai su `/admin/impostazioni` (ti verrà
 richiesta la Basic Auth), seleziona il file immagine sotto "Logo
-aziendale" — viene caricato subito e l'URL compare in anteprima — poi premi
-"Salva impostazioni" per scrivere anche gli altri campi. Finché non carichi
-un logo, i documenti PDF mostrano solo la ragione sociale in testo, senza
-uno spazio vuoto al posto del logo.
+aziendale" — viene caricato e compresso subito e l'anteprima compare
+immediatamente — poi premi "Salva impostazioni" per scrivere anche gli
+altri campi. Finché non carichi un logo, i documenti PDF mostrano solo la
+ragione sociale in testo, senza uno spazio vuoto al posto del logo.
+
+## Icone, favicon e immagine di condivisione (branding dell'app)
+
+Le icone (favicon, home screen/PWA, apple-touch) e l'immagine mostrata
+quando il link viene condiviso (WhatsApp, social, ecc.) **non sono il logo
+aziendale** di cui sopra — sono il logo dell'app stessa, fisso nel codice:
+
+- Sorgente: `scripts/brand-src/logo-source.png` (immagine trasparente) e
+  `scripts/brand-src/og-template.html` (layout della card di condivisione).
+- Rigenerazione: `node scripts/generate-icons.mjs` (favicon, icone PWA,
+  apple-touch) e `node scripts/generate-og-image.mjs` (immagine 1200×630
+  per Open Graph/Twitter Card) — quest'ultimo richiede Chromium
+  (`playwright-core`, già tra le devDependencies).
+- Output in `public/`: `favicon-32.png`, `icon-192.png`, `icon-512.png`,
+  `apple-icon.png`, `logo.png` (usato in-app nell'header), `og-image.png`.
+- Collegati in `src/app/layout.tsx` (metadata `icons`/`openGraph`/
+  `twitter`) e `src/app/manifest.ts` (manifest PWA).
+
+Per cambiare il logo dell'app: sostituisci
+`scripts/brand-src/logo-source.png` con la nuova immagine (idealmente
+quadrata, sfondo trasparente) e rilancia i due script.
 
 ## Documenti di noleggio (PDF)
 
@@ -136,9 +157,7 @@ messaggio d'errore invece dell'elenco, finché non configuri il foglio.
 2. In **Settings → Environment Variables** aggiungi `ADMIN_USER`,
    `ADMIN_PASSWORD`, `GOOGLE_SHEETS_SPREADSHEET_ID`,
    `GOOGLE_SHEETS_CLIENT_EMAIL`, `GOOGLE_SHEETS_PRIVATE_KEY`.
-3. Abilita Vercel Blob Storage come descritto sopra (imposta
-   `BLOB_READ_WRITE_TOKEN` automaticamente).
-4. Dopo il primo deploy, vai su `/admin/impostazioni` e carica il logo e i
+3. Dopo il primo deploy, vai su `/admin/impostazioni` e carica il logo e i
    dati aziendali.
 
 ## Struttura del progetto
@@ -151,7 +170,7 @@ src/
     admin/impostazioni/       dati aziendali + upload logo (Basic Auth)
     api/dispositivi/          GET pubblico, POST/DELETE riservati
     api/impostazioni/         GET/POST riservati (protetti dal proxy)
-    api/upload-logo/          upload immagine su Vercel Blob (riservato)
+    api/upload-logo/          comprime il logo e lo salva come data URI (riservato)
     api/documento/            genera il PDF del verbale (pubblico)
   components/                 componenti React (ricerca, admin, pannello documento)
   lib/
@@ -161,4 +180,8 @@ src/
     basic-auth.ts             verifica delle credenziali Basic Auth
     pdf/VerbaleDocument.tsx   template del verbale di noleggio
   proxy.ts                    Basic Auth su /admin e sulle API di scrittura
+scripts/
+  generate-icons.mjs          favicon/icone PWA dal logo sorgente (sharp)
+  generate-og-image.mjs       immagine di condivisione 1200x630 (playwright)
+  brand-src/                  logo sorgente e template della card OG
 ```

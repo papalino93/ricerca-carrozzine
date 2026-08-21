@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { STATUS_LABEL, STATUS_OPTIONS, type Device, type DeviceStatus } from "@/lib/device-types";
 import { DocumentPanel } from "./DocumentPanel";
+import { Logo } from "./Logo";
 
 const EMPTY_FORM: Device = {
   codice: "",
@@ -92,7 +93,10 @@ export function AdminDevicesClient({ initialDevices }: AdminDevicesClientProps) 
         <div className="top-nav">
           <div>
             <p className="eyebrow">Amministrazione</p>
-            <h1>Dispositivi</h1>
+            <div className="brand-row">
+              <Logo />
+              <h1>Dispositivi</h1>
+            </div>
           </div>
           <a href="/admin/impostazioni">Impostazioni azienda →</a>
         </div>

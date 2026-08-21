@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { put } from "@vercel/blob";
+import sharp from "sharp";
 
 export const runtime = "nodejs";
+
+// Il logo viene salvato come data URI dentro la cella LogoURL del foglio
+// Google (tab Impostazioni), non su uno storage esterno: niente account o
+// token da configurare. Le celle di Google Sheets hanno un limite di 50.000
+// caratteri, quindi comprimiamo l'immagine finché non ci sta con margine.
+const MAX_DATA_URI_LENGTH = 45_000;
 
 // Protetta dal middleware (stessa Basic Auth dell'admin).
 export async function POST(req: NextRequest) {
@@ -18,22 +24,37 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+
+    const original = Buffer.from(await file.arrayBuffer());
+
+    let width = 480;
+    let quality = 82;
+    let dataUri = "";
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const resized = await sharp(original)
+        .resize({ width, height: width, fit: "inside", withoutEnlargement: true })
+        // Appiattisce la trasparenza su bianco: JPEG comprime molto meglio
+        // del PNG ed è il formato che il generatore di PDF sa leggere con certezza.
+        .flatten({ background: "#ffffff" })
+        .jpeg({ quality })
+        .toBuffer();
+      dataUri = `data:image/jpeg;base64,${resized.toString("base64")}`;
+      if (dataUri.length <= MAX_DATA_URI_LENGTH) break;
+      width = Math.round(width * 0.75);
+      quality = Math.max(40, quality - 15);
+    }
+
+    if (dataUri.length > MAX_DATA_URI_LENGTH) {
       return NextResponse.json(
         {
           error:
-            "Vercel Blob Storage non configurato: manca BLOB_READ_WRITE_TOKEN (vedi README).",
+            "Il logo è troppo pesante anche dopo la compressione: prova un'immagine più semplice o più piccola.",
         },
-        { status: 500 }
+        { status: 400 }
       );
     }
 
-    const blob = await put(`logo/${Date.now()}-${file.name}`, file, {
-      access: "public",
-      addRandomSuffix: true,
-    });
-
-    return NextResponse.json({ url: blob.url });
+    return NextResponse.json({ url: dataUri });
   } catch (err) {
     return NextResponse.json(
       { error: (err as Error).message },

@@ -61,6 +61,12 @@ header.page-header {
   margin-bottom: 18px;
 }
 
+.brand-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .eyebrow {
   font-family: var(--mono);
   font-size: 11px;

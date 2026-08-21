@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import type { CompanySettings } from "@/lib/settings";
+import { Logo } from "./Logo";
 
 interface SettingsClientProps {
   initialSettings: CompanySettings;
@@ -62,7 +63,10 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
         <div className="top-nav">
           <div>
             <p className="eyebrow">Amministrazione</p>
-            <h1>Impostazioni azienda</h1>
+            <div className="brand-row">
+              <Logo />
+              <h1>Impostazioni azienda</h1>
+            </div>
           </div>
           <a href="/admin">← Dispositivi</a>
         </div>

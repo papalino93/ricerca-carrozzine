@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { STATUS_COLOR, STATUS_OPTIONS, type Device } from "@/lib/device-types";
 import { DeviceCard } from "./DeviceCard";
+import { Logo } from "./Logo";
 
 const WMIN = 33;
 const WMAX = 55;
@@ -66,7 +67,10 @@ export function SearchClient({ initialDevices }: SearchClientProps) {
     <div className="wrap">
       <header className="page-header">
         <p className="eyebrow">Magazzino noleggio</p>
-        <h1>Ricerca Ausili</h1>
+        <div className="brand-row">
+          <Logo />
+          <h1>Ricerca Ausili</h1>
+        </div>
         <p className="sub">
           {devices.length} unità censite · ricerca disponibilità per carrozzine e altri
           dispositivi a noleggio
