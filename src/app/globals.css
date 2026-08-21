@@ -226,7 +226,21 @@ h1 {
   height: 6px;
   border-radius: 4px;
   background: #e7ecea;
+  /* Il bordo è un pseudo-elemento (sotto), non un border vero: un border
+     sulla riga stessa ne accorcia il "content box" di 2px rispetto a
+     .ruler-ticks (che non ha bordo), e siccome i pallini/il marker sono
+     posizionati in percentuale su questo box, quei 2px spostavano via via
+     di più pallini e marker rispetto alle etichette man mano che il valore
+     si avvicinava a 55. */
+}
+
+.ruler-line::before {
+  content: "";
+  position: absolute;
+  inset: 0;
   border: 1px solid var(--line);
+  border-radius: 4px;
+  pointer-events: none;
 }
 
 .ruler-target {
