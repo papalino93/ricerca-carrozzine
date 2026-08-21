@@ -1,8 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { google } from "googleapis";
 import { requireBasicAuth } from "@/lib/basic-auth";
+import { listDevices, saveAllDevices } from "@/lib/devices";
 
 export const runtime = "nodejs";
+
+// Applica la mappa {codice: sottocategoria} recuperata dalla revisione
+// precedente alla migrazione, senza toccare nessun altro campo.
+export async function POST(req: NextRequest) {
+  const unauthorized = await requireBasicAuth(req);
+  if (unauthorized) return unauthorized;
+
+  try {
+    const { mapping } = (await req.json()) as { mapping: Record<string, string> };
+    const devices = await listDevices();
+    const updated = devices.map((d) =>
+      mapping[d.codice] ? { ...d, sottocategoria: mapping[d.codice] } : d
+    );
+    await saveAllDevices(updated);
+    return NextResponse.json({ devices: updated });
+  } catch (err) {
+    return NextResponse.json({ error: (err as Error).message }, { status: 500 });
+  }
+}
 
 // Endpoint temporaneo, usato una sola volta per recuperare dalla cronologia
 // versioni di Google Drive il vecchio campo "categoria" (sottotipo

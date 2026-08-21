@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { STATUS_LABEL, STATUS_OPTIONS, type Device, type DeviceStatus } from "@/lib/device-types";
 import { DocumentPanel } from "./DocumentPanel";
 import { RentDeviceModal } from "./RentDeviceModal";
@@ -21,6 +22,7 @@ const EMPTY_FORM: Device = {
   sanificazione: null,
   nota: null,
   foto: null,
+  sottocategoria: null,
 };
 
 interface AdminDevicesClientProps {
@@ -47,6 +49,10 @@ export function AdminDevicesClient({ initialDevices, logoUrl, categories }: Admi
 
   const marche = useMemo(
     () => Array.from(new Set(devices.map((d) => d.marca).filter(Boolean))).sort(),
+    [devices]
+  );
+  const sottocategorie = useMemo(
+    () => Array.from(new Set(devices.map((d) => d.sottocategoria).filter(Boolean))).sort(),
     [devices]
   );
   const visibleDevices = useMemo(
@@ -242,7 +248,10 @@ export function AdminDevicesClient({ initialDevices, logoUrl, categories }: Admi
       <header className="page-header">
         <div className="top-nav">
           <h1>Dispositivi</h1>
-          <a href="/admin/impostazioni">Impostazioni azienda →</a>
+          <span>
+            <Link href="/">← Ricerca pubblica</Link>{" · "}
+            <a href="/admin/impostazioni">Impostazioni azienda →</a>
+          </span>
         </div>
         <p className="sub">{devices.length} unità in magazzino</p>
         <div className="card-actions" style={{ marginTop: 12 }}>
@@ -290,6 +299,22 @@ export function AdminDevicesClient({ initialDevices, logoUrl, categories }: Admi
                     </option>
                   ))}
                 </select>
+              </div>
+            </div>
+            <div className="field-row">
+              <div className="field">
+                <label>Sottocategoria (facoltativa)</label>
+                <input
+                  list="sottocategorie-list"
+                  value={form.sottocategoria ?? ""}
+                  onChange={(e) => setForm({ ...form, sottocategoria: e.target.value || null })}
+                  placeholder="es. Autospinta, Transito, Bimbi…"
+                />
+                <datalist id="sottocategorie-list">
+                  {sottocategorie.map((s) => (
+                    <option key={s} value={s ?? ""} />
+                  ))}
+                </datalist>
               </div>
             </div>
             <div className="field-row">
@@ -455,6 +480,7 @@ export function AdminDevicesClient({ initialDevices, logoUrl, categories }: Admi
               <th></th>
               <th>Codice</th>
               <th>Categoria</th>
+              <th>Tipo</th>
               <th>Marca / modello</th>
               <th>Largh.</th>
               <th>Stato</th>
@@ -474,6 +500,7 @@ export function AdminDevicesClient({ initialDevices, logoUrl, categories }: Admi
                 </td>
                 <td>{d.codice}</td>
                 <td>{d.categoria}</td>
+                <td>{d.sottocategoria ?? "—"}</td>
                 <td>
                   {d.marca} {d.modello}
                 </td>

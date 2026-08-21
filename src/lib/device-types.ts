@@ -31,8 +31,10 @@ export const STATUS_COLOR: Record<DeviceStatus, string> = {
 export interface Device {
   /** Identificativo univoco dell'unità (es. codice inventario). */
   codice: string;
-  /** Famiglia/tipologia del dispositivo (es. Autospinta, Transito, Bimbi, oppure altre categorie per dispositivi non-carrozzina). */
+  /** Reparto/famiglia del dispositivo (es. Carrozzine, Rollatori, Stampelle...), gestita da Impostazioni → Categorie. */
   categoria: string;
+  /** Sottotipo libero all'interno della categoria (es. Autospinta, Transito, Bimbi per le carrozzine). */
+  sottocategoria: string | null;
   marca: string;
   modello: string;
   /** Larghezza seduta in cm, se applicabile (può essere assente per dispositivi diversi dalle carrozzine). */

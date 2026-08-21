@@ -350,6 +350,25 @@ h1 {
   color: var(--ink);
 }
 
+.sort-select {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.sort-select select {
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 4px 8px;
+  background: var(--surface);
+}
+
 .card {
   background: var(--surface);
   border: 1px solid var(--line);

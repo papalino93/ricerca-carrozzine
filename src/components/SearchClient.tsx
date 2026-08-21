@@ -18,21 +18,40 @@ interface SearchClientProps {
   categories: string[];
 }
 
+type SortKey = "larghezza" | "codice" | "marca" | "stato" | "cliente";
+
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: "larghezza", label: "Larghezza" },
+  { key: "codice", label: "Codice" },
+  { key: "marca", label: "Marca" },
+  { key: "stato", label: "Stato" },
+  { key: "cliente", label: "Cliente" },
+];
+
 export function SearchClient({ initialDevices, logoUrl, categories }: SearchClientProps) {
   const [devices] = useState(initialDevices);
   const [width, setWidth] = useState<number | null>(null);
   const [category, setCategory] = useState("Tutte");
+  const [subcategory, setSubcategory] = useState("Tutte");
   const [statuses, setStatuses] = useState<Set<string>>(
     new Set(["disponibile", "da_pulire"])
   );
   const [query, setQuery] = useState("");
+  const [sortBy, setSortBy] = useState<SortKey>("larghezza");
 
   const categoryOptions = useMemo(() => ["Tutte", ...categories], [categories]);
+
+  const subcategoryOptions = useMemo(() => {
+    const pool = category === "Tutte" ? devices : devices.filter((d) => d.categoria === category);
+    const values = Array.from(new Set(pool.map((d) => d.sottocategoria).filter(Boolean))).sort();
+    return values as string[];
+  }, [devices, category]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     let list = devices.filter((d) => {
       if (category !== "Tutte" && d.categoria !== category) return false;
+      if (subcategory !== "Tutte" && d.sottocategoria !== subcategory) return false;
       if (!statuses.has(d.stato)) return false;
       if (q) {
         const hay = [d.codice, d.marca, d.modello, d.cliente, d.telefono, d.contratto]
@@ -44,17 +63,21 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
       return true;
     });
 
-    if (width) {
+    if (sortBy === "larghezza" && width) {
       list = [...list].sort((a, b) => {
         const da = a.larghezza == null ? 999 : Math.abs(a.larghezza - width);
         const db = b.larghezza == null ? 999 : Math.abs(b.larghezza - width);
         return da - db;
       });
-    } else {
+    } else if (sortBy === "larghezza") {
       list = [...list].sort((a, b) => (a.larghezza ?? 999) - (b.larghezza ?? 999));
+    } else if (sortBy === "stato") {
+      list = [...list].sort((a, b) => a.stato.localeCompare(b.stato));
+    } else {
+      list = [...list].sort((a, b) => (a[sortBy] ?? "").localeCompare(b[sortBy] ?? ""));
     }
     return list;
-  }, [devices, category, statuses, query, width]);
+  }, [devices, category, subcategory, statuses, query, width, sortBy]);
 
   function toggleStatus(key: string) {
     setStatuses((prev) => {
@@ -79,7 +102,10 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
     <div className="wrap">
       <BrandHeader logoUrl={logoUrl} eyebrow="Magazzino noleggio" />
       <header className="page-header">
-        <h1>Trova un ausilio disponibile</h1>
+        <div className="top-nav">
+          <h1>Trova un ausilio disponibile</h1>
+          <a href="/admin">Area amministrazione →</a>
+        </div>
         <p className="sub">
           {devices.length} unità censite · ricerca disponibilità per carrozzine e altri
           dispositivi a noleggio
@@ -154,12 +180,29 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
               key={c}
               className={`chip ${category === c ? "active" : ""}`}
               type="button"
-              onClick={() => setCategory(c)}
+              onClick={() => {
+                setCategory(c);
+                setSubcategory("Tutte");
+              }}
             >
               {c}
             </button>
           ))}
         </div>
+        {subcategoryOptions.length > 0 ? (
+          <div className="chips" style={{ marginTop: 10 }}>
+            {["Tutte", ...subcategoryOptions].map((s) => (
+              <button
+                key={s}
+                className={`chip ${subcategory === s ? "active" : ""}`}
+                type="button"
+                onClick={() => setSubcategory(s)}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        ) : null}
       </div>
 
       <div className="panel">
@@ -190,6 +233,16 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
         <span className="count">
           <b>{filtered.length}</b> unità trovate
         </span>
+        <label className="sort-select">
+          Ordina per
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortKey)}>
+            {SORT_OPTIONS.map((o) => (
+              <option key={o.key} value={o.key}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
       {filtered.length === 0 ? (

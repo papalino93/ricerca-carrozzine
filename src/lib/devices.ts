@@ -23,6 +23,7 @@ const HEADER = [
   "Sanificazione",
   "Nota",
   "Foto",
+  "Sottocategoria",
 ];
 
 function toDevice(row: string[]): Device {
@@ -40,6 +41,7 @@ function toDevice(row: string[]): Device {
     sanificazione,
     nota,
     foto,
+    sottocategoria,
   ] = row;
 
   return {
@@ -58,6 +60,7 @@ function toDevice(row: string[]): Device {
     sanificazione: sanificazione || null,
     nota: nota || null,
     foto: foto || null,
+    sottocategoria: sottocategoria || null,
   };
 }
 
@@ -76,6 +79,7 @@ function toRow(d: Device): string[] {
     d.sanificazione ?? "",
     d.nota ?? "",
     d.foto ?? "",
+    d.sottocategoria ?? "",
   ];
 }
 

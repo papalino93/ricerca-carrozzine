@@ -41,14 +41,15 @@ scrittura se non esistono ancora — non serve prepararle a mano.
 **`Dispositivi`** (riga di intestazione + una riga per unità):
 
 ```
-Codice | Categoria | Marca | Modello | Larghezza | Stato | Cliente | Telefono | Contratto | Dal | Sanificazione | Nota | Foto
+Codice | Categoria | Marca | Modello | Larghezza | Stato | Cliente | Telefono | Contratto | Dal | Sanificazione | Nota | Foto | Sottocategoria
 ```
 
 - `Stato` è uno tra: `disponibile`, `noleggiato`, `da_pulire`, `guasto`,
   `da_verificare`.
 - `Larghezza`, `Cliente`, `Telefono`, `Contratto`, `Dal`, `Sanificazione`,
-  `Nota`, `Foto` possono restare vuoti — utile per dispositivi diversi
-  dalle carrozzine, dove la larghezza seduta non ha senso.
+  `Nota`, `Foto`, `Sottocategoria` possono restare vuoti — utile per
+  dispositivi diversi dalle carrozzine, dove la larghezza seduta non ha
+  senso.
 - `Dal` e `Sanificazione` in formato `AAAA-MM-GG`.
 - Questi campi vengono aggiornati automaticamente dalle azioni di ciclo di
   vita ("Noleggia", "Segna restituito", "Segna sanificato") in `/admin`;
@@ -58,6 +59,12 @@ Codice | Categoria | Marca | Modello | Larghezza | Stato | Cliente | Telefono | 
   carica/rimuove dal form "Modifica" in `/admin` (bottone "Carica
   foto"/"Rimuovi foto"), niente storage esterno. Non contenendo dati del
   cliente, è visibile anche nella ricerca pubblica.
+- `Categoria` è il reparto gestito da Impostazioni (Carrozzine, Rollatori,
+  ecc. — vedi tab `Categorie` più sotto), mentre `Sottocategoria` è un
+  sottotipo libero facoltativo all'interno della categoria (es. per le
+  carrozzine: Autospinta, Transito, Bimbi). Entrambi compaiono come filtro
+  nella ricerca pubblica; il filtro sottocategoria si popola solo se
+  qualche dispositivo lo usa.
 
 **`Storico`** (riga di intestazione + una riga per evento, scritta in coda
 automaticamente dalle azioni di ciclo di vita):
