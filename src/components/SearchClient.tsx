@@ -95,7 +95,16 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
       return;
     }
     const n = Number(raw);
-    if (!Number.isNaN(n)) setWidth(clamp(n, WMIN, WMAX));
+    // Non applichiamo il clamp qui: farlo a ogni tasto premuto correggeva
+    // il valore a metà digitazione (es. scrivendo "44" cifra per cifra il
+    // primo "4" veniva forzato a 33, poi il secondo "4" si accodava a
+    // quello diventando "334" e quindi clampato a 55). Si limita solo
+    // quando l'utente esce dal campo, vedi handleWidthBlur.
+    if (!Number.isNaN(n)) setWidth(n);
+  }
+
+  function handleWidthBlur() {
+    setWidth((w) => (w == null ? null : clamp(w, WMIN, WMAX)));
   }
 
   return (
@@ -128,6 +137,7 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
               placeholder="—"
               value={width ?? ""}
               onChange={handleWidthInput}
+              onBlur={handleWidthBlur}
               aria-label="Larghezza seduta in centimetri"
             />
             <button aria-label="aumenta" type="button" onClick={() => setWidth(clamp((width ?? 40) + 1, WMIN, WMAX))}>

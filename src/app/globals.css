@@ -452,10 +452,6 @@ h1 {
   display: block;
 }
 
-.photo-thumb-empty {
-  background: var(--accent-bg);
-}
-
 .code {
   font-size: 12.5px;
   color: var(--ink-soft);
@@ -611,82 +607,33 @@ table.admin-table td {
   vertical-align: middle;
 }
 
-.row-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-.row-menu {
-  position: relative;
-}
-
-.row-menu > summary {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface);
+tr.clickable-row {
   cursor: pointer;
-  list-style: none;
-  font-size: 16px;
-  line-height: 1;
-  color: var(--ink-soft);
 }
 
-.row-menu > summary::-webkit-details-marker {
-  display: none;
-}
-
-.row-menu > summary:hover {
+tr.clickable-row:hover td {
   background: #f0f3f2;
 }
 
-.row-menu[open] > summary {
-  background: var(--accent-bg);
-  border-color: var(--accent);
-  color: var(--accent-ink);
-}
-
-.row-menu-list {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 6px);
-  z-index: 20;
+.detail-status-row {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 170px;
-  padding: 6px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  box-shadow: 0 12px 28px rgba(23, 48, 27, 0.14);
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
 }
 
-.row-menu-list button {
-  border: none;
-  background: none;
-  text-align: left;
-  padding: 8px 10px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  font-family: var(--sans);
+.detail-section {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.detail-section h2 {
+  font-family: var(--serif);
+  font-size: 15px;
   color: var(--ink);
-  cursor: pointer;
-}
-
-.row-menu-list button:hover {
-  background: #f0f3f2;
-}
-
-.row-menu-list button.danger {
-  color: var(--broken-fg);
+  margin: 0 0 12px;
+  font-weight: 600;
 }
 
 .field {
@@ -742,6 +689,10 @@ table.admin-table td {
   max-width: 560px;
   max-height: 92vh;
   overflow-y: auto;
+}
+
+.modal.wide {
+  max-width: 720px;
 }
 
 @media (min-width: 640px) {
