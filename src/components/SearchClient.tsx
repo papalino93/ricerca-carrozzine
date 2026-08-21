@@ -102,21 +102,29 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
     return counts;
   }, [devices]);
 
+  const isSearching = query.trim().length > 0;
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    let list = devices.filter((d) => {
-      if (category !== "Tutte" && d.categoria !== category) return false;
-      if (subcategory !== "Tutte" && d.sottocategoria !== subcategory) return false;
-      if (!statuses.has(d.stato)) return false;
-      if (q) {
-        const hay = [d.codice, d.marca, d.modello, d.cliente, d.telefono, d.contratto]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-        if (!matchesQuery(hay, q)) return false;
-      }
-      return true;
-    });
+
+    // Una ricerca libera è una richiesta puntuale ("trova questo codice/
+    // cliente"): ignora i filtri di categoria/stato/larghezza e guarda
+    // in tutto il magazzino, altrimenti un dispositivo noleggiato o guasto
+    // resterebbe invisibile anche cercandolo per codice esatto.
+    let list = q
+      ? devices.filter((d) => {
+          const hay = [d.codice, d.marca, d.modello, d.cliente, d.telefono, d.contratto, d.larghezza]
+            .filter((v) => v != null && v !== "")
+            .join(" ")
+            .toLowerCase();
+          return matchesQuery(hay, q);
+        })
+      : devices.filter((d) => {
+          if (category !== "Tutte" && d.categoria !== category) return false;
+          if (subcategory !== "Tutte" && d.sottocategoria !== subcategory) return false;
+          if (!statuses.has(d.stato)) return false;
+          return true;
+        });
 
     if (sortBy === "larghezza" && width) {
       list = [...list].sort((a, b) => {
@@ -187,135 +195,139 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
         />
       </div>
 
-      <StatTiles
-        tiles={[
-          {
-            key: "__all__",
-            label: "Totale",
-            value: devices.length,
-            color: "var(--accent)",
-            active: statuses.size === ALL_STATUSES.size,
-          },
-          ...STATUS_OPTIONS.map((o) => ({
-            key: o.key,
-            label: o.label,
-            value: stats[o.key],
-            color: STATUS_COLOR[o.key],
-            active: statuses.size === 1 && statuses.has(o.key),
-          })),
-        ]}
-        onSelect={(key) => (key === "__all__" ? setStatuses(new Set(ALL_STATUSES)) : selectOnlyStatus(key as DeviceStatus))}
-      />
+      {!isSearching ? (
+        <>
+          <StatTiles
+            tiles={[
+              {
+                key: "__all__",
+                label: "Totale",
+                value: devices.length,
+                color: "var(--accent)",
+                active: statuses.size === ALL_STATUSES.size,
+              },
+              ...STATUS_OPTIONS.map((o) => ({
+                key: o.key,
+                label: o.label,
+                value: stats[o.key],
+                color: STATUS_COLOR[o.key],
+                active: statuses.size === 1 && statuses.has(o.key),
+              })),
+            ]}
+            onSelect={(key) => (key === "__all__" ? setStatuses(new Set(ALL_STATUSES)) : selectOnlyStatus(key as DeviceStatus))}
+          />
 
-      <div className="panel">
-        <h2>Larghezza seduta richiesta (se applicabile)</h2>
-        <div className="width-row">
-          <div className="stepper">
-            <button aria-label="diminuisci" type="button" onClick={() => setWidth(clamp((width ?? 44) - 1, WMIN, WMAX))}>
-              −
-            </button>
-            <input
-              className="val"
-              type="number"
-              inputMode="numeric"
-              min={WMIN}
-              max={WMAX}
-              placeholder="—"
-              value={width ?? ""}
-              onChange={handleWidthInput}
-              onBlur={handleWidthBlur}
-              aria-label="Larghezza seduta in centimetri"
-            />
-            <button aria-label="aumenta" type="button" onClick={() => setWidth(clamp((width ?? 40) + 1, WMIN, WMAX))}>
-              +
-            </button>
-          </div>
-          <span className="hint" style={{ margin: 0 }}>cm</span>
-          <button className="clear-width" type="button" onClick={() => setWidth(null)}>
-            Nessun filtro larghezza
-          </button>
-        </div>
-        <div className="ruler-wrap">
-          <div className="ruler-line">
-            {devices
-              .filter((d) => d.larghezza)
-              .map((d) => {
-                const pct = clamp((((d.larghezza as number) - WMIN) / (WMAX - WMIN)) * 100, 0, 100);
-                return (
+          <div className="panel">
+            <h2>Larghezza seduta richiesta (se applicabile)</h2>
+            <div className="width-row">
+              <div className="stepper">
+                <button aria-label="diminuisci" type="button" onClick={() => setWidth(clamp((width ?? 44) - 1, WMIN, WMAX))}>
+                  −
+                </button>
+                <input
+                  className="val"
+                  type="number"
+                  inputMode="numeric"
+                  min={WMIN}
+                  max={WMAX}
+                  placeholder="—"
+                  value={width ?? ""}
+                  onChange={handleWidthInput}
+                  onBlur={handleWidthBlur}
+                  aria-label="Larghezza seduta in centimetri"
+                />
+                <button aria-label="aumenta" type="button" onClick={() => setWidth(clamp((width ?? 40) + 1, WMIN, WMAX))}>
+                  +
+                </button>
+              </div>
+              <span className="hint" style={{ margin: 0 }}>cm</span>
+              <button className="clear-width" type="button" onClick={() => setWidth(null)}>
+                Nessun filtro larghezza
+              </button>
+            </div>
+            <div className="ruler-wrap">
+              <div className="ruler-line">
+                {devices
+                  .filter((d) => d.larghezza)
+                  .map((d) => {
+                    const pct = clamp((((d.larghezza as number) - WMIN) / (WMAX - WMIN)) * 100, 0, 100);
+                    return (
+                      <div
+                        key={d.codice}
+                        className="ruler-dot"
+                        style={{ left: `${pct}%`, background: STATUS_COLOR[d.stato] }}
+                        title={`${d.codice} · ${d.larghezza}cm`}
+                      />
+                    );
+                  })}
+                {width ? (
                   <div
-                    key={d.codice}
-                    className="ruler-dot"
-                    style={{ left: `${pct}%`, background: STATUS_COLOR[d.stato] }}
-                    title={`${d.codice} · ${d.larghezza}cm`}
+                    className="ruler-target"
+                    data-label={`${width} cm`}
+                    style={{ left: `${clamp(((width - WMIN) / (WMAX - WMIN)) * 100, 0, 100)}%` }}
                   />
-                );
-              })}
-            {width ? (
-              <div
-                className="ruler-target"
-                data-label={`${width} cm`}
-                style={{ left: `${clamp(((width - WMIN) / (WMAX - WMIN)) * 100, 0, 100)}%` }}
-              />
+                ) : null}
+              </div>
+              <div className="ruler-ticks">
+                <span>35</span>
+                <span>40</span>
+                <span>45</span>
+                <span>50</span>
+                <span>55 cm</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="panel">
+            <h2>Categoria</h2>
+            <div className="chips">
+              {categoryOptions.map((c) => (
+                <button
+                  key={c}
+                  className={`chip ${category === c ? "active" : ""}`}
+                  type="button"
+                  onClick={() => {
+                    setCategory(c);
+                    setSubcategory("Tutte");
+                  }}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+            {subcategoryOptions.length > 0 ? (
+              <div className="chips" style={{ marginTop: 10 }}>
+                {["Tutte", ...subcategoryOptions].map((s) => (
+                  <button
+                    key={s}
+                    className={`chip ${subcategory === s ? "active" : ""}`}
+                    type="button"
+                    onClick={() => setSubcategory(s)}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
             ) : null}
           </div>
-          <div className="ruler-ticks">
-            <span>35</span>
-            <span>40</span>
-            <span>45</span>
-            <span>50</span>
-            <span>55 cm</span>
-          </div>
-        </div>
-      </div>
 
-      <div className="panel">
-        <h2>Categoria</h2>
-        <div className="chips">
-          {categoryOptions.map((c) => (
-            <button
-              key={c}
-              className={`chip ${category === c ? "active" : ""}`}
-              type="button"
-              onClick={() => {
-                setCategory(c);
-                setSubcategory("Tutte");
-              }}
-            >
-              {c}
-            </button>
-          ))}
-        </div>
-        {subcategoryOptions.length > 0 ? (
-          <div className="chips" style={{ marginTop: 10 }}>
-            {["Tutte", ...subcategoryOptions].map((s) => (
-              <button
-                key={s}
-                className={`chip ${subcategory === s ? "active" : ""}`}
-                type="button"
-                onClick={() => setSubcategory(s)}
-              >
-                {s}
-              </button>
-            ))}
+          <div className="panel">
+            <h2>Stato</h2>
+            <div className="chips">
+              {STATUS_OPTIONS.map((o) => (
+                <button
+                  key={o.key}
+                  className={`chip ${statuses.has(o.key) ? "active" : ""}`}
+                  type="button"
+                  onClick={() => toggleStatus(o.key)}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
           </div>
-        ) : null}
-      </div>
-
-      <div className="panel">
-        <h2>Stato</h2>
-        <div className="chips">
-          {STATUS_OPTIONS.map((o) => (
-            <button
-              key={o.key}
-              className={`chip ${statuses.has(o.key) ? "active" : ""}`}
-              type="button"
-              onClick={() => toggleStatus(o.key)}
-            >
-              {o.label}
-            </button>
-          ))}
-        </div>
-      </div>
+        </>
+      ) : null}
 
       <div className="results-head">
         <span className="count">
