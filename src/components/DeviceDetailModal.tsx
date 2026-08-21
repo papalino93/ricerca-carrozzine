@@ -9,7 +9,13 @@ import {
 } from "@/lib/device-types";
 import { DocumentPanel } from "./DocumentPanel";
 import type { DocumentoTipo } from "@/lib/pdf/VerbaleDocument";
+import type { DevicePhoto } from "@/lib/photos";
 import { Toast } from "./Toast";
+
+// Deve combaciare con MAX_PHOTOS_PER_DEVICE in src/lib/photos.ts (server-only,
+// non importabile qui): solo per mostrare il conteggio, il limite reale è
+// comunque imposto dal server.
+const MAX_GALLERY_PHOTOS = 8;
 
 interface HistoryEvent {
   data: string;
@@ -85,6 +91,9 @@ export function DeviceDetailModal({
   const [docForcedTipo, setDocForcedTipo] = useState<DocumentoTipo | undefined>(undefined);
   const [docDevice, setDocDevice] = useState<Device>(device);
   const [events, setEvents] = useState<HistoryEvent[] | null>(isNew ? [] : null);
+  const [gallery, setGallery] = useState<DevicePhoto[]>([]);
+  const [galleryTipo, setGalleryTipo] = useState("");
+  const [uploadingGallery, setUploadingGallery] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -111,12 +120,33 @@ export function DeviceDetailModal({
     };
   }
 
+  function loadGallery() {
+    if (isNew) return;
+    let cancelled = false;
+    fetch(`/api/dispositivi/${encodeURIComponent(device.codice)}/galleria`)
+      .then(async (res) => {
+        const body = await res.json();
+        if (!res.ok) throw new Error(body.error || "Impossibile leggere la galleria");
+        if (!cancelled) setGallery(body.photos);
+      })
+      .catch(() => {
+        if (!cancelled) setGallery([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }
+
   // Il componente è montato con una `key` diversa ogni volta che si apre un
   // dispositivo diverso (o si passa a "Duplica"): niente da sincronizzare
   // qui, lo stato iniziale sopra riflette già il device corretto.
   useEffect(() => {
-    const cancel = loadHistory();
-    return cancel;
+    const cancelHistory = loadHistory();
+    const cancelGallery = loadGallery();
+    return () => {
+      cancelHistory?.();
+      cancelGallery?.();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [device.codice, isNew]);
 
@@ -315,6 +345,50 @@ export function DeviceDetailModal({
       setError((err as Error).message);
     } finally {
       setUploadingPhoto(false);
+    }
+  }
+
+  async function handleGalleryUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploadingGallery(true);
+    setError(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("tipo", galleryTipo);
+      const res = await fetch(`/api/dispositivi/${encodeURIComponent(current.codice)}/galleria`, {
+        method: "POST",
+        body: fd,
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Caricamento foto non riuscito");
+      setGallery(body.photos);
+      setGalleryTipo("");
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setUploadingGallery(false);
+    }
+  }
+
+  async function handleGalleryRemove(id: string) {
+    if (!confirm("Rimuovere questa foto dalla galleria?")) return;
+    setUploadingGallery(true);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/dispositivi/${encodeURIComponent(current.codice)}/galleria?id=${encodeURIComponent(id)}`,
+        { method: "DELETE" }
+      );
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Rimozione foto non riuscita");
+      setGallery(body.photos);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setUploadingGallery(false);
     }
   }
 
@@ -586,6 +660,61 @@ export function DeviceDetailModal({
               </button>
             </div>
           </form>
+
+          {!isNew ? (
+            <div className="detail-section">
+              <h2>Galleria foto ({gallery.length}/{MAX_GALLERY_PHOTOS})</h2>
+              <p className="hint" style={{ marginBottom: 10 }}>
+                Foto aggiuntive oltre a quella principale (es. laterale, etichetta, un difetto
+                da documentare). Ogni foto ha un&apos;etichetta libera facoltativa.
+              </p>
+              {gallery.length > 0 ? (
+                <div className="gallery-grid">
+                  {gallery.map((p) => (
+                    <div key={p.id} className="gallery-item">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={p.immagine} alt={p.tipo || "Foto"} className="gallery-thumb" />
+                      <div className="gallery-caption">{p.tipo || "—"}</div>
+                      <button
+                        className="btn danger"
+                        type="button"
+                        onClick={() => handleGalleryRemove(p.id)}
+                        disabled={uploadingGallery}
+                      >
+                        Rimuovi
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="hint">Nessuna foto aggiuntiva.</p>
+              )}
+              {gallery.length < MAX_GALLERY_PHOTOS ? (
+                <div className="card-actions" style={{ marginTop: 12 }}>
+                  <input
+                    value={galleryTipo}
+                    onChange={(e) => setGalleryTipo(e.target.value)}
+                    placeholder="Etichetta (facoltativa): es. Laterale, Etichetta, Difetto…"
+                    style={{ maxWidth: 280 }}
+                  />
+                  <label className="btn">
+                    {uploadingGallery ? "Caricamento…" : "Aggiungi foto"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleGalleryUpload}
+                      disabled={uploadingGallery}
+                      style={{ display: "none" }}
+                    />
+                  </label>
+                </div>
+              ) : (
+                <p className="hint">
+                  Limite di {MAX_GALLERY_PHOTOS} foto raggiunto: rimuovine una per aggiungerne altre.
+                </p>
+              )}
+            </div>
+          ) : null}
 
           {!isNew ? (
             <div className="detail-section">

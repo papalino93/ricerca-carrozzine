@@ -2,6 +2,7 @@ import "server-only";
 import { readSheet, writeSheet } from "./sheets";
 import { appendHistoryEvent } from "./history";
 import { upsertClient } from "./clients";
+import { removeAllDevicePhotos } from "./photos";
 import { STATUS_OPTIONS, type Device, type DeviceStatus } from "./device-types";
 
 export type { Device, DeviceStatus } from "./device-types";
@@ -141,6 +142,13 @@ export async function deleteDevice(codice: string): Promise<Device[]> {
     throw new Error(`Dispositivo ${codice} non trovato`);
   }
   await saveAllDevices(remaining);
+  try {
+    // Pulizia della galleria: informativa, non deve far fallire un'eliminazione
+    // già andata a buon fine se la scrittura sul foglio Foto si inceppa.
+    await removeAllDevicePhotos(codice);
+  } catch {
+    // best-effort
+  }
   return remaining;
 }
 
