@@ -5,7 +5,7 @@ import { listDevices } from "@/lib/devices";
 
 export const runtime = "nodejs";
 
-// Pubblica: serve al filtro categoria della ricerca pubblica.
+// Serve al filtro categoria della pagina di ricerca (richiede login, vedi proxy.ts).
 export async function GET() {
   try {
     const categories = await listCategories();

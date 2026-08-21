@@ -11,6 +11,7 @@ import { StatTiles } from "./StatTiles";
 // etichette (es. 44 finiva visivamente sotto l'etichetta "45").
 const WMIN = 35;
 const WMAX = 55;
+const RULER_TICKS = [35, 40, 45, 50, 55];
 
 function clamp(v: number, a: number, b: number): number {
   return Math.max(a, Math.min(b, v));
@@ -269,11 +270,23 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
                 ) : null}
               </div>
               <div className="ruler-ticks">
-                <span>35</span>
-                <span>40</span>
-                <span>45</span>
-                <span>50</span>
-                <span>55 cm</span>
+                {RULER_TICKS.map((v, i) => {
+                  const pct = ((v - WMIN) / (WMAX - WMIN)) * 100;
+                  const isFirst = i === 0;
+                  const isLast = i === RULER_TICKS.length - 1;
+                  return (
+                    <span
+                      key={v}
+                      style={{
+                        left: `${pct}%`,
+                        transform: isFirst ? "none" : isLast ? "translateX(-100%)" : "translateX(-50%)",
+                      }}
+                    >
+                      {v}
+                      {isLast ? " cm" : ""}
+                    </span>
+                  );
+                })}
               </div>
             </div>
           </div>

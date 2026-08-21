@@ -38,7 +38,8 @@ function buildDocument(body: DocumentoRequestBody, settings: CompanySettings) {
   );
 }
 
-// Pubblica: generabile sia dalla ricerca pubblica sia dall'admin.
+// Generabile sia dalla pagina di ricerca sia dall'admin (entrambe richiedono
+// login, vedi proxy.ts).
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as DocumentoRequestBody;

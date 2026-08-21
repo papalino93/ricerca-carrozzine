@@ -54,10 +54,10 @@ export interface Device {
 }
 
 /**
- * Versione del dispositivo sicura per esposizione pubblica (ricerca senza
- * login): il nome cliente resta visibile (come nel prototipo originale),
- * ma telefono e numero contratto — dati più sensibili — restano riservati
- * all'amministrazione autenticata.
+ * Versione del dispositivo per la pagina di ricerca (accessibile solo dopo
+ * login, vedi proxy.ts, ma comunque distinta dall'admin): il nome cliente
+ * resta visibile (come nel prototipo originale), ma telefono e numero
+ * contratto — dati più sensibili — restano riservati a chi opera dall'admin.
  */
 export function toPublicDevice(d: Device): Device {
   return { ...d, telefono: null, contratto: null };

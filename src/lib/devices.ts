@@ -9,6 +9,10 @@ export { STATUS_COLOR, STATUS_LABEL, STATUS_OPTIONS } from "./device-types";
 
 const VALID_STATUSES = STATUS_OPTIONS.map((o) => o.key);
 
+// Ben sotto il limite di 50.000 caratteri per cella di Google Sheets: una
+// nota più lunga farebbe fallire l'intero salvataggio del dispositivo.
+const MAX_NOTA_LENGTH = 20000;
+
 const TAB = "Dispositivi";
 const HEADER = [
   "Codice",
@@ -108,6 +112,9 @@ function todayIso(): string {
 
 export async function upsertDevice(device: Device): Promise<Device[]> {
   if (!device.codice) throw new Error("Codice obbligatorio");
+  if ((device.nota?.length ?? 0) > MAX_NOTA_LENGTH) {
+    throw new Error(`La nota supera i ${MAX_NOTA_LENGTH} caratteri: abbreviala prima di salvare.`);
+  }
   const devices = await listDevices();
   const idx = devices.findIndex((d) => d.codice === device.codice);
   if (idx >= 0) devices[idx] = device;

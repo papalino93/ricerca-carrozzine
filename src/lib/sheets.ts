@@ -78,18 +78,42 @@ export async function readSheet(tab: string): Promise<string[][]> {
   }
 }
 
-/** Sostituisce l'intero contenuto di una tab (intestazione inclusa), creandola se manca. */
+/**
+ * Sostituisce l'intero contenuto di una tab (intestazione inclusa), creandola se manca.
+ *
+ * IMPORTANTE: scrive prima i dati nuovi e solo dopo elimina le righe residue
+ * più lunghe del contenuto precedente — non il contrario. Con un "clear" prima
+ * dell'"update" (come faceva questa funzione originariamente) qualsiasi errore
+ * nella scrittura (una cella oltre il limite di 50.000 caratteri di Google,
+ * quota di scrittura superata, timeout della funzione) lascia la tab
+ * completamente vuota: l'intero magazzino perso per un singolo salvataggio
+ * falito. Scrivendo prima, un errore lascia semplicemente il contenuto
+ * precedente intatto.
+ */
 export async function writeSheet(tab: string, rows: string[][]): Promise<void> {
   const sheets = getSheetsApi();
   const spreadsheetId = getSpreadsheetId();
   await ensureTab(sheets, spreadsheetId, tab);
-  await sheets.spreadsheets.values.clear({ spreadsheetId, range: tab });
-  if (rows.length === 0) return;
+
+  if (rows.length === 0) {
+    // Nessun contenuto nuovo da proteggere: qui svuotare è l'operazione richiesta.
+    await sheets.spreadsheets.values.clear({ spreadsheetId, range: tab });
+    return;
+  }
+
   await sheets.spreadsheets.values.update({
     spreadsheetId,
     range: `${tab}!A1`,
     valueInputOption: "RAW",
     requestBody: { values: rows },
+  });
+
+  // Elimina solo le righe eventualmente residue di un contenuto precedente
+  // più lungo di quello appena scritto (range aperto: dalla riga successiva
+  // all'ultima della tab).
+  await sheets.spreadsheets.values.clear({
+    spreadsheetId,
+    range: `${tab}!A${rows.length + 1}:ZZ`,
   });
 }
 

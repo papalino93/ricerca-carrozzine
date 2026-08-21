@@ -53,7 +53,17 @@ export async function getSettings(): Promise<CompanySettings> {
   };
 }
 
+// Ben sotto il limite di 50.000 caratteri per cella di Google Sheets: un
+// testo più lungo farebbe fallire l'intero salvataggio delle impostazioni
+// (compreso il logo, che vive in un'altra cella della stessa riga).
+const MAX_CONDIZIONI_LENGTH = 20000;
+
 export async function saveSettings(settings: CompanySettings): Promise<void> {
+  if (settings.condizioniGenerali.length > MAX_CONDIZIONI_LENGTH) {
+    throw new Error(
+      `Le condizioni generali superano i ${MAX_CONDIZIONI_LENGTH} caratteri: abbreviale prima di salvare.`
+    );
+  }
   await writeSheet(TAB, [
     HEADER,
     [

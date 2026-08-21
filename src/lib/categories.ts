@@ -1,6 +1,5 @@
 import "server-only";
 import { readSheet, writeSheet } from "./sheets";
-import { listDevices, saveAllDevices } from "./devices";
 
 const TAB = "Categorie";
 const HEADER = ["Nome"];
@@ -14,23 +13,24 @@ async function readCategories(): Promise<string[]> {
 }
 
 /**
- * Elenco delle categorie gestite da Impostazioni. Se il foglio è vuoto (mai
- * inizializzato: questa è la prima richiesta dopo il rilascio della
- * funzione categorie), lo si popola con "Carrozzine" e si assegna questa
- * categoria a tutti i dispositivi già presenti in magazzino — finora erano
- * tutte carrozzine, distinte solo da un campo categoria libero (es. "Mag
- * Autospinta"). È una migrazione singola: una volta scritto il foglio
- * Categorie questo blocco non viene più eseguito.
+ * Elenco delle categorie gestite da Impostazioni. Se il foglio è vuoto lo si
+ * popola con un valore di default ("Carrozzine").
+ *
+ * ATTENZIONE: questa funzione NON deve più toccare la tab Dispositivi. In
+ * origine (migrazione singola, ormai eseguita) un foglio Categorie vuoto
+ * veniva interpretato come "prima esecuzione dopo il rilascio della
+ * funzione categorie" e usato per riscrivere la categoria di ogni
+ * dispositivo esistente. Il problema: "il foglio Categorie è vuoto" può
+ * accadere anche per altri motivi (una scrittura falita a metà, l'ultima
+ * categoria eliminata, la tab rinominata) — in quei casi la vecchia logica
+ * avrebbe azzerato la categoria di TUTTI i dispositivi in magazzino. Qui ci
+ * si limita a garantire che la lista non sia mai vuota.
  */
 export async function listCategories(): Promise<string[]> {
   const categories = await readCategories();
   if (categories.length > 0) return categories;
 
   await writeSheet(TAB, [HEADER, ["Carrozzine"]]);
-  const devices = await listDevices();
-  if (devices.some((d) => d.categoria !== "Carrozzine")) {
-    await saveAllDevices(devices.map((d) => ({ ...d, categoria: "Carrozzine" })));
-  }
   return ["Carrozzine"];
 }
 

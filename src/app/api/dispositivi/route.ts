@@ -5,8 +5,9 @@ import { toPublicDevice } from "@/lib/device-types";
 
 export const runtime = "nodejs";
 
-// Pubblica e senza autenticazione: telefono e contratto restano riservati
-// all'amministrazione, non vengono restituiti qui (vedi toPublicDevice).
+// Accessibile a chiunque sia autenticato (vedi proxy.ts): telefono e contratto
+// restano comunque riservati alla sola amministrazione, non vengono
+// restituiti qui (vedi toPublicDevice).
 export async function GET() {
   try {
     const devices = await listDevices();
