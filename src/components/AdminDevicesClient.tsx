@@ -40,6 +40,9 @@ export function AdminDevicesClient({ initialDevices, logoUrl, categories }: Admi
   const [rentDevice, setRentDevice] = useState<Device | null>(null);
   const [historyDevice, setHistoryDevice] = useState<Device | null>(null);
   const [categoryFilter, setCategoryFilter] = useState("Tutte");
+  const [statusFilter, setStatusFilter] = useState<Set<DeviceStatus>>(
+    new Set(STATUS_OPTIONS.map((o) => o.key))
+  );
   const [formOpen, setFormOpen] = useState(false);
 
   const marche = useMemo(
@@ -47,9 +50,22 @@ export function AdminDevicesClient({ initialDevices, logoUrl, categories }: Admi
     [devices]
   );
   const visibleDevices = useMemo(
-    () => (categoryFilter === "Tutte" ? devices : devices.filter((d) => d.categoria === categoryFilter)),
-    [devices, categoryFilter]
+    () =>
+      devices.filter(
+        (d) =>
+          (categoryFilter === "Tutte" || d.categoria === categoryFilter) && statusFilter.has(d.stato)
+      ),
+    [devices, categoryFilter, statusFilter]
   );
+
+  function toggleStatusFilter(key: DeviceStatus) {
+    setStatusFilter((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
 
   function startEdit(d: Device) {
     setForm(d);
@@ -420,6 +436,18 @@ export function AdminDevicesClient({ initialDevices, logoUrl, categories }: Admi
               ))}
             </select>
           </div>
+        </div>
+        <div className="chips" style={{ marginBottom: 16 }}>
+          {STATUS_OPTIONS.map((o) => (
+            <button
+              key={o.key}
+              className={`chip ${statusFilter.has(o.key) ? "active" : ""}`}
+              type="button"
+              onClick={() => toggleStatusFilter(o.key)}
+            >
+              {o.label}
+            </button>
+          ))}
         </div>
         <table className="admin-table">
           <thead>
