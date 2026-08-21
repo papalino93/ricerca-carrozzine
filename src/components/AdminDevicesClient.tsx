@@ -40,6 +40,7 @@ export function AdminDevicesClient({ initialDevices, logoUrl, categories }: Admi
   const [rentDevice, setRentDevice] = useState<Device | null>(null);
   const [historyDevice, setHistoryDevice] = useState<Device | null>(null);
   const [categoryFilter, setCategoryFilter] = useState("Tutte");
+  const [formOpen, setFormOpen] = useState(false);
 
   const marche = useMemo(
     () => Array.from(new Set(devices.map((d) => d.marca).filter(Boolean))).sort(),
@@ -54,12 +55,23 @@ export function AdminDevicesClient({ initialDevices, logoUrl, categories }: Admi
     setForm(d);
     setEditingCodice(d.codice);
     setError(null);
+    setFormOpen(true);
   }
 
   function startNew() {
     setForm(EMPTY_FORM);
     setEditingCodice(null);
     setError(null);
+  }
+
+  function openNew() {
+    startNew();
+    setFormOpen(true);
+  }
+
+  function closeForm() {
+    setFormOpen(false);
+    startNew();
   }
 
   function startDuplicate(d: Device) {
@@ -72,7 +84,7 @@ export function AdminDevicesClient({ initialDevices, logoUrl, categories }: Admi
     });
     setEditingCodice(null);
     setError(null);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    setFormOpen(true);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -97,7 +109,7 @@ export function AdminDevicesClient({ initialDevices, logoUrl, categories }: Admi
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || "Salvataggio non riuscito");
       setDevices(body.devices);
-      startNew();
+      closeForm();
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -116,7 +128,7 @@ export function AdminDevicesClient({ initialDevices, logoUrl, categories }: Admi
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || "Eliminazione non riuscita");
       setDevices(body.devices);
-      if (editingCodice === codice) startNew();
+      if (editingCodice === codice) closeForm();
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -217,169 +229,183 @@ export function AdminDevicesClient({ initialDevices, logoUrl, categories }: Admi
           <a href="/admin/impostazioni">Impostazioni azienda →</a>
         </div>
         <p className="sub">{devices.length} unità in magazzino</p>
+        <div className="card-actions" style={{ marginTop: 12 }}>
+          <button className="btn primary" type="button" onClick={openNew}>
+            + Aggiungi dispositivo
+          </button>
+        </div>
       </header>
 
       {error ? <div className="banner error">{error}</div> : null}
 
-      <form className="panel" onSubmit={handleSubmit}>
-        <h2>{editingCodice ? `Modifica ${editingCodice}` : "Nuovo dispositivo"}</h2>
-        <div className="field-row">
-          <div className="field">
-            <label>Codice</label>
-            <input
-              value={form.codice}
-              disabled={Boolean(editingCodice)}
-              onChange={(e) => setForm({ ...form, codice: e.target.value })}
-              required
-            />
-          </div>
-          <div className="field">
-            <label>Categoria</label>
-            <select
-              value={form.categoria}
-              onChange={(e) => setForm({ ...form, categoria: e.target.value })}
-              required
-            >
-              <option value="" disabled>
-                — seleziona —
-              </option>
-              {categories.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-        <div className="field-row">
-          <div className="field">
-            <label>Marca</label>
-            <input
-              list="marche-list"
-              value={form.marca}
-              onChange={(e) => setForm({ ...form, marca: e.target.value })}
-            />
-            <datalist id="marche-list">
-              {marche.map((m) => (
-                <option key={m} value={m} />
-              ))}
-            </datalist>
-          </div>
-          <div className="field">
-            <label>Modello</label>
-            <input value={form.modello} onChange={(e) => setForm({ ...form, modello: e.target.value })} />
-          </div>
-        </div>
-        <div className="field-row">
-          <div className="field">
-            <label>Larghezza seduta (cm, se applicabile)</label>
-            <input
-              type="number"
-              value={form.larghezza ?? ""}
-              onChange={(e) =>
-                setForm({ ...form, larghezza: e.target.value ? Number(e.target.value) : null })
-              }
-            />
-          </div>
-          <div className="field">
-            <label>Stato</label>
-            <select
-              value={form.stato}
-              onChange={(e) => setForm({ ...form, stato: e.target.value as DeviceStatus })}
-            >
-              {STATUS_OPTIONS.map((o) => (
-                <option key={o.key} value={o.key}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-        <div className="field-row">
-          <div className="field">
-            <label>Cliente</label>
-            <input value={form.cliente ?? ""} onChange={(e) => setForm({ ...form, cliente: e.target.value || null })} />
-          </div>
-          <div className="field">
-            <label>Telefono cliente</label>
-            <input value={form.telefono ?? ""} onChange={(e) => setForm({ ...form, telefono: e.target.value || null })} />
-          </div>
-        </div>
-        <div className="field-row">
-          <div className="field">
-            <label>Numero contratto</label>
-            <input value={form.contratto ?? ""} onChange={(e) => setForm({ ...form, contratto: e.target.value || null })} />
-          </div>
-          <div className="field">
-            <label>Dal (inizio noleggio)</label>
-            <input
-              type="date"
-              value={form.dal ?? ""}
-              onChange={(e) => setForm({ ...form, dal: e.target.value || null })}
-            />
-          </div>
-        </div>
-        <div className="field-row">
-          <div className="field">
-            <label>Sanificazione (ultima)</label>
-            <input
-              type="date"
-              value={form.sanificazione ?? ""}
-              onChange={(e) => setForm({ ...form, sanificazione: e.target.value || null })}
-            />
-          </div>
-          <div className="field">
-            <label>Nota</label>
-            <input value={form.nota ?? ""} onChange={(e) => setForm({ ...form, nota: e.target.value || null })} />
-          </div>
-        </div>
-        <div className="field-row">
-          <div className="field">
-            <label>Foto</label>
-            {editingCodice ? (
-              <div className="photo-field">
-                {form.foto ? (
-                  <img className="photo-preview" src={form.foto} alt={`Foto ${editingCodice}`} />
-                ) : null}
-                <div className="card-actions" style={{ marginTop: 0 }}>
-                  <label className="btn">
-                    {uploadingPhoto ? "Caricamento…" : form.foto ? "Cambia foto" : "Carica foto"}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePhotoUpload}
-                      disabled={uploadingPhoto}
-                      style={{ display: "none" }}
-                    />
-                  </label>
-                  {form.foto ? (
-                    <button
-                      className="btn danger"
-                      type="button"
-                      onClick={handlePhotoRemove}
-                      disabled={uploadingPhoto}
-                    >
-                      Rimuovi foto
-                    </button>
-                  ) : null}
-                </div>
+      {formOpen ? (
+        <div className="modal-overlay" onClick={closeForm}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              <h3>{editingCodice ? `Modifica ${editingCodice}` : "Nuovo dispositivo"}</h3>
+              <button className="modal-close" onClick={closeForm} aria-label="Chiudi" type="button">
+                ×
+              </button>
+            </div>
+            <form onSubmit={handleSubmit}>
+            <div className="field-row">
+              <div className="field">
+                <label>Codice</label>
+                <input
+                  value={form.codice}
+                  disabled={Boolean(editingCodice)}
+                  onChange={(e) => setForm({ ...form, codice: e.target.value })}
+                  required
+                />
               </div>
-            ) : (
-              <p className="hint">Salva il dispositivo per poter caricare una foto.</p>
-            )}
+              <div className="field">
+                <label>Categoria</label>
+                <select
+                  value={form.categoria}
+                  onChange={(e) => setForm({ ...form, categoria: e.target.value })}
+                  required
+                >
+                  <option value="" disabled>
+                    — seleziona —
+                  </option>
+                  {categories.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="field-row">
+              <div className="field">
+                <label>Marca</label>
+                <input
+                  list="marche-list"
+                  value={form.marca}
+                  onChange={(e) => setForm({ ...form, marca: e.target.value })}
+                />
+                <datalist id="marche-list">
+                  {marche.map((m) => (
+                    <option key={m} value={m} />
+                  ))}
+                </datalist>
+              </div>
+              <div className="field">
+                <label>Modello</label>
+                <input value={form.modello} onChange={(e) => setForm({ ...form, modello: e.target.value })} />
+              </div>
+            </div>
+            <div className="field-row">
+              <div className="field">
+                <label>Larghezza seduta (cm, se applicabile)</label>
+                <input
+                  type="number"
+                  value={form.larghezza ?? ""}
+                  onChange={(e) =>
+                    setForm({ ...form, larghezza: e.target.value ? Number(e.target.value) : null })
+                  }
+                />
+              </div>
+              <div className="field">
+                <label>Stato</label>
+                <select
+                  value={form.stato}
+                  onChange={(e) => setForm({ ...form, stato: e.target.value as DeviceStatus })}
+                >
+                  {STATUS_OPTIONS.map((o) => (
+                    <option key={o.key} value={o.key}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="field-row">
+              <div className="field">
+                <label>Cliente</label>
+                <input value={form.cliente ?? ""} onChange={(e) => setForm({ ...form, cliente: e.target.value || null })} />
+              </div>
+              <div className="field">
+                <label>Telefono cliente</label>
+                <input value={form.telefono ?? ""} onChange={(e) => setForm({ ...form, telefono: e.target.value || null })} />
+              </div>
+            </div>
+            <div className="field-row">
+              <div className="field">
+                <label>Numero contratto</label>
+                <input value={form.contratto ?? ""} onChange={(e) => setForm({ ...form, contratto: e.target.value || null })} />
+              </div>
+              <div className="field">
+                <label>Dal (inizio noleggio)</label>
+                <input
+                  type="date"
+                  value={form.dal ?? ""}
+                  onChange={(e) => setForm({ ...form, dal: e.target.value || null })}
+                />
+              </div>
+            </div>
+            <div className="field-row">
+              <div className="field">
+                <label>Sanificazione (ultima)</label>
+                <input
+                  type="date"
+                  value={form.sanificazione ?? ""}
+                  onChange={(e) => setForm({ ...form, sanificazione: e.target.value || null })}
+                />
+              </div>
+              <div className="field">
+                <label>Nota</label>
+                <input value={form.nota ?? ""} onChange={(e) => setForm({ ...form, nota: e.target.value || null })} />
+              </div>
+            </div>
+            <div className="field-row">
+              <div className="field">
+                <label>Foto</label>
+                {editingCodice ? (
+                  <div className="photo-field">
+                    {form.foto ? (
+                      <img className="photo-preview" src={form.foto} alt={`Foto ${editingCodice}`} />
+                    ) : null}
+                    <div className="card-actions" style={{ marginTop: 0 }}>
+                      <label className="btn">
+                        {uploadingPhoto ? "Caricamento…" : form.foto ? "Cambia foto" : "Carica foto"}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handlePhotoUpload}
+                          disabled={uploadingPhoto}
+                          style={{ display: "none" }}
+                        />
+                      </label>
+                      {form.foto ? (
+                        <button
+                          className="btn danger"
+                          type="button"
+                          onClick={handlePhotoRemove}
+                          disabled={uploadingPhoto}
+                        >
+                          Rimuovi foto
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="hint">Salva il dispositivo per poter caricare una foto.</p>
+                )}
+              </div>
+            </div>
+            <div className="card-actions">
+              <button className="btn" type="button" onClick={closeForm}>
+                Annulla
+              </button>
+              <button className="btn primary" type="submit" disabled={saving}>
+                {saving ? "Salvataggio…" : editingCodice ? "Salva modifiche" : "Aggiungi dispositivo"}
+              </button>
+            </div>
+            </form>
           </div>
         </div>
-        <div className="card-actions">
-          {editingCodice ? (
-            <button className="btn" type="button" onClick={startNew}>
-              Annulla modifica
-            </button>
-          ) : null}
-          <button className="btn primary" type="submit" disabled={saving}>
-            {saving ? "Salvataggio…" : editingCodice ? "Salva modifiche" : "Aggiungi dispositivo"}
-          </button>
-        </div>
-      </form>
+      ) : null}
 
       <div className="panel admin-table-wrap">
         <div className="top-nav" style={{ marginBottom: 12 }}>
@@ -429,7 +455,7 @@ export function AdminDevicesClient({ initialDevices, logoUrl, categories }: Admi
                 </td>
                 <td>{d.cliente ?? "—"}</td>
                 <td>
-                  <div className="card-actions" style={{ marginTop: 0 }}>
+                  <div className="row-actions">
                     {d.stato === "disponibile" ? (
                       <button className="btn primary" type="button" onClick={() => setRentDevice(d)}>
                         Noleggia
@@ -445,21 +471,26 @@ export function AdminDevicesClient({ initialDevices, logoUrl, categories }: Admi
                         Segna sanificato
                       </button>
                     ) : null}
-                    <button className="btn" type="button" onClick={() => setDocDevice(d)}>
-                      Documento
-                    </button>
-                    <button className="btn" type="button" onClick={() => setHistoryDevice(d)}>
-                      Storico
-                    </button>
-                    <button className="btn" type="button" onClick={() => startEdit(d)}>
-                      Modifica
-                    </button>
-                    <button className="btn" type="button" onClick={() => startDuplicate(d)}>
-                      Duplica
-                    </button>
-                    <button className="btn danger" type="button" onClick={() => handleDelete(d.codice)}>
-                      Elimina
-                    </button>
+                    <details className="row-menu">
+                      <summary aria-label="Altre azioni">⋯</summary>
+                      <div className="row-menu-list">
+                        <button type="button" onClick={() => setDocDevice(d)}>
+                          Documento
+                        </button>
+                        <button type="button" onClick={() => setHistoryDevice(d)}>
+                          Storico
+                        </button>
+                        <button type="button" onClick={() => startEdit(d)}>
+                          Modifica
+                        </button>
+                        <button type="button" onClick={() => startDuplicate(d)}>
+                          Duplica
+                        </button>
+                        <button className="danger" type="button" onClick={() => handleDelete(d.codice)}>
+                          Elimina
+                        </button>
+                      </div>
+                    </details>
                   </div>
                 </td>
               </tr>
