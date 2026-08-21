@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireBasicAuth } from "@/lib/basic-auth";
 import { deleteDevice, listDevices, upsertDevice, type Device } from "@/lib/devices";
+import { toPublicDevice } from "@/lib/device-types";
 
 export const runtime = "nodejs";
 
-// Pubblica: la pagina di ricerca la usa senza autenticazione.
+// Pubblica e senza autenticazione: telefono e contratto restano riservati
+// all'amministrazione, non vengono restituiti qui (vedi toPublicDevice).
 export async function GET() {
   try {
     const devices = await listDevices();
-    return NextResponse.json({ devices });
+    return NextResponse.json({ devices: devices.map(toPublicDevice) });
   } catch (err) {
     return NextResponse.json(
       { error: (err as Error).message },

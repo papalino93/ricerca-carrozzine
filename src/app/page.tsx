@@ -1,4 +1,5 @@
 import { listDevices } from "@/lib/devices";
+import { toPublicDevice } from "@/lib/device-types";
 import { SearchClient } from "@/components/SearchClient";
 
 export const dynamic = "force-dynamic";
@@ -22,5 +23,5 @@ export default async function HomePage() {
     );
   }
 
-  return <SearchClient initialDevices={devices} />;
+  return <SearchClient initialDevices={devices.map(toPublicDevice)} />;
 }

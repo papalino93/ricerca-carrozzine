@@ -48,3 +48,13 @@ export interface Device {
   sanificazione: string | null;
   nota: string | null;
 }
+
+/**
+ * Versione del dispositivo sicura per esposizione pubblica (ricerca senza
+ * login): il nome cliente resta visibile (come nel prototipo originale),
+ * ma telefono e numero contratto — dati più sensibili — restano riservati
+ * all'amministrazione autenticata.
+ */
+export function toPublicDevice(d: Device): Device {
+  return { ...d, telefono: null, contratto: null };
+}
