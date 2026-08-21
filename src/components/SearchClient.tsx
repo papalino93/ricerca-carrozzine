@@ -6,7 +6,10 @@ import { DeviceCard } from "./DeviceCard";
 import { BrandHeader } from "./BrandHeader";
 import { StatTiles } from "./StatTiles";
 
-const WMIN = 33;
+// Deve combaciare con le etichette del righello (35/40/45/50/55, distanziate
+// in modo uniforme): usare un altro WMIN qui sposta i punti rispetto alle
+// etichette (es. 44 finiva visivamente sotto l'etichetta "45").
+const WMIN = 35;
 const WMAX = 55;
 
 function clamp(v: number, a: number, b: number): number {
