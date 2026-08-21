@@ -28,13 +28,50 @@ export async function GET(req: NextRequest) {
     ],
   });
 
+  const revisionId = req.nextUrl.searchParams.get("revisionId");
+  if (!revisionId) {
+    try {
+      const drive = google.drive({ version: "v3", auth });
+      const list = await drive.revisions.list({
+        fileId,
+        fields: "revisions(id,modifiedTime,size)",
+      });
+      return NextResponse.json({ revisions: list.data.revisions ?? [] });
+    } catch (err) {
+      return NextResponse.json({ error: (err as Error).message }, { status: 500 });
+    }
+  }
+
   try {
+    const sheets = google.sheets({ version: "v4", auth });
+    const meta = await sheets.spreadsheets.get({ spreadsheetId: fileId, fields: "sheets.properties" });
+    const dispositiviSheet = meta.data.sheets?.find(
+      (s) => s.properties?.title === "Dispositivi"
+    );
+    const gid = dispositiviSheet?.properties?.sheetId;
+
     const drive = google.drive({ version: "v3", auth });
-    const list = await drive.revisions.list({
+    const rev = await drive.revisions.get({
       fileId,
-      fields: "revisions(id,modifiedTime,size)",
+      revisionId,
+      fields: "exportLinks",
     });
-    return NextResponse.json({ revisions: list.data.revisions ?? [] });
+    const links = rev.data.exportLinks ?? {};
+    const csvLink = links["text/csv"];
+    if (!csvLink) {
+      return NextResponse.json({ error: "Nessun link CSV disponibile", links }, { status: 404 });
+    }
+
+    const token = await auth.getAccessToken();
+    const url = gid != null ? `${csvLink}&gid=${gid}` : csvLink;
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${token.token}` },
+    });
+    const csv = await res.text();
+    return new NextResponse(csv, {
+      status: res.status,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }
