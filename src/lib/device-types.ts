@@ -40,6 +40,8 @@ export interface Device {
   stato: DeviceStatus;
   cliente: string | null;
   telefono: string | null;
+  /** Numero contratto del noleggio in corso. */
+  contratto: string | null;
   /** Data inizio noleggio, ISO yyyy-mm-dd. */
   dal: string | null;
   /** Data ultima sanificazione, ISO yyyy-mm-dd. */

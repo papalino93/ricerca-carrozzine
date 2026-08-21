@@ -13,6 +13,14 @@ documenti di noleggio in PDF.
 - **Amministrazione** (`/admin`, `/admin/impostazioni`): protetta da Basic
   Auth, permette di aggiungere/modificare/eliminare i dispositivi e
   configurare i dati aziendali.
+- **Ciclo di vita del noleggio**: azioni dedicate per portare un
+  dispositivo da disponibile a noleggiato (assegnazione cliente/telefono/
+  contratto), poi a restituito (torna "da pulire") e infine di nuovo
+  disponibile dopo la sanificazione. Ogni passaggio viene registrato nella
+  tab `Storico` del foglio.
+- **Utenti multipli**: da Impostazioni azienda si possono autorizzare altri
+  account (username/password) per l'accesso a `/admin`, oltre alle
+  credenziali principali impostate su Vercel.
 - **Documento di noleggio** (da ogni scheda, in ricerca e in admin): genera
   un "Verbale di consegna" o "Verbale di restituzione" in PDF, con i campi
   precompilati ma modificabili prima del download.
@@ -27,20 +35,46 @@ comprimere il logo aziendale, salvato come data URI nel foglio stesso
 
 ## Il foglio Google Sheets
 
-Un solo foglio Google, con due tab:
+Un solo foglio Google, con quattro tab. Tutte si creano da sole alla prima
+scrittura se non esistono ancora — non serve prepararle a mano.
 
 **`Dispositivi`** (riga di intestazione + una riga per unità):
 
 ```
-Codice | Categoria | Marca | Modello | Larghezza | Stato | Cliente | Telefono | Dal | Sanificazione | Nota
+Codice | Categoria | Marca | Modello | Larghezza | Stato | Cliente | Telefono | Contratto | Dal | Sanificazione | Nota
 ```
 
 - `Stato` è uno tra: `disponibile`, `noleggiato`, `da_pulire`, `guasto`,
   `da_verificare`.
-- `Larghezza`, `Cliente`, `Telefono`, `Dal`, `Sanificazione`, `Nota` possono
-  restare vuoti — utile per dispositivi diversi dalle carrozzine, dove la
-  larghezza seduta non ha senso.
+- `Larghezza`, `Cliente`, `Telefono`, `Contratto`, `Dal`, `Sanificazione`,
+  `Nota` possono restare vuoti — utile per dispositivi diversi dalle
+  carrozzine, dove la larghezza seduta non ha senso.
 - `Dal` e `Sanificazione` in formato `AAAA-MM-GG`.
+- Questi campi vengono aggiornati automaticamente dalle azioni di ciclo di
+  vita ("Noleggia", "Segna restituito", "Segna sanificato") in `/admin`;
+  restano comunque modificabili a mano dal form o dal foglio stesso.
+
+**`Storico`** (riga di intestazione + una riga per evento, scritta in coda
+automaticamente dalle azioni di ciclo di vita):
+
+```
+Data | Codice | Evento | Cliente | Telefono | Contratto | Nota
+```
+
+`Evento` è uno tra `noleggio`, `restituzione`, `sanificazione`. È un
+registro di sola consultazione: aprilo direttamente su Google Sheets per
+vedere lo storico completo di un dispositivo (non c'è ancora una vista
+dedicata dentro l'app).
+
+**`Utenti`** (riga di intestazione + una riga per utente autorizzato):
+
+```
+Username | PasswordHash
+```
+
+Gestita da `/admin/impostazioni` (sezione "Utenti autorizzati") — non va
+compilata a mano: le password sono salvate come hash (scrypt + salt), mai
+in chiaro.
 
 **`Impostazioni`** (riga di intestazione + una sola riga di dati):
 
@@ -50,8 +84,7 @@ RagioneSociale | Indirizzo | PartitaIVA | Telefono | LogoURL | CondizioniGeneral
 
 `LogoURL` e `CondizioniGenerali` vengono scritti automaticamente
 dall'app (upload del logo e modulo Impostazioni) — non serve compilarli a
-mano, ma l'app funziona anche se le tab non esistono ancora: le crea alla
-prima scrittura.
+mano.
 
 ### Creare l'account di servizio Google
 
@@ -76,8 +109,20 @@ Vedi `.env.example`. In sintesi:
   (incolla il valore intero, incluse le righe `BEGIN/END PRIVATE KEY`; se il
   tuo editor di variabili non accetta più righe, sostituisci gli a-capo con
   `\n` letterali — l'app li normalizza automaticamente).
-- `ADMIN_USER` / `ADMIN_PASSWORD` — credenziali della Basic Auth per
-  `/admin`.
+- `ADMIN_USER` / `ADMIN_PASSWORD` — credenziali "principali" della Basic
+  Auth per `/admin`. Sono le uniche che funzionano anche se il foglio
+  Google non è raggiungibile (utili come accesso di emergenza).
+
+## Autorizzare altri utenti
+
+`ADMIN_USER`/`ADMIN_PASSWORD` sono pensate per un solo account "titolare".
+Per farne usare altri (altri operatori, colleghi, ecc.) senza condividere
+quella password: vai su `/admin/impostazioni`, sezione **"Utenti
+autorizzati"**, e aggiungi username e password per ciascuno. Vengono
+salvati nella tab `Utenti` del foglio (password come hash scrypt, mai in
+chiaro) e possono accedere a `/admin` con le proprie credenziali da subito,
+senza redeploy né variabili d'ambiente da toccare. Per revocare l'accesso
+a qualcuno, usa "Revoca" nella stessa sezione.
 
 ## Logo aziendale (nessuno storage esterno)
 
@@ -169,17 +214,21 @@ src/
     admin/page.tsx            elenco/CRUD dispositivi (Basic Auth)
     admin/impostazioni/       dati aziendali + upload logo (Basic Auth)
     api/dispositivi/          GET pubblico, POST/DELETE riservati
+    api/dispositivi/[codice]/eventi/  noleggio/restituzione/sanificazione (riservato)
     api/impostazioni/         GET/POST riservati (protetti dal proxy)
     api/upload-logo/          comprime il logo e lo salva come data URI (riservato)
+    api/utenti/                GET/POST/DELETE utenti autorizzati (protetti dal proxy)
     api/documento/            genera il PDF del verbale (pubblico)
   components/                 componenti React (ricerca, admin, pannello documento)
   lib/
     device-types.ts           tipi/costanti condivisi anche dai componenti client
     devices.ts, settings.ts   lettura/scrittura del foglio Google (solo server)
-    sheets.ts                 client Google Sheets (solo server)
-    basic-auth.ts             verifica delle credenziali Basic Auth
+    history.ts                registro eventi (tab Storico, solo server)
+    users.ts                   utenti autorizzati aggiuntivi (tab Utenti, solo server)
+    sheets.ts                 client Google Sheets (solo server, crea le tab mancanti)
+    basic-auth.ts             verifica le credenziali (env oppure tab Utenti)
     pdf/VerbaleDocument.tsx   template del verbale di noleggio
-  proxy.ts                    Basic Auth su /admin e sulle API di scrittura
+  proxy.ts                    Basic Auth su /admin e sulle API di scrittura (gira su Node.js)
 scripts/
   generate-icons.mjs          favicon/icone PWA dal logo sorgente (sharp)
   generate-og-image.mjs       immagine di condivisione 1200x630 (playwright)

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { STATUS_LABEL, STATUS_OPTIONS, type Device, type DeviceStatus } from "@/lib/device-types";
 import { DocumentPanel } from "./DocumentPanel";
+import { RentDeviceModal } from "./RentDeviceModal";
 import { Logo } from "./Logo";
 
 const EMPTY_FORM: Device = {
@@ -14,6 +15,7 @@ const EMPTY_FORM: Device = {
   stato: "disponibile",
   cliente: null,
   telefono: null,
+  contratto: null,
   dal: null,
   sanificazione: null,
   nota: null,
@@ -30,6 +32,16 @@ export function AdminDevicesClient({ initialDevices }: AdminDevicesClientProps) 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [docDevice, setDocDevice] = useState<Device | null>(null);
+  const [rentDevice, setRentDevice] = useState<Device | null>(null);
+
+  const categorie = useMemo(
+    () => Array.from(new Set(devices.map((d) => d.categoria).filter(Boolean))).sort(),
+    [devices]
+  );
+  const marche = useMemo(
+    () => Array.from(new Set(devices.map((d) => d.marca).filter(Boolean))).sort(),
+    [devices]
+  );
 
   function startEdit(d: Device) {
     setForm(d);
@@ -43,10 +55,28 @@ export function AdminDevicesClient({ initialDevices }: AdminDevicesClientProps) 
     setError(null);
   }
 
+  function startDuplicate(d: Device) {
+    setForm({
+      ...EMPTY_FORM,
+      categoria: d.categoria,
+      marca: d.marca,
+      modello: d.modello,
+      larghezza: d.larghezza,
+    });
+    setEditingCodice(null);
+    setError(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.codice.trim()) {
+    const codice = form.codice.trim();
+    if (!codice) {
       setError("Il codice è obbligatorio");
+      return;
+    }
+    if (!editingCodice && devices.some((d) => d.codice.toLowerCase() === codice.toLowerCase())) {
+      setError(`Esiste già un dispositivo con codice "${codice}": usa Modifica invece di crearne uno nuovo.`);
       return;
     }
     setSaving(true);
@@ -55,7 +85,7 @@ export function AdminDevicesClient({ initialDevices }: AdminDevicesClientProps) 
       const res = await fetch("/api/dispositivi", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, codice }),
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || "Salvataggio non riuscito");
@@ -80,6 +110,45 @@ export function AdminDevicesClient({ initialDevices }: AdminDevicesClientProps) 
       if (!res.ok) throw new Error(body.error || "Eliminazione non riuscita");
       setDevices(body.devices);
       if (editingCodice === codice) startNew();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleReturn(codice: string) {
+    if (!confirm(`Segnare ${codice} come restituito? Andrà in "da pulire".`)) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/dispositivi/${encodeURIComponent(codice)}/eventi`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tipo: "restituzione" }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Operazione non riuscita");
+      setDevices(body.devices);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleSanitize(codice: string) {
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/dispositivi/${encodeURIComponent(codice)}/eventi`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tipo: "sanificazione" }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Operazione non riuscita");
+      setDevices(body.devices);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -119,13 +188,31 @@ export function AdminDevicesClient({ initialDevices }: AdminDevicesClientProps) 
           </div>
           <div className="field">
             <label>Categoria</label>
-            <input value={form.categoria} onChange={(e) => setForm({ ...form, categoria: e.target.value })} />
+            <input
+              list="categorie-list"
+              value={form.categoria}
+              onChange={(e) => setForm({ ...form, categoria: e.target.value })}
+            />
+            <datalist id="categorie-list">
+              {categorie.map((c) => (
+                <option key={c} value={c} />
+              ))}
+            </datalist>
           </div>
         </div>
         <div className="field-row">
           <div className="field">
             <label>Marca</label>
-            <input value={form.marca} onChange={(e) => setForm({ ...form, marca: e.target.value })} />
+            <input
+              list="marche-list"
+              value={form.marca}
+              onChange={(e) => setForm({ ...form, marca: e.target.value })}
+            />
+            <datalist id="marche-list">
+              {marche.map((m) => (
+                <option key={m} value={m} />
+              ))}
+            </datalist>
           </div>
           <div className="field">
             <label>Modello</label>
@@ -169,6 +256,10 @@ export function AdminDevicesClient({ initialDevices }: AdminDevicesClientProps) 
         </div>
         <div className="field-row">
           <div className="field">
+            <label>Numero contratto</label>
+            <input value={form.contratto ?? ""} onChange={(e) => setForm({ ...form, contratto: e.target.value || null })} />
+          </div>
+          <div className="field">
             <label>Dal (inizio noleggio)</label>
             <input
               type="date"
@@ -176,6 +267,8 @@ export function AdminDevicesClient({ initialDevices }: AdminDevicesClientProps) 
               onChange={(e) => setForm({ ...form, dal: e.target.value || null })}
             />
           </div>
+        </div>
+        <div className="field-row">
           <div className="field">
             <label>Sanificazione (ultima)</label>
             <input
@@ -184,14 +277,10 @@ export function AdminDevicesClient({ initialDevices }: AdminDevicesClientProps) 
               onChange={(e) => setForm({ ...form, sanificazione: e.target.value || null })}
             />
           </div>
-        </div>
-        <div className="field">
-          <label>Nota</label>
-          <textarea
-            rows={2}
-            value={form.nota ?? ""}
-            onChange={(e) => setForm({ ...form, nota: e.target.value || null })}
-          />
+          <div className="field">
+            <label>Nota</label>
+            <input value={form.nota ?? ""} onChange={(e) => setForm({ ...form, nota: e.target.value || null })} />
+          </div>
         </div>
         <div className="card-actions">
           {editingCodice ? (
@@ -234,11 +323,29 @@ export function AdminDevicesClient({ initialDevices }: AdminDevicesClientProps) 
                 <td>{d.cliente ?? "—"}</td>
                 <td>
                   <div className="card-actions" style={{ marginTop: 0 }}>
+                    {d.stato === "disponibile" ? (
+                      <button className="btn primary" type="button" onClick={() => setRentDevice(d)}>
+                        Noleggia
+                      </button>
+                    ) : null}
+                    {d.stato === "noleggiato" ? (
+                      <button className="btn primary" type="button" onClick={() => handleReturn(d.codice)} disabled={saving}>
+                        Segna restituito
+                      </button>
+                    ) : null}
+                    {d.stato === "da_pulire" ? (
+                      <button className="btn primary" type="button" onClick={() => handleSanitize(d.codice)} disabled={saving}>
+                        Segna sanificato
+                      </button>
+                    ) : null}
                     <button className="btn" type="button" onClick={() => setDocDevice(d)}>
                       Documento
                     </button>
                     <button className="btn" type="button" onClick={() => startEdit(d)}>
                       Modifica
+                    </button>
+                    <button className="btn" type="button" onClick={() => startDuplicate(d)}>
+                      Duplica
                     </button>
                     <button className="btn danger" type="button" onClick={() => handleDelete(d.codice)}>
                       Elimina
@@ -252,6 +359,13 @@ export function AdminDevicesClient({ initialDevices }: AdminDevicesClientProps) 
       </div>
 
       {docDevice ? <DocumentPanel device={docDevice} onClose={() => setDocDevice(null)} /> : null}
+      {rentDevice ? (
+        <RentDeviceModal
+          device={rentDevice}
+          onClose={() => setRentDevice(null)}
+          onRented={(updated) => setDevices(updated)}
+        />
+      ) : null}
     </div>
   );
 }

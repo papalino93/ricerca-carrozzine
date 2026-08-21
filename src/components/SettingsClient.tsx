@@ -2,13 +2,16 @@
 
 import { useRef, useState } from "react";
 import type { CompanySettings } from "@/lib/settings";
+import type { AdminUser } from "@/lib/users";
 import { Logo } from "./Logo";
+import { UsersManager } from "./UsersManager";
 
 interface SettingsClientProps {
   initialSettings: CompanySettings;
+  initialUsers: AdminUser[];
 }
 
-export function SettingsClient({ initialSettings }: SettingsClientProps) {
+export function SettingsClient({ initialSettings, initialUsers }: SettingsClientProps) {
   const [settings, setSettings] = useState(initialSettings);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -149,6 +152,8 @@ export function SettingsClient({ initialSettings }: SettingsClientProps) {
           </button>
         </div>
       </form>
+
+      <UsersManager initialUsers={initialUsers} />
     </div>
   );
 }

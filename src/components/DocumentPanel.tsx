@@ -17,7 +17,7 @@ export function DocumentPanel({ device, onClose }: DocumentPanelProps) {
   const [tipo, setTipo] = useState<DocumentoTipo>(
     device.stato === "noleggiato" ? "restituzione" : "consegna"
   );
-  const [numeroContratto, setNumeroContratto] = useState(device.codice);
+  const [numeroContratto, setNumeroContratto] = useState(device.contratto ?? device.codice);
   const [data, setData] = useState(todayIso());
   const [clienteNome, setClienteNome] = useState(device.cliente ?? "");
   const [clienteTelefono, setClienteTelefono] = useState(device.telefono ?? "");

@@ -19,7 +19,7 @@ export async function GET() {
 
 // Scrittura: riservata all'amministrazione.
 export async function POST(req: NextRequest) {
-  const unauthorized = requireBasicAuth(req);
+  const unauthorized = await requireBasicAuth(req);
   if (unauthorized) return unauthorized;
 
   try {
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const unauthorized = requireBasicAuth(req);
+  const unauthorized = await requireBasicAuth(req);
   if (unauthorized) return unauthorized;
 
   try {

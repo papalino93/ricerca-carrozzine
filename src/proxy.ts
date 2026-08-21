@@ -4,8 +4,8 @@ import { requireBasicAuth } from "@/lib/basic-auth";
 // Protegge l'amministrazione (elenco dispositivi e impostazioni azienda) e
 // le API di scrittura corrispondenti con Basic Auth. La ricerca pubblica e
 // la lettura dei dispositivi restano accessibili senza autenticazione.
-export default function proxy(req: NextRequest) {
-  return requireBasicAuth(req) ?? NextResponse.next();
+export default async function proxy(req: NextRequest) {
+  return (await requireBasicAuth(req)) ?? NextResponse.next();
 }
 
 export const config = {
@@ -13,5 +13,6 @@ export const config = {
     "/admin/:path*",
     "/api/impostazioni/:path*",
     "/api/upload-logo/:path*",
+    "/api/utenti/:path*",
   ],
 };

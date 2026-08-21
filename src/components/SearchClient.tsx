@@ -36,7 +36,10 @@ export function SearchClient({ initialDevices }: SearchClientProps) {
       if (category !== "Tutte" && d.categoria !== category) return false;
       if (!statuses.has(d.stato)) return false;
       if (q) {
-        const hay = [d.codice, d.marca, d.modello, d.cliente].filter(Boolean).join(" ").toLowerCase();
+        const hay = [d.codice, d.marca, d.modello, d.cliente, d.telefono, d.contratto]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
@@ -160,7 +163,7 @@ export function SearchClient({ initialDevices }: SearchClientProps) {
         </div>
         <input
           className="searchbox"
-          placeholder="Cerca per cliente, marca, modello o codice…"
+          placeholder="Cerca per cliente, telefono, contratto, marca, modello o codice…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
