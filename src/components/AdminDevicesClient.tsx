@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { STATUS_LABEL, STATUS_OPTIONS, type Device, type DeviceStatus } from "@/lib/device-types";
 import { DocumentPanel } from "./DocumentPanel";
 import { RentDeviceModal } from "./RentDeviceModal";
+import { HistoryPanel } from "./HistoryPanel";
 import { Logo } from "./Logo";
 
 const EMPTY_FORM: Device = {
@@ -33,6 +34,7 @@ export function AdminDevicesClient({ initialDevices }: AdminDevicesClientProps) 
   const [error, setError] = useState<string | null>(null);
   const [docDevice, setDocDevice] = useState<Device | null>(null);
   const [rentDevice, setRentDevice] = useState<Device | null>(null);
+  const [historyDevice, setHistoryDevice] = useState<Device | null>(null);
 
   const categorie = useMemo(
     () => Array.from(new Set(devices.map((d) => d.categoria).filter(Boolean))).sort(),
@@ -341,6 +343,9 @@ export function AdminDevicesClient({ initialDevices }: AdminDevicesClientProps) 
                     <button className="btn" type="button" onClick={() => setDocDevice(d)}>
                       Documento
                     </button>
+                    <button className="btn" type="button" onClick={() => setHistoryDevice(d)}>
+                      Storico
+                    </button>
                     <button className="btn" type="button" onClick={() => startEdit(d)}>
                       Modifica
                     </button>
@@ -365,6 +370,9 @@ export function AdminDevicesClient({ initialDevices }: AdminDevicesClientProps) 
           onClose={() => setRentDevice(null)}
           onRented={(updated) => setDevices(updated)}
         />
+      ) : null}
+      {historyDevice ? (
+        <HistoryPanel device={historyDevice} onClose={() => setHistoryDevice(null)} />
       ) : null}
     </div>
   );
