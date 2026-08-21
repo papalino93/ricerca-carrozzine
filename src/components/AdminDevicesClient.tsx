@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import Link from "next/link";
-import { STATUS_LABEL, STATUS_OPTIONS, type Device, type DeviceStatus } from "@/lib/device-types";
-import { BrandHeader } from "./BrandHeader";
+import { useMemo, useRef, useState } from "react";
+import { STATUS_COLOR, STATUS_LABEL, STATUS_OPTIONS, type Device, type DeviceStatus } from "@/lib/device-types";
 import { DeviceDetailModal } from "./DeviceDetailModal";
+import { StatTiles } from "./StatTiles";
+import { Toast } from "./Toast";
 
 const EMPTY_FORM: Device = {
   codice: "",
@@ -23,20 +23,36 @@ const EMPTY_FORM: Device = {
   sottocategoria: null,
 };
 
+type IssueFilter = "stale" | "incomplete" | null;
+
+function daysSince(iso: string | null): number | null {
+  if (!iso) return null;
+  return Math.round((Date.now() - new Date(iso).getTime()) / 86_400_000);
+}
+
 interface AdminDevicesClientProps {
   initialDevices: Device[];
-  logoUrl?: string | null;
   categories: string[];
 }
 
-export function AdminDevicesClient({ initialDevices, logoUrl, categories }: AdminDevicesClientProps) {
+export function AdminDevicesClient({ initialDevices, categories }: AdminDevicesClientProps) {
   const [devices, setDevices] = useState(initialDevices);
-  const [detail, setDetail] = useState<{ device: Device; isNew: boolean } | null>(null);
+  const [detail, setDetail] = useState<{ device: Device; isNew: boolean; autoRent?: boolean } | null>(null);
   const [detailKey, setDetailKey] = useState(0);
   const [categoryFilter, setCategoryFilter] = useState("Tutte");
   const [statusFilter, setStatusFilter] = useState<Set<DeviceStatus>>(
     new Set(STATUS_OPTIONS.map((o) => o.key))
   );
+  const [issueFilter, setIssueFilter] = useState<IssueFilter>(null);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function showToast(message: string) {
+    setToast(message);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 2400);
+  }
 
   const marche = useMemo(
     () => Array.from(new Set(devices.map((d) => d.marca).filter(Boolean))).sort(),
@@ -46,16 +62,88 @@ export function AdminDevicesClient({ initialDevices, logoUrl, categories }: Admi
     () => Array.from(new Set(devices.map((d) => d.sottocategoria).filter(Boolean))).sort() as string[],
     [devices]
   );
+
+  const stats = useMemo(() => {
+    const counts: Record<DeviceStatus, number> = {
+      disponibile: 0,
+      noleggiato: 0,
+      da_pulire: 0,
+      guasto: 0,
+      da_verificare: 0,
+    };
+    for (const d of devices) counts[d.stato] += 1;
+    return counts;
+  }, [devices]);
+
+  const alerts = useMemo(() => {
+    const staleCount = devices.filter(
+      (d) => d.stato === "disponibile" && (daysSince(d.sanificazione) ?? 0) > 30
+    ).length;
+    const incompleteCount = devices.filter((d) => !(d.marca && d.modello)).length;
+    return [
+      stats.da_pulire > 0 && {
+        text: `${stats.da_pulire} ausili in attesa di sanificazione`,
+        color: STATUS_COLOR.da_pulire,
+        onClick: () => {
+          setStatusFilter(new Set(["da_pulire"]));
+          setCategoryFilter("Tutte");
+          setIssueFilter(null);
+        },
+      },
+      stats.guasto > 0 && {
+        text: `${stats.guasto} ausili guasti da riparare`,
+        color: STATUS_COLOR.guasto,
+        onClick: () => {
+          setStatusFilter(new Set(["guasto"]));
+          setCategoryFilter("Tutte");
+          setIssueFilter(null);
+        },
+      },
+      stats.da_verificare > 0 && {
+        text: `${stats.da_verificare} ausili da verificare`,
+        color: STATUS_COLOR.da_verificare,
+        onClick: () => {
+          setStatusFilter(new Set(["da_verificare"]));
+          setCategoryFilter("Tutte");
+          setIssueFilter(null);
+        },
+      },
+      staleCount > 0 && {
+        text: `${staleCount} sanificazioni scadute da oltre 30 giorni`,
+        color: STATUS_COLOR.da_pulire,
+        onClick: () => {
+          setStatusFilter(new Set(["disponibile"]));
+          setCategoryFilter("Tutte");
+          setIssueFilter("stale");
+        },
+      },
+      incompleteCount > 0 && {
+        text: `${incompleteCount} dispositivi con marca o modello mancanti`,
+        color: STATUS_COLOR.da_verificare,
+        onClick: () => {
+          setStatusFilter(new Set(STATUS_OPTIONS.map((o) => o.key)));
+          setCategoryFilter("Tutte");
+          setIssueFilter("incomplete");
+        },
+      },
+    ].filter(Boolean) as { text: string; color: string; onClick: () => void }[];
+  }, [devices, stats]);
+
   const visibleDevices = useMemo(
     () =>
-      devices.filter(
-        (d) =>
-          (categoryFilter === "Tutte" || d.categoria === categoryFilter) && statusFilter.has(d.stato)
-      ),
-    [devices, categoryFilter, statusFilter]
+      devices.filter((d) => {
+        if (categoryFilter !== "Tutte" && d.categoria !== categoryFilter) return false;
+        if (!statusFilter.has(d.stato)) return false;
+        if (issueFilter === "stale" && !(d.stato === "disponibile" && (daysSince(d.sanificazione) ?? 0) > 30))
+          return false;
+        if (issueFilter === "incomplete" && d.marca && d.modello) return false;
+        return true;
+      }),
+    [devices, categoryFilter, statusFilter, issueFilter]
   );
 
   function toggleStatusFilter(key: DeviceStatus) {
+    setIssueFilter(null);
     setStatusFilter((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
@@ -89,17 +177,58 @@ export function AdminDevicesClient({ initialDevices, logoUrl, categories }: Admi
     setDetailKey((k) => k + 1);
   }
 
+  async function quickReturn(e: React.MouseEvent, codice: string) {
+    e.stopPropagation();
+    if (!confirm(`Segnare ${codice} come restituito? Andrà in "da pulire".`)) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/dispositivi/${encodeURIComponent(codice)}/eventi`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tipo: "restituzione" }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Operazione non riuscita");
+      setDevices(body.devices);
+      showToast(`${codice} segnato come restituito`);
+    } catch (err) {
+      showToast((err as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function quickSanitize(e: React.MouseEvent, codice: string) {
+    e.stopPropagation();
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/dispositivi/${encodeURIComponent(codice)}/eventi`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tipo: "sanificazione" }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Operazione non riuscita");
+      setDevices(body.devices);
+      showToast(`${codice} segnato come sanificato`);
+    } catch (err) {
+      showToast((err as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function quickRent(e: React.MouseEvent, d: Device) {
+    e.stopPropagation();
+    setDetail({ device: d, isNew: false, autoRent: true });
+    setDetailKey((k) => k + 1);
+  }
+
   return (
     <div className="wrap wide">
-      <BrandHeader logoUrl={logoUrl} eyebrow="Amministrazione" />
       <header className="page-header">
         <div className="top-nav">
-          <h1>Dispositivi</h1>
-          <span>
-            <Link href="/">← Ricerca pubblica</Link>
-            {" · "}
-            <a href="/admin/impostazioni">Impostazioni azienda →</a>
-          </span>
+          <h1>Magazzino</h1>
         </div>
         <p className="sub">{devices.length} unità in magazzino</p>
         <div className="card-actions" style={{ marginTop: 12 }}>
@@ -108,6 +237,51 @@ export function AdminDevicesClient({ initialDevices, logoUrl, categories }: Admi
           </button>
         </div>
       </header>
+
+      <StatTiles
+        tiles={[
+          {
+            key: "__all__",
+            label: "Totale",
+            value: devices.length,
+            color: "var(--accent)",
+            active: statusFilter.size === STATUS_OPTIONS.length && issueFilter === null,
+          },
+          ...STATUS_OPTIONS.map((o) => ({
+            key: o.key,
+            label: o.label,
+            value: stats[o.key],
+            color: STATUS_COLOR[o.key],
+            active: issueFilter === null && statusFilter.size === 1 && statusFilter.has(o.key),
+          })),
+        ]}
+        onSelect={(key) => {
+          setIssueFilter(null);
+          if (key === "__all__") setStatusFilter(new Set(STATUS_OPTIONS.map((o) => o.key)));
+          else setStatusFilter(new Set([key as DeviceStatus]));
+        }}
+      />
+
+      <div className="panel">
+        <h2>Attenzione</h2>
+        {alerts.length === 0 ? (
+          <p className="hint" style={{ margin: 0, color: "var(--ok-fg)" }}>
+            Tutto sotto controllo: nessuna criticità da segnalare.
+          </p>
+        ) : (
+          <div className="attention-list">
+            {alerts.map((a, i) => (
+              <div key={i} className="attention-item" style={{ background: "var(--accent-bg)" }}>
+                <span className="attention-dot" style={{ background: a.color }} />
+                <span className="attention-text">{a.text}</span>
+                <button className="attention-link" style={{ color: a.color }} type="button" onClick={a.onClick}>
+                  Vedi →
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div className="panel admin-table-wrap">
         <div className="top-nav" style={{ marginBottom: 12 }}>
@@ -149,6 +323,7 @@ export function AdminDevicesClient({ initialDevices, logoUrl, categories }: Admi
               <th>Largh.</th>
               <th>Stato</th>
               <th>Cliente</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -166,6 +341,33 @@ export function AdminDevicesClient({ initialDevices, logoUrl, categories }: Admi
                   <span className={`pill ${d.stato}`}>{STATUS_LABEL[d.stato]}</span>
                 </td>
                 <td>{d.cliente ?? "—"}</td>
+                <td>
+                  {d.stato === "disponibile" ? (
+                    <button className="btn primary" type="button" onClick={(e) => quickRent(e, d)}>
+                      Noleggia
+                    </button>
+                  ) : null}
+                  {d.stato === "noleggiato" ? (
+                    <button
+                      className="btn primary"
+                      type="button"
+                      onClick={(e) => quickReturn(e, d.codice)}
+                      disabled={saving}
+                    >
+                      Segna restituito
+                    </button>
+                  ) : null}
+                  {d.stato === "da_pulire" ? (
+                    <button
+                      className="btn primary"
+                      type="button"
+                      onClick={(e) => quickSanitize(e, d.codice)}
+                      disabled={saving}
+                    >
+                      Segna sanificato
+                    </button>
+                  ) : null}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -177,6 +379,7 @@ export function AdminDevicesClient({ initialDevices, logoUrl, categories }: Admi
           key={detailKey}
           device={detail.device}
           isNew={detail.isNew}
+          autoRent={detail.autoRent}
           categories={categories}
           sottocategorie={sottocategorie}
           marche={marche}
@@ -186,10 +389,12 @@ export function AdminDevicesClient({ initialDevices, logoUrl, categories }: Admi
           onDeleted={(updated) => {
             setDevices(updated);
             setDetail(null);
+            showToast("Dispositivo eliminato");
           }}
           onDuplicate={openDuplicate}
         />
       ) : null}
+      <Toast message={toast} />
     </div>
   );
 }

@@ -1,5 +1,4 @@
 import { listDevices } from "@/lib/devices";
-import { getSettings } from "@/lib/settings";
 import { listCategories } from "@/lib/categories";
 import { AdminDevicesClient } from "@/components/AdminDevicesClient";
 
@@ -24,10 +23,7 @@ export default async function AdminPage() {
     );
   }
 
-  const logoUrl = await getSettings()
-    .then((s) => s.logoUrl || null)
-    .catch(() => null);
   const categories = await listCategories().catch(() => []);
 
-  return <AdminDevicesClient initialDevices={devices} logoUrl={logoUrl} categories={categories} />;
+  return <AdminDevicesClient initialDevices={devices} categories={categories} />;
 }

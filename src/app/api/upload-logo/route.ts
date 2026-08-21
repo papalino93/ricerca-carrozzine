@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { imageToDataUri } from "@/lib/image-to-data-uri";
+import { logoToDataUri } from "@/lib/image-to-data-uri";
 
 export const runtime = "nodejs";
 
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const dataUri = await imageToDataUri(Buffer.from(await file.arrayBuffer()));
+    const dataUri = await logoToDataUri(Buffer.from(await file.arrayBuffer()));
     return NextResponse.json({ url: dataUri });
   } catch (err) {
     return NextResponse.json(

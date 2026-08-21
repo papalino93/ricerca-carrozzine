@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { STATUS_COLOR, STATUS_OPTIONS, type Device, type DeviceStatus } from "@/lib/device-types";
 import { DeviceCard } from "./DeviceCard";
 import { BrandHeader } from "./BrandHeader";
+import { StatTiles } from "./StatTiles";
 
 const WMIN = 33;
 const WMAX = 55;
@@ -183,28 +184,25 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
         />
       </div>
 
-      <div className="stats-row">
-        <button
-          className={`stat-tile ${statuses.size === ALL_STATUSES.size ? "active" : ""}`}
-          type="button"
-          onClick={() => setStatuses(new Set(ALL_STATUSES))}
-        >
-          <span className="stat-count">{devices.length}</span>
-          <span className="stat-label">Totale</span>
-        </button>
-        {STATUS_OPTIONS.map((o) => (
-          <button
-            key={o.key}
-            className={`stat-tile ${statuses.size === 1 && statuses.has(o.key) ? "active" : ""}`}
-            type="button"
-            style={{ "--stat-color": STATUS_COLOR[o.key] } as React.CSSProperties}
-            onClick={() => selectOnlyStatus(o.key)}
-          >
-            <span className="stat-count">{stats[o.key]}</span>
-            <span className="stat-label">{o.label}</span>
-          </button>
-        ))}
-      </div>
+      <StatTiles
+        tiles={[
+          {
+            key: "__all__",
+            label: "Totale",
+            value: devices.length,
+            color: "var(--accent)",
+            active: statuses.size === ALL_STATUSES.size,
+          },
+          ...STATUS_OPTIONS.map((o) => ({
+            key: o.key,
+            label: o.label,
+            value: stats[o.key],
+            color: STATUS_COLOR[o.key],
+            active: statuses.size === 1 && statuses.has(o.key),
+          })),
+        ]}
+        onSelect={(key) => (key === "__all__" ? setStatuses(new Set(ALL_STATUSES)) : selectOnlyStatus(key as DeviceStatus))}
+      />
 
       <div className="panel">
         <h2>Larghezza seduta richiesta (se applicabile)</h2>

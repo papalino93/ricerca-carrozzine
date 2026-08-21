@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   STATUS_LABEL,
   STATUS_OPTIONS,
@@ -8,6 +8,7 @@ import {
   type DeviceStatus,
 } from "@/lib/device-types";
 import { DocumentPanel } from "./DocumentPanel";
+import { Toast } from "./Toast";
 
 interface HistoryEvent {
   data: string;
@@ -38,6 +39,7 @@ function todayIso(): string {
 interface DeviceDetailModalProps {
   device: Device;
   isNew: boolean;
+  autoRent?: boolean;
   categories: string[];
   sottocategorie: string[];
   marche: string[];
@@ -54,6 +56,7 @@ interface DeviceDetailModalProps {
 export function DeviceDetailModal({
   device,
   isNew,
+  autoRent,
   categories,
   sottocategorie,
   marche,
@@ -67,13 +70,21 @@ export function DeviceDetailModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [renting, setRenting] = useState(false);
+  const [renting, setRenting] = useState(Boolean(autoRent));
   const [rentCliente, setRentCliente] = useState("");
   const [rentTelefono, setRentTelefono] = useState("");
   const [rentContratto, setRentContratto] = useState("");
   const [rentDal, setRentDal] = useState(todayIso());
   const [showDoc, setShowDoc] = useState(false);
   const [events, setEvents] = useState<HistoryEvent[] | null>(isNew ? [] : null);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function showToast(message: string) {
+    setToast(message);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 2400);
+  }
 
   // Il componente è montato con una `key` diversa ogni volta che si apre un
   // dispositivo diverso (o si passa a "Duplica"): niente da sincronizzare
@@ -123,6 +134,7 @@ export function DeviceDetailModal({
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || "Salvataggio non riuscito");
       onSaved(body.devices);
+      showToast(isNew ? "Dispositivo aggiunto" : "Modifiche salvate");
       if (isNew) onClose();
     } catch (err) {
       setError((err as Error).message);
@@ -173,6 +185,7 @@ export function DeviceDetailModal({
       if (!res.ok) throw new Error(body.error || "Operazione non riuscita");
       applyUpdate(body.devices);
       setRenting(false);
+      showToast("Noleggio confermato");
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -193,6 +206,7 @@ export function DeviceDetailModal({
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || "Operazione non riuscita");
       applyUpdate(body.devices);
+      showToast(tipo === "restituzione" ? "Segnato come restituito" : "Segnato come sanificato");
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -567,6 +581,7 @@ export function DeviceDetailModal({
       </div>
 
       {showDoc ? <DocumentPanel device={form} onClose={() => setShowDoc(false)} /> : null}
+      <Toast message={toast} />
     </>
   );
 }
