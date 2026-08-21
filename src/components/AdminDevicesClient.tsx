@@ -3,6 +3,8 @@
 import { useMemo, useRef, useState } from "react";
 import { STATUS_COLOR, STATUS_LABEL, STATUS_OPTIONS, type Device, type DeviceStatus } from "@/lib/device-types";
 import { DeviceDetailModal } from "./DeviceDetailModal";
+import { DocumentPanel } from "./DocumentPanel";
+import type { DocumentoTipo } from "@/lib/pdf/VerbaleDocument";
 import { StatTiles } from "./StatTiles";
 import { Toast } from "./Toast";
 
@@ -45,6 +47,7 @@ export function AdminDevicesClient({ initialDevices, categories }: AdminDevicesC
   );
   const [issueFilter, setIssueFilter] = useState<IssueFilter>(null);
   const [saving, setSaving] = useState(false);
+  const [docPrompt, setDocPrompt] = useState<{ device: Device; tipo: DocumentoTipo } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -177,12 +180,12 @@ export function AdminDevicesClient({ initialDevices, categories }: AdminDevicesC
     setDetailKey((k) => k + 1);
   }
 
-  async function quickReturn(e: React.MouseEvent, codice: string) {
+  async function quickReturn(e: React.MouseEvent, d: Device) {
     e.stopPropagation();
-    if (!confirm(`Segnare ${codice} come restituito? Andrà in "da pulire".`)) return;
+    if (!confirm(`Segnare ${d.codice} come restituito? Andrà in "da pulire".`)) return;
     setSaving(true);
     try {
-      const res = await fetch(`/api/dispositivi/${encodeURIComponent(codice)}/eventi`, {
+      const res = await fetch(`/api/dispositivi/${encodeURIComponent(d.codice)}/eventi`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tipo: "restituzione" }),
@@ -190,7 +193,11 @@ export function AdminDevicesClient({ initialDevices, categories }: AdminDevicesC
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || "Operazione non riuscita");
       setDevices(body.devices);
-      showToast(`${codice} segnato come restituito`);
+      showToast(`${d.codice} segnato come restituito`);
+      // Il ritorno svuota cliente/telefono/contratto sul dispositivo: usiamo
+      // "d" (lo stato di prima) per il verbale di restituzione, non la
+      // versione aggiornata appena arrivata dall'API.
+      setDocPrompt({ device: d, tipo: "restituzione" });
     } catch (err) {
       showToast((err as Error).message);
     } finally {
@@ -351,7 +358,7 @@ export function AdminDevicesClient({ initialDevices, categories }: AdminDevicesC
                     <button
                       className="btn primary"
                       type="button"
-                      onClick={(e) => quickReturn(e, d.codice)}
+                      onClick={(e) => quickReturn(e, d)}
                       disabled={saving}
                     >
                       Segna restituito
@@ -392,6 +399,13 @@ export function AdminDevicesClient({ initialDevices, categories }: AdminDevicesC
             showToast("Dispositivo eliminato");
           }}
           onDuplicate={openDuplicate}
+        />
+      ) : null}
+      {docPrompt ? (
+        <DocumentPanel
+          device={docPrompt.device}
+          forcedTipo={docPrompt.tipo}
+          onClose={() => setDocPrompt(null)}
         />
       ) : null}
       <Toast message={toast} />

@@ -11,13 +11,17 @@ function todayIso(): string {
 interface DocumentPanelProps {
   device: Device;
   onClose: () => void;
+  /** Forza il tipo iniziale (es. subito dopo un noleggio/restituzione,
+   * quando lo stato del dispositivo è già cambiato e non riflette più
+   * l'operazione appena fatta). Senza, si deduce dallo stato attuale. */
+  forcedTipo?: DocumentoTipo;
 }
 
-export function DocumentPanel({ device, onClose }: DocumentPanelProps) {
+export function DocumentPanel({ device, onClose, forcedTipo }: DocumentPanelProps) {
   const [tipo, setTipo] = useState<DocumentoTipo>(
-    device.stato === "noleggiato" ? "restituzione" : "consegna"
+    forcedTipo ?? (device.stato === "noleggiato" ? "restituzione" : "consegna")
   );
-  const [numeroContratto, setNumeroContratto] = useState(device.contratto ?? device.codice);
+  const [numeroContratto, setNumeroContratto] = useState(device.contratto ?? "");
   const [data, setData] = useState(todayIso());
   const [clienteNome, setClienteNome] = useState(device.cliente ?? "");
   const [clienteTelefono, setClienteTelefono] = useState(device.telefono ?? "");

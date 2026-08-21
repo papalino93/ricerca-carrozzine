@@ -1,6 +1,7 @@
 import "server-only";
 import { readSheet, writeSheet } from "./sheets";
 import { appendHistoryEvent } from "./history";
+import { upsertClient } from "./clients";
 import { STATUS_OPTIONS, type Device, type DeviceStatus } from "./device-types";
 
 export type { Device, DeviceStatus } from "./device-types";
@@ -159,6 +160,12 @@ export async function rentDevice(codice: string, input: RentDeviceInput): Promis
     telefono: input.telefono,
     contratto: input.contratto,
     nota: null,
+  });
+  await upsertClient({
+    nome: input.cliente,
+    telefono: input.telefono,
+    contratto: input.contratto,
+    dal,
   });
   return devices;
 }

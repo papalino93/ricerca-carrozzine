@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { Lora } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 
-const heading = Lora({
+const heading = Inter({
   subsets: ["latin"],
   weight: ["500", "600", "700"],
   variable: "--font-heading",

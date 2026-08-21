@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { getSettings, type CompanySettings } from "@/lib/settings";
 import { VerbaleDocument, type DocumentoTipo } from "@/lib/pdf/VerbaleDocument";
+import { appendDocumentLog } from "@/lib/documentLog";
 
 export const runtime = "nodejs";
 
@@ -52,6 +53,22 @@ export async function POST(req: NextRequest) {
     const settings = await getSettings();
 
     const buffer = await renderToBuffer(buildDocument(body, settings));
+
+    // Il PDF non viene archiviato (nessuno storage esterno, vedi README):
+    // registriamo solo che è stato generato. Un errore qui non deve
+    // impedire il download del documento già pronto.
+    try {
+      await appendDocumentLog({
+        data: body.data || new Date().toISOString().slice(0, 10),
+        tipo: body.tipo,
+        codice: body.dispositivo.codice,
+        numeroContratto: body.numeroContratto || null,
+        cliente: body.cliente?.nome || null,
+        telefono: body.cliente?.telefono || null,
+      });
+    } catch {
+      // best-effort
+    }
 
     const bytes = new Uint8Array(buffer);
     return new NextResponse(new Blob([bytes]), {

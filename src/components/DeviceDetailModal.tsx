@@ -8,6 +8,7 @@ import {
   type DeviceStatus,
 } from "@/lib/device-types";
 import { DocumentPanel } from "./DocumentPanel";
+import type { DocumentoTipo } from "@/lib/pdf/VerbaleDocument";
 import { Toast } from "./Toast";
 
 interface HistoryEvent {
@@ -76,6 +77,8 @@ export function DeviceDetailModal({
   const [rentContratto, setRentContratto] = useState("");
   const [rentDal, setRentDal] = useState(todayIso());
   const [showDoc, setShowDoc] = useState(false);
+  const [docForcedTipo, setDocForcedTipo] = useState<DocumentoTipo | undefined>(undefined);
+  const [docDevice, setDocDevice] = useState<Device>(device);
   const [events, setEvents] = useState<HistoryEvent[] | null>(isNew ? [] : null);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -186,6 +189,9 @@ export function DeviceDetailModal({
       applyUpdate(body.devices);
       setRenting(false);
       showToast("Noleggio confermato");
+      setDocDevice(body.devices.find((d: Device) => d.codice === form.codice) ?? form);
+      setDocForcedTipo("consegna");
+      setShowDoc(true);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -195,6 +201,9 @@ export function DeviceDetailModal({
 
   async function handleLifecycle(tipo: "restituzione" | "sanificazione") {
     if (tipo === "restituzione" && !confirm(`Segnare ${form.codice} come restituito?`)) return;
+    // Il ritorno svuota cliente/telefono/contratto sul dispositivo: per il
+    // verbale di restituzione servono i dati di PRIMA della restituzione.
+    const preReturnDevice = form;
     setSaving(true);
     setError(null);
     try {
@@ -207,6 +216,11 @@ export function DeviceDetailModal({
       if (!res.ok) throw new Error(body.error || "Operazione non riuscita");
       applyUpdate(body.devices);
       showToast(tipo === "restituzione" ? "Segnato come restituito" : "Segnato come sanificato");
+      if (tipo === "restituzione") {
+        setDocDevice(preReturnDevice);
+        setDocForcedTipo("restituzione");
+        setShowDoc(true);
+      }
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -566,7 +580,15 @@ export function DeviceDetailModal({
 
           {!isNew ? (
             <div className="detail-section card-actions">
-              <button className="btn" type="button" onClick={() => setShowDoc(true)}>
+              <button
+                className="btn"
+                type="button"
+                onClick={() => {
+                  setDocDevice(form);
+                  setDocForcedTipo(undefined);
+                  setShowDoc(true);
+                }}
+              >
                 Genera documento
               </button>
               <button className="btn" type="button" onClick={() => onDuplicate(form)}>
@@ -580,7 +602,9 @@ export function DeviceDetailModal({
         </div>
       </div>
 
-      {showDoc ? <DocumentPanel device={form} onClose={() => setShowDoc(false)} /> : null}
+      {showDoc ? (
+        <DocumentPanel device={docDevice} forcedTipo={docForcedTipo} onClose={() => setShowDoc(false)} />
+      ) : null}
       <Toast message={toast} />
     </>
   );
