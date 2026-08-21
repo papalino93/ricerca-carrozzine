@@ -26,9 +26,10 @@ const EMPTY_FORM: Device = {
 interface AdminDevicesClientProps {
   initialDevices: Device[];
   logoUrl?: string | null;
+  categories: string[];
 }
 
-export function AdminDevicesClient({ initialDevices, logoUrl }: AdminDevicesClientProps) {
+export function AdminDevicesClient({ initialDevices, logoUrl, categories }: AdminDevicesClientProps) {
   const [devices, setDevices] = useState(initialDevices);
   const [form, setForm] = useState<Device>(EMPTY_FORM);
   const [editingCodice, setEditingCodice] = useState<string | null>(null);
@@ -38,14 +39,15 @@ export function AdminDevicesClient({ initialDevices, logoUrl }: AdminDevicesClie
   const [docDevice, setDocDevice] = useState<Device | null>(null);
   const [rentDevice, setRentDevice] = useState<Device | null>(null);
   const [historyDevice, setHistoryDevice] = useState<Device | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState("Tutte");
 
-  const categorie = useMemo(
-    () => Array.from(new Set(devices.map((d) => d.categoria).filter(Boolean))).sort(),
-    [devices]
-  );
   const marche = useMemo(
     () => Array.from(new Set(devices.map((d) => d.marca).filter(Boolean))).sort(),
     [devices]
+  );
+  const visibleDevices = useMemo(
+    () => (categoryFilter === "Tutte" ? devices : devices.filter((d) => d.categoria === categoryFilter)),
+    [devices, categoryFilter]
   );
 
   function startEdit(d: Device) {
@@ -233,16 +235,20 @@ export function AdminDevicesClient({ initialDevices, logoUrl }: AdminDevicesClie
           </div>
           <div className="field">
             <label>Categoria</label>
-            <input
-              list="categorie-list"
+            <select
               value={form.categoria}
               onChange={(e) => setForm({ ...form, categoria: e.target.value })}
-            />
-            <datalist id="categorie-list">
-              {categorie.map((c) => (
-                <option key={c} value={c} />
+              required
+            >
+              <option value="" disabled>
+                — seleziona —
+              </option>
+              {categories.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
               ))}
-            </datalist>
+            </select>
           </div>
         </div>
         <div className="field-row">
@@ -376,7 +382,19 @@ export function AdminDevicesClient({ initialDevices, logoUrl }: AdminDevicesClie
       </form>
 
       <div className="panel admin-table-wrap">
-        <h2>Tutti i dispositivi</h2>
+        <div className="top-nav" style={{ marginBottom: 12 }}>
+          <h2 style={{ margin: 0 }}>Tutti i dispositivi</h2>
+          <div className="field" style={{ minWidth: 200, margin: 0 }}>
+            <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+              <option value="Tutte">Tutte le categorie</option>
+              {categories.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
         <table className="admin-table">
           <thead>
             <tr>
@@ -391,7 +409,7 @@ export function AdminDevicesClient({ initialDevices, logoUrl }: AdminDevicesClie
             </tr>
           </thead>
           <tbody>
-            {devices.map((d) => (
+            {visibleDevices.map((d) => (
               <tr key={d.codice}>
                 <td>
                   {d.foto ? (

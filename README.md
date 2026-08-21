@@ -81,6 +81,22 @@ Gestita da `/admin/impostazioni` (sezione "Utenti autorizzati") — non va
 compilata a mano: le password sono salvate come hash (scrypt + salt), mai
 in chiaro.
 
+**`Categorie`** (riga di intestazione + una riga per categoria):
+
+```
+Nome
+```
+
+Gestita da `/admin/impostazioni` (sezione "Categorie ausili") — ogni
+dispositivo appartiene a una di queste categorie (usate come filtro nella
+ricerca pubblica e come scelta nel form dispositivo). Non compilare a
+mano finché non serve: alla primissima richiesta dopo il rilascio di
+questa funzione il foglio viene creato automaticamente con la categoria
+"Carrozzine", assegnata anche a tutti i dispositivi già presenti in
+magazzino (che finora erano comunque tutte carrozzine). Da lì puoi
+aggiungere altre categorie (rollatori, stampelle, magnetoterapia, ecc.) —
+non si può eliminare una categoria ancora usata da qualche dispositivo.
+
 **`Impostazioni`** (riga di intestazione + una sola riga di dati):
 
 ```

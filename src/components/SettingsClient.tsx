@@ -5,13 +5,19 @@ import type { CompanySettings } from "@/lib/settings";
 import type { AdminUser } from "@/lib/users";
 import { BrandHeader } from "./BrandHeader";
 import { UsersManager } from "./UsersManager";
+import { CategoriesManager } from "./CategoriesManager";
 
 interface SettingsClientProps {
   initialSettings: CompanySettings;
   initialUsers: AdminUser[];
+  initialCategories: string[];
 }
 
-export function SettingsClient({ initialSettings, initialUsers }: SettingsClientProps) {
+export function SettingsClient({
+  initialSettings,
+  initialUsers,
+  initialCategories,
+}: SettingsClientProps) {
   const [settings, setSettings] = useState(initialSettings);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -147,6 +153,8 @@ export function SettingsClient({ initialSettings, initialUsers }: SettingsClient
           </button>
         </div>
       </form>
+
+      <CategoriesManager initialCategories={initialCategories} />
 
       <UsersManager initialUsers={initialUsers} />
     </div>

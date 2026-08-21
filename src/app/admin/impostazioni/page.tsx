@@ -1,5 +1,6 @@
 import { getSettings } from "@/lib/settings";
 import { listUsers } from "@/lib/users";
+import { listCategories } from "@/lib/categories";
 import { SettingsClient } from "@/components/SettingsClient";
 
 export const dynamic = "force-dynamic";
@@ -18,9 +19,16 @@ export default async function ImpostazioniPage() {
     );
   }
 
-  // Se il foglio Utenti non è ancora leggibile per qualche motivo, non
-  // blocchiamo l'intera pagina Impostazioni: la sezione utenti parte vuota.
+  // Se il foglio Utenti/Categorie non è ancora leggibile per qualche motivo,
+  // non blocchiamo l'intera pagina Impostazioni: quella sezione parte vuota.
   const users = await listUsers().catch(() => []);
+  const categories = await listCategories().catch(() => []);
 
-  return <SettingsClient initialSettings={settings} initialUsers={users} />;
+  return (
+    <SettingsClient
+      initialSettings={settings}
+      initialUsers={users}
+      initialCategories={categories}
+    />
+  );
 }

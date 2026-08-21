@@ -15,9 +15,10 @@ function clamp(v: number, a: number, b: number): number {
 interface SearchClientProps {
   initialDevices: Device[];
   logoUrl?: string | null;
+  categories: string[];
 }
 
-export function SearchClient({ initialDevices, logoUrl }: SearchClientProps) {
+export function SearchClient({ initialDevices, logoUrl, categories }: SearchClientProps) {
   const [devices] = useState(initialDevices);
   const [width, setWidth] = useState<number | null>(null);
   const [category, setCategory] = useState("Tutte");
@@ -26,10 +27,7 @@ export function SearchClient({ initialDevices, logoUrl }: SearchClientProps) {
   );
   const [query, setQuery] = useState("");
 
-  const categories = useMemo(
-    () => ["Tutte", ...Array.from(new Set(devices.map((d) => d.categoria).filter(Boolean)))],
-    [devices]
-  );
+  const categoryOptions = useMemo(() => ["Tutte", ...categories], [categories]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -151,7 +149,7 @@ export function SearchClient({ initialDevices, logoUrl }: SearchClientProps) {
       <div className="panel">
         <h2>Categoria</h2>
         <div className="chips">
-          {categories.map((c) => (
+          {categoryOptions.map((c) => (
             <button
               key={c}
               className={`chip ${category === c ? "active" : ""}`}
