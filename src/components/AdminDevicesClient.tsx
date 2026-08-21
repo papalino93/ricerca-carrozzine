@@ -20,6 +20,7 @@ const EMPTY_FORM: Device = {
   dal: null,
   sanificazione: null,
   nota: null,
+  foto: null,
 };
 
 interface AdminDevicesClientProps {
@@ -32,6 +33,7 @@ export function AdminDevicesClient({ initialDevices, logoUrl }: AdminDevicesClie
   const [form, setForm] = useState<Device>(EMPTY_FORM);
   const [editingCodice, setEditingCodice] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [docDevice, setDocDevice] = useState<Device | null>(null);
   const [rentDevice, setRentDevice] = useState<Device | null>(null);
@@ -137,6 +139,51 @@ export function AdminDevicesClient({ initialDevices, logoUrl }: AdminDevicesClie
       setError((err as Error).message);
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !editingCodice) return;
+    setUploadingPhoto(true);
+    setError(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch(`/api/dispositivi/${encodeURIComponent(editingCodice)}/foto`, {
+        method: "POST",
+        body: fd,
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Caricamento foto non riuscito");
+      setDevices(body.devices);
+      const updated = body.devices.find((d: Device) => d.codice === editingCodice);
+      if (updated) setForm(updated);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }
+
+  async function handlePhotoRemove() {
+    if (!editingCodice) return;
+    setUploadingPhoto(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/dispositivi/${encodeURIComponent(editingCodice)}/foto`, {
+        method: "DELETE",
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Rimozione foto non riuscita");
+      setDevices(body.devices);
+      const updated = body.devices.find((d: Device) => d.codice === editingCodice);
+      if (updated) setForm(updated);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setUploadingPhoto(false);
     }
   }
 
@@ -280,6 +327,42 @@ export function AdminDevicesClient({ initialDevices, logoUrl }: AdminDevicesClie
             <input value={form.nota ?? ""} onChange={(e) => setForm({ ...form, nota: e.target.value || null })} />
           </div>
         </div>
+        <div className="field-row">
+          <div className="field">
+            <label>Foto</label>
+            {editingCodice ? (
+              <div className="photo-field">
+                {form.foto ? (
+                  <img className="photo-preview" src={form.foto} alt={`Foto ${editingCodice}`} />
+                ) : null}
+                <div className="card-actions" style={{ marginTop: 0 }}>
+                  <label className="btn">
+                    {uploadingPhoto ? "Caricamento…" : form.foto ? "Cambia foto" : "Carica foto"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoUpload}
+                      disabled={uploadingPhoto}
+                      style={{ display: "none" }}
+                    />
+                  </label>
+                  {form.foto ? (
+                    <button
+                      className="btn danger"
+                      type="button"
+                      onClick={handlePhotoRemove}
+                      disabled={uploadingPhoto}
+                    >
+                      Rimuovi foto
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            ) : (
+              <p className="hint">Salva il dispositivo per poter caricare una foto.</p>
+            )}
+          </div>
+        </div>
         <div className="card-actions">
           {editingCodice ? (
             <button className="btn" type="button" onClick={startNew}>
@@ -297,6 +380,7 @@ export function AdminDevicesClient({ initialDevices, logoUrl }: AdminDevicesClie
         <table className="admin-table">
           <thead>
             <tr>
+              <th></th>
               <th>Codice</th>
               <th>Categoria</th>
               <th>Marca / modello</th>
@@ -309,6 +393,13 @@ export function AdminDevicesClient({ initialDevices, logoUrl }: AdminDevicesClie
           <tbody>
             {devices.map((d) => (
               <tr key={d.codice}>
+                <td>
+                  {d.foto ? (
+                    <img className="photo-thumb" src={d.foto} alt="" />
+                  ) : (
+                    <span className="photo-thumb photo-thumb-empty" aria-hidden="true" />
+                  )}
+                </td>
                 <td>{d.codice}</td>
                 <td>{d.categoria}</td>
                 <td>

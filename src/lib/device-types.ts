@@ -47,6 +47,8 @@ export interface Device {
   /** Data ultima sanificazione, ISO yyyy-mm-dd. */
   sanificazione: string | null;
   nota: string | null;
+  /** Foto del dispositivo, come data URI (vedi image-to-data-uri.ts). */
+  foto: string | null;
 }
 
 /**

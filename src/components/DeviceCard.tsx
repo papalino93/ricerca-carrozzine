@@ -29,6 +29,9 @@ export function DeviceCard({ device: d, exactWidth, statusColor, adminActions }:
       </div>
       <div className="card-body">
         <div className="card-top">
+          {d.foto ? (
+            <img className="card-photo" src={d.foto} alt={`${d.marca} ${d.modello}`} />
+          ) : null}
           <span className="code">{d.codice}</span>
           <span className="model">
             {d.marca} {d.modello}

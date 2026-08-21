@@ -41,18 +41,23 @@ scrittura se non esistono ancora — non serve prepararle a mano.
 **`Dispositivi`** (riga di intestazione + una riga per unità):
 
 ```
-Codice | Categoria | Marca | Modello | Larghezza | Stato | Cliente | Telefono | Contratto | Dal | Sanificazione | Nota
+Codice | Categoria | Marca | Modello | Larghezza | Stato | Cliente | Telefono | Contratto | Dal | Sanificazione | Nota | Foto
 ```
 
 - `Stato` è uno tra: `disponibile`, `noleggiato`, `da_pulire`, `guasto`,
   `da_verificare`.
 - `Larghezza`, `Cliente`, `Telefono`, `Contratto`, `Dal`, `Sanificazione`,
-  `Nota` possono restare vuoti — utile per dispositivi diversi dalle
-  carrozzine, dove la larghezza seduta non ha senso.
+  `Nota`, `Foto` possono restare vuoti — utile per dispositivi diversi
+  dalle carrozzine, dove la larghezza seduta non ha senso.
 - `Dal` e `Sanificazione` in formato `AAAA-MM-GG`.
 - Questi campi vengono aggiornati automaticamente dalle azioni di ciclo di
   vita ("Noleggia", "Segna restituito", "Segna sanificato") in `/admin`;
   restano comunque modificabili a mano dal form o dal foglio stesso.
+- `Foto` è la foto del dispositivo, salvata come **data URI** direttamente
+  nella cella (stesso meccanismo del logo aziendale, vedi sotto): si
+  carica/rimuove dal form "Modifica" in `/admin` (bottone "Carica
+  foto"/"Rimuovi foto"), niente storage esterno. Non contenendo dati del
+  cliente, è visibile anche nella ricerca pubblica.
 
 **`Storico`** (riga di intestazione + una riga per evento, scritta in coda
 automaticamente dalle azioni di ciclo di vita):
@@ -62,9 +67,9 @@ Data | Codice | Evento | Cliente | Telefono | Contratto | Nota
 ```
 
 `Evento` è uno tra `noleggio`, `restituzione`, `sanificazione`. È un
-registro di sola consultazione: aprilo direttamente su Google Sheets per
-vedere lo storico completo di un dispositivo (non c'è ancora una vista
-dedicata dentro l'app).
+registro di sola consultazione, scritto in coda automaticamente e mai
+modificato: consultabile sia dal bottone "Storico" di ogni dispositivo in
+`/admin`, sia direttamente su Google Sheets.
 
 **`Utenti`** (riga di intestazione + una riga per utente autorizzato):
 
@@ -129,20 +134,28 @@ utente perde la password, chi ha accesso a Impostazioni azienda usa
 "Reimposta password" sulla riga di quell'utente per impostargliene una
 nuova da comunicargli direttamente.
 
-## Logo aziendale (nessuno storage esterno)
+## Logo aziendale e foto dispositivi (nessuno storage esterno)
 
-Il logo caricato da **Impostazioni azienda** non va su Vercel Blob o altri
-storage: la route `/api/upload-logo` lo ridimensiona e comprime con `sharp`
-(convertendolo in JPEG, sfondo trasparente appiattito su bianco) finché non
-entra in una cella del foglio Google come **data URI**, poi lo scrive
-direttamente nella colonna `LogoURL` della tab `Impostazioni`. Zero
-variabili d'ambiente da configurare, zero account terzi.
+Il logo caricato da **Impostazioni azienda** e la foto di ogni dispositivo
+non vanno su Vercel Blob, Google Drive o altri storage esterni: entrambi
+passano dall'helper condiviso `src/lib/image-to-data-uri.ts`, che
+ridimensiona e comprime l'immagine con `sharp` (convertendola in JPEG,
+sfondo trasparente appiattito su bianco) finché non entra in una cella del
+foglio Google come **data URI** — il logo nella colonna `LogoURL` della
+tab `Impostazioni`, la foto nella colonna `Foto` della tab `Dispositivi`.
+Zero variabili d'ambiente da configurare, zero account terzi.
+
+(Per i documenti PDF/scheda tecnica degli ausili non è invece prevista una
+soluzione: un account di servizio Google non ha una propria quota di
+storage su Drive, nemmeno in una cartella condivisa come editor — serve un
+Drive condiviso (Google Workspace) o la delega a livello di dominio, che
+questo progetto non usa. Solo la foto è quindi supportata.)
 
 Il limite è quello di una cella di Google Sheets (50.000 caratteri): per un
-logo semplice non è un problema, ma un'immagine molto ricca di dettagli
-potrebbe non entrarci nemmeno dopo la compressione massima — in quel caso
-l'upload risponde con un errore che chiede un'immagine più semplice o più
-piccola.
+logo o una foto semplici non è un problema, ma un'immagine molto ricca di
+dettagli potrebbe non entrarci nemmeno dopo la compressione massima — in
+quel caso l'upload risponde con un errore che chiede un'immagine più
+semplice o più piccola.
 
 **Primo caricamento del logo**: vai su `/admin/impostazioni` (ti verrà
 richiesta la Basic Auth), seleziona il file immagine sotto "Logo

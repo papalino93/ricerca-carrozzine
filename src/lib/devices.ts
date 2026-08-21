@@ -22,6 +22,7 @@ const HEADER = [
   "Dal",
   "Sanificazione",
   "Nota",
+  "Foto",
 ];
 
 function toDevice(row: string[]): Device {
@@ -38,6 +39,7 @@ function toDevice(row: string[]): Device {
     dal,
     sanificazione,
     nota,
+    foto,
   ] = row;
 
   return {
@@ -55,6 +57,7 @@ function toDevice(row: string[]): Device {
     dal: dal || null,
     sanificazione: sanificazione || null,
     nota: nota || null,
+    foto: foto || null,
   };
 }
 
@@ -72,6 +75,7 @@ function toRow(d: Device): string[] {
     d.dal ?? "",
     d.sanificazione ?? "",
     d.nota ?? "",
+    d.foto ?? "",
   ];
 }
 
@@ -103,6 +107,14 @@ export async function upsertDevice(device: Device): Promise<Device[]> {
   const idx = devices.findIndex((d) => d.codice === device.codice);
   if (idx >= 0) devices[idx] = device;
   else devices.push(device);
+  await saveAllDevices(devices);
+  return devices;
+}
+
+export async function setDevicePhoto(codice: string, foto: string | null): Promise<Device[]> {
+  const devices = await listDevices();
+  const { idx } = findOrThrow(devices, codice);
+  devices[idx] = { ...devices[idx], foto };
   await saveAllDevices(devices);
   return devices;
 }
