@@ -802,6 +802,20 @@ table.admin-table td {
   vertical-align: middle;
 }
 
+/* Colonna azioni rapide del magazzino: "Noleggia"/"Segna restituito"/
+   "Segna sanificato" hanno lunghezze diverse (e alcune righe non hanno
+   nessun pulsante), il che rendeva il bordo destro della colonna a
+   zig-zag. Larghezza fissa sul pulsante più lungo: bordo dritto, righe
+   vuote allineate lo stesso. */
+.action-cell {
+  width: 168px;
+}
+
+.action-cell .btn {
+  width: 100%;
+  text-align: center;
+}
+
 tr.clickable-row {
   cursor: pointer;
 }
@@ -1310,6 +1324,15 @@ tr.clickable-row:hover td {
   border-radius: 10px;
   padding: 12px 14px;
   margin: 4px 0;
+}
+
+/* Separa un'azione irreversibile (Elimina) da quelle accanto che non lo
+   sono (Genera documento, Duplica): un dito di distanza in più prima di un
+   click che non si annulla. */
+.danger-zone {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--line);
 }
 
 /* Safari su iPhone ingrandisce la pagina a ogni tocco su un campo con

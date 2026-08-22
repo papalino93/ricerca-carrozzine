@@ -458,7 +458,7 @@ export function AdminDevicesClient({ initialDevices, categories }: AdminDevicesC
                   <span className={`pill ${d.stato}`}>{STATUS_LABEL[d.stato]}</span>
                 </td>
                 <td>{d.cliente ?? "—"}</td>
-                <td>
+                <td className="action-cell">
                   {d.stato === "disponibile" ? (
                     <button className="btn primary" type="button" onClick={(e) => quickRent(e, d)}>
                       Noleggia

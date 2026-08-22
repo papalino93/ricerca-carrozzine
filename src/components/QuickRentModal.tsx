@@ -1,0 +1,143 @@
+"use client";
+
+import { useState } from "react";
+import { readJson } from "@/lib/fetch-json";
+import { addDaysIso, todayIso } from "@/lib/dates";
+import type { Device } from "@/lib/device-types";
+import { DocumentPanel } from "./DocumentPanel";
+
+interface QuickRentModalProps {
+  device: Device;
+  onClose: () => void;
+  /** Il dispositivo aggiornato dopo il noleggio: il chiamante aggiorna la sua lista. */
+  onRented: (devices: Device[]) => void;
+}
+
+// Noleggio diretto dalla ricerca: prima bisognava annotarsi il codice,
+// andare in amministrazione, ri-cercarlo e noleggiarlo da lì. Stessa
+// operazione della scheda dispositivo in admin, ma richiamabile subito
+// dalla card di un ausilio disponibile — nessun dato nuovo, nessun
+// permesso nuovo: chi arriva qui è già autenticato come chiunque acceda
+// all'amministrazione (un solo livello di accesso in questo sito).
+export function QuickRentModal({ device, onClose, onRented }: QuickRentModalProps) {
+  const [cliente, setCliente] = useState("");
+  const [telefono, setTelefono] = useState("");
+  const [contratto, setContratto] = useState("");
+  const [dal, setDal] = useState(todayIso());
+  const [alPrevisto, setAlPrevisto] = useState(addDaysIso(todayIso(), 30));
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showDoc, setShowDoc] = useState(false);
+  const [rentedDevice, setRentedDevice] = useState<Device | null>(null);
+
+  async function handleConfirm(e: React.FormEvent) {
+    e.preventDefault();
+    if (!cliente.trim()) {
+      setError("Il nome del cliente è obbligatorio");
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/dispositivi/${encodeURIComponent(device.codice)}/eventi`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tipo: "noleggio",
+          cliente,
+          telefono,
+          contratto,
+          dal,
+          alPrevisto: alPrevisto || null,
+        }),
+      });
+      const body = await readJson(res);
+      if (!res.ok) throw new Error(body.error || "Operazione non riuscita");
+      onRented(body.devices);
+      const updated = body.devices.find((d: Device) => d.codice === device.codice) ?? device;
+      setRentedDevice(updated);
+      setShowDoc(true);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // Il verbale di consegna resta apribile finché l'operatore non chiude
+  // anche questo pannello: chiuderlo subito dopo il noleggio confermato
+  // farebbe perdere l'occasione di stamparlo senza dover tornare in admin.
+  if (showDoc && rentedDevice) {
+    return <DocumentPanel device={rentedDevice} forcedTipo="consegna" onClose={onClose} />;
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head">
+          <h3>Noleggia {device.codice} — {device.marca} {device.modello}</h3>
+          <button className="modal-close" onClick={onClose} aria-label="Chiudi" type="button">
+            ×
+          </button>
+        </div>
+
+        {error ? <div className="banner error">{error}</div> : null}
+
+        <form onSubmit={handleConfirm}>
+          <div className="field">
+            <label>Cliente</label>
+            <input
+              value={cliente}
+              onChange={(e) => setCliente(e.target.value)}
+              placeholder="Nome e cognome"
+              autoFocus
+            />
+          </div>
+          <div className="field-row">
+            <div className="field">
+              <label>Telefono</label>
+              <input value={telefono} onChange={(e) => setTelefono(e.target.value)} />
+            </div>
+            <div className="field">
+              <label>Numero contratto</label>
+              <input value={contratto} onChange={(e) => setContratto(e.target.value)} />
+            </div>
+          </div>
+          <div className="field-row">
+            <div className="field">
+              <label>Dal</label>
+              <input type="date" value={dal} onChange={(e) => setDal(e.target.value)} />
+            </div>
+            <div className="field">
+              <label>Rientro previsto (facoltativo)</label>
+              <input type="date" value={alPrevisto} onChange={(e) => setAlPrevisto(e.target.value)} />
+            </div>
+          </div>
+          <div className="chips" style={{ marginBottom: 14 }}>
+            {[15, 30, 60, 90].map((days) => (
+              <button
+                key={days}
+                type="button"
+                className="chip"
+                onClick={() => setAlPrevisto(addDaysIso(dal, days))}
+              >
+                +{days} giorni
+              </button>
+            ))}
+            <button type="button" className="chip" onClick={() => setAlPrevisto("")}>
+              Nessuna scadenza
+            </button>
+          </div>
+          <div className="card-actions">
+            <button className="btn" type="button" onClick={onClose}>
+              Annulla
+            </button>
+            <button className="btn primary" type="submit" disabled={saving}>
+              {saving ? "Salvataggio…" : "Conferma noleggio"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}

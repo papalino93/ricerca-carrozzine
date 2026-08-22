@@ -406,6 +406,7 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
             device={d}
             exactWidth={Boolean(width && d.larghezza === width)}
             statusColor={STATUS_COLOR[d.stato]}
+            onRented={setDevices}
           />
         ))
       )}

@@ -1,6 +1,7 @@
 "use client";
 
 import { readJson } from "@/lib/fetch-json";
+import { addDaysIso, todayIso } from "@/lib/dates";
 import { useEffect, useRef, useState } from "react";
 import {
   STATUS_LABEL,
@@ -40,16 +41,13 @@ function fmtDate(iso: string): string {
   return `${d}/${m}/${y}`;
 }
 
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
-}
+type ModalTab = "dati" | "galleria" | "storico";
 
-/** Somma giorni a una data ISO yyyy-mm-dd, per le scelte rapide "+30/60/90 giorni". */
-function addDaysIso(iso: string, days: number): string {
-  const d = new Date(`${iso}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
+const MODAL_TABS: { key: ModalTab; label: string }[] = [
+  { key: "dati", label: "Dati" },
+  { key: "galleria", label: "Galleria foto" },
+  { key: "storico", label: "Storico" },
+];
 
 interface DeviceDetailModalProps {
   device: Device;
@@ -105,6 +103,7 @@ export function DeviceDetailModal({
   const [uploadingGallery, setUploadingGallery] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [tab, setTab] = useState<ModalTab>("dati");
   const [alPrevistoDraft, setAlPrevistoDraft] = useState(device.alPrevisto ?? "");
   const [savingAlPrevisto, setSavingAlPrevisto] = useState(false);
   // Sincronizzato con `current` (non con `form`, che può contenere una bozza
@@ -557,6 +556,22 @@ export function DeviceDetailModal({
             </form>
           ) : null}
 
+          {!isNew ? (
+            <div className="chips" style={{ marginBottom: 16 }}>
+              {MODAL_TABS.map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  className={`chip ${tab === t.key ? "active" : ""}`}
+                  onClick={() => setTab(t.key)}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
+
+          {isNew || tab === "dati" ? (
           <form onSubmit={handleSave}>
             <div className="field-row">
               <div className="field">
@@ -773,8 +788,9 @@ export function DeviceDetailModal({
               </button>
             </div>
           </form>
+          ) : null}
 
-          {!isNew ? (
+          {!isNew && tab === "galleria" ? (
             <div className="detail-section">
               <h2>Galleria foto ({gallery.length}/{MAX_GALLERY_PHOTOS})</h2>
               <p className="hint" style={{ marginBottom: 10 }}>
@@ -837,7 +853,7 @@ export function DeviceDetailModal({
             </div>
           ) : null}
 
-          {!isNew ? (
+          {!isNew && tab === "storico" ? (
             <div className="detail-section">
               <h2>Storico</h2>
               {events === null ? <p className="hint">Caricamento…</p> : null}
@@ -886,24 +902,31 @@ export function DeviceDetailModal({
           ) : null}
 
           {!isNew ? (
-            <div className="detail-section card-actions">
-              <button
-                className="btn"
-                type="button"
-                onClick={() => {
-                  setDocDevice(form);
-                  setDocForcedTipo(undefined);
-                  setShowDoc(true);
-                }}
-              >
-                Genera documento
-              </button>
-              <button className="btn" type="button" onClick={() => onDuplicate(form)}>
-                Duplica
-              </button>
-              <button className="btn danger" type="button" onClick={handleDelete} disabled={saving}>
-                Elimina
-              </button>
+            <div className="detail-section">
+              <div className="card-actions">
+                <button
+                  className="btn"
+                  type="button"
+                  onClick={() => {
+                    setDocDevice(form);
+                    setDocForcedTipo(undefined);
+                    setShowDoc(true);
+                  }}
+                >
+                  Genera documento
+                </button>
+                <button className="btn" type="button" onClick={() => onDuplicate(form)}>
+                  Duplica
+                </button>
+              </div>
+              {/* Isolata dalle azioni sopra (non distruttive): un click qui
+                  non si annulla, meglio non averla a un dito di distanza da
+                  "Duplica"/"Genera documento". */}
+              <div className="danger-zone">
+                <button className="btn danger" type="button" onClick={handleDelete} disabled={saving}>
+                  Elimina dispositivo
+                </button>
+              </div>
             </div>
           ) : null}
         </div>

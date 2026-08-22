@@ -4,6 +4,7 @@ import { useState } from "react";
 import { STATUS_LABEL, type Device } from "@/lib/device-types";
 import { DocumentPanel } from "./DocumentPanel";
 import { DevicePublicViewModal } from "./DevicePublicViewModal";
+import { QuickRentModal } from "./QuickRentModal";
 
 function fmtDate(iso: string | null): string {
   if (!iso) return "";
@@ -16,11 +17,14 @@ interface DeviceCardProps {
   device: Device;
   exactWidth?: boolean;
   statusColor: string;
+  /** Se passato, mostra "Noleggia" sulle card disponibili (solo dove ha senso: ricerca pubblica). */
+  onRented?: (devices: Device[]) => void;
 }
 
-export function DeviceCard({ device: d, exactWidth, statusColor }: DeviceCardProps) {
+export function DeviceCard({ device: d, exactWidth, statusColor, onRented }: DeviceCardProps) {
   const [showDoc, setShowDoc] = useState(false);
   const [showView, setShowView] = useState(false);
+  const [showRent, setShowRent] = useState(false);
 
   return (
     <div className="card" id={`device-${d.codice}`}>
@@ -48,6 +52,11 @@ export function DeviceCard({ device: d, exactWidth, statusColor }: DeviceCardPro
         </div>
         {d.nota ? <div className="note">{d.nota}</div> : null}
         <div className="card-actions">
+          {onRented && d.stato === "disponibile" ? (
+            <button className="btn primary" type="button" onClick={() => setShowRent(true)}>
+              Noleggia
+            </button>
+          ) : null}
           <button className="btn" type="button" onClick={() => setShowView(true)}>
             Visualizza
           </button>
@@ -58,6 +67,13 @@ export function DeviceCard({ device: d, exactWidth, statusColor }: DeviceCardPro
       </div>
       {showDoc ? <DocumentPanel device={d} onClose={() => setShowDoc(false)} /> : null}
       {showView ? <DevicePublicViewModal device={d} onClose={() => setShowView(false)} /> : null}
+      {showRent && onRented ? (
+        // Non chiude qui: dopo il noleggio confermato, QuickRentModal
+        // mostra da solo il verbale di consegna, e si chiude solo quando
+        // l'operatore chiude quello (altrimenti l'occasione di stamparlo
+        // subito, senza tornare in admin, andrebbe persa).
+        <QuickRentModal device={d} onClose={() => setShowRent(false)} onRented={onRented} />
+      ) : null}
     </div>
   );
 }
