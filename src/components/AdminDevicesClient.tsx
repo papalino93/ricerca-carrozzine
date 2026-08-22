@@ -8,6 +8,8 @@ import { DocumentPanel } from "./DocumentPanel";
 import type { DocumentoTipo } from "@/lib/pdf/VerbaleDocument";
 import { StatTiles } from "./StatTiles";
 import { Toast } from "./Toast";
+import { useAutoRefresh } from "@/lib/use-auto-refresh";
+import { matchesQuery } from "@/lib/search-match";
 
 const EMPTY_FORM: Device = {
   codice: "",
@@ -20,17 +22,24 @@ const EMPTY_FORM: Device = {
   telefono: null,
   contratto: null,
   dal: null,
+  alPrevisto: null,
   sanificazione: null,
   nota: null,
   foto: null,
   sottocategoria: null,
 };
 
-type IssueFilter = "stale" | "incomplete" | null;
+type IssueFilter = "stale" | "incomplete" | "overdue" | "duesoon" | null;
 
 function daysSince(iso: string | null): number | null {
   if (!iso) return null;
   return Math.round((Date.now() - new Date(iso).getTime()) / 86_400_000);
+}
+
+/** Giorni da oggi a una data futura (negativo se già passata). */
+function daysUntil(iso: string | null): number | null {
+  if (!iso) return null;
+  return Math.round((new Date(iso).getTime() - Date.now()) / 86_400_000);
 }
 
 interface AdminDevicesClientProps {
@@ -40,9 +49,11 @@ interface AdminDevicesClientProps {
 
 export function AdminDevicesClient({ initialDevices, categories }: AdminDevicesClientProps) {
   const [devices, setDevices] = useState(initialDevices);
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [detail, setDetail] = useState<{ device: Device; isNew: boolean; autoRent?: boolean } | null>(null);
   const [detailKey, setDetailKey] = useState(0);
   const [categoryFilter, setCategoryFilter] = useState("Tutte");
+  const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<Set<DeviceStatus>>(
     new Set(STATUS_OPTIONS.map((o) => o.key))
   );
@@ -57,6 +68,25 @@ export function AdminDevicesClient({ initialDevices, categories }: AdminDevicesC
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(null), 2400);
   }
+
+  async function refreshDevices() {
+    try {
+      // ?vista=admin: a differenza della pagina di ricerca, qui servono
+      // anche telefono e numero contratto per operare sui noleggi.
+      const res = await fetch("/api/dispositivi?vista=admin");
+      const body = await readJson(res);
+      if (!res.ok) return;
+      setDevices(body.devices);
+      setLastRefresh(new Date());
+    } catch {
+      // Silenzioso: un aggiornamento in background che fallisce non deve
+      // interrompere chi sta lavorando con i dati già a schermo. La modale
+      // di un dispositivo aperta resta com'è: ha una sua copia locale,
+      // decisa quando è stata aperta.
+    }
+  }
+
+  useAutoRefresh(refreshDevices);
 
   const marche = useMemo(
     () => Array.from(new Set(devices.map((d) => d.marca).filter(Boolean))).sort(),
@@ -88,7 +118,38 @@ export function AdminDevicesClient({ initialDevices, categories }: AdminDevicesC
       (d) => d.stato === "disponibile" && (daysSince(d.sanificazione) ?? Infinity) > 30
     ).length;
     const incompleteCount = devices.filter((d) => !(d.marca && d.modello)).length;
+    // Prima dell'introduzione di "AlPrevisto" non c'era alcun modo di sapere
+    // quali noleggi fossero scaduti: l'unico modo era ricordarselo o
+    // controllare il contratto cartaceo. Sono in overdueCount solo i
+    // noleggi CON una data prevista superata: senza data non si può dire
+    // che sia in ritardo, semplicemente non è stata impostata.
+    const overdueCount = devices.filter(
+      (d) => d.stato === "noleggiato" && d.alPrevisto != null && (daysUntil(d.alPrevisto) ?? 1) < 0
+    ).length;
+    const dueSoonCount = devices.filter((d) => {
+      if (d.stato !== "noleggiato" || d.alPrevisto == null) return false;
+      const days = daysUntil(d.alPrevisto);
+      return days != null && days >= 0 && days <= 7;
+    }).length;
     return [
+      overdueCount > 0 && {
+        text: `${overdueCount} noleggi scaduti`,
+        color: STATUS_COLOR.guasto,
+        onClick: () => {
+          setStatusFilter(new Set(["noleggiato"]));
+          setCategoryFilter("Tutte");
+          setIssueFilter("overdue");
+        },
+      },
+      dueSoonCount > 0 && {
+        text: `${dueSoonCount} noleggi in scadenza nei prossimi 7 giorni`,
+        color: STATUS_COLOR.da_verificare,
+        onClick: () => {
+          setStatusFilter(new Set(["noleggiato"]));
+          setCategoryFilter("Tutte");
+          setIssueFilter("duesoon");
+        },
+      },
       stats.da_pulire > 0 && {
         text: `${stats.da_pulire} ausili in attesa di sanificazione`,
         color: STATUS_COLOR.da_pulire,
@@ -137,18 +198,30 @@ export function AdminDevicesClient({ initialDevices, categories }: AdminDevicesC
     ].filter(Boolean) as { text: string; color: string; onClick: () => void }[];
   }, [devices, stats]);
 
-  const visibleDevices = useMemo(
-    () =>
-      devices.filter((d) => {
-        if (categoryFilter !== "Tutte" && d.categoria !== categoryFilter) return false;
-        if (!statusFilter.has(d.stato)) return false;
-        if (issueFilter === "stale" && !(d.stato === "disponibile" && (daysSince(d.sanificazione) ?? 0) > 30))
-          return false;
-        if (issueFilter === "incomplete" && d.marca && d.modello) return false;
-        return true;
-      }),
-    [devices, categoryFilter, statusFilter, issueFilter]
-  );
+  const visibleDevices = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return devices.filter((d) => {
+      if (categoryFilter !== "Tutte" && d.categoria !== categoryFilter) return false;
+      if (!statusFilter.has(d.stato)) return false;
+      if (issueFilter === "stale" && !(d.stato === "disponibile" && (daysSince(d.sanificazione) ?? 0) > 30))
+        return false;
+      if (issueFilter === "incomplete" && d.marca && d.modello) return false;
+      if (issueFilter === "overdue" && !(d.stato === "noleggiato" && d.alPrevisto != null && (daysUntil(d.alPrevisto) ?? 1) < 0))
+        return false;
+      if (issueFilter === "duesoon") {
+        const days = d.stato === "noleggiato" ? daysUntil(d.alPrevisto) : null;
+        if (days == null || days < 0 || days > 7) return false;
+      }
+      if (q) {
+        const hay = [d.codice, d.marca, d.modello, d.cliente, d.telefono, d.contratto, d.larghezza, d.sottocategoria]
+          .filter((v) => v != null && v !== "")
+          .join(" ")
+          .toLowerCase();
+        if (!matchesQuery(hay, q)) return false;
+      }
+      return true;
+    });
+  }, [devices, categoryFilter, statusFilter, issueFilter, query]);
 
   function toggleStatusFilter(key: DeviceStatus) {
     setIssueFilter(null);
@@ -242,7 +315,14 @@ export function AdminDevicesClient({ initialDevices, categories }: AdminDevicesC
         <div className="top-nav">
           <h1>Magazzino</h1>
         </div>
-        <p className="sub">{devices.length} unità in magazzino</p>
+        <p className="sub">
+          {devices.length} unità in magazzino
+          <button type="button" className="refresh-hint" onClick={refreshDevices}>
+            {lastRefresh
+              ? `· aggiornato alle ${lastRefresh.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })} · aggiorna`
+              : "· aggiorna"}
+          </button>
+        </p>
         <div className="card-actions" style={{ marginTop: 12 }}>
           <button className="btn primary" type="button" onClick={openNew}>
             + Aggiungi dispositivo
@@ -296,6 +376,13 @@ export function AdminDevicesClient({ initialDevices, categories }: AdminDevicesC
       </div>
 
       <div className="panel">
+        <input
+          className="searchbox"
+          style={{ marginBottom: 14 }}
+          placeholder="Cerca per cliente, codice, marca, modello, telefono…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
         <div className="top-nav" style={{ marginBottom: 12 }}>
           <h2 style={{ margin: 0 }}>Tutti i dispositivi</h2>
           <div className="field" style={{ minWidth: 200, margin: 0 }}>
@@ -413,6 +500,7 @@ export function AdminDevicesClient({ initialDevices, categories }: AdminDevicesC
                 setIssueFilter(null);
                 setCategoryFilter("Tutte");
                 setStatusFilter(new Set(STATUS_OPTIONS.map((o) => o.key)));
+                setQuery("");
               }}
             >
               Azzera filtri

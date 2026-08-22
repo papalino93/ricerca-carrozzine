@@ -10,7 +10,7 @@ import {
 } from "@/lib/device-types";
 import { DocumentPanel } from "./DocumentPanel";
 import type { DocumentoTipo } from "@/lib/pdf/VerbaleDocument";
-import type { DevicePhoto } from "@/lib/photos";
+import type { DevicePhotoMeta } from "@/lib/photos";
 import { Toast } from "./Toast";
 
 // Deve combaciare con MAX_PHOTOS_PER_DEVICE in src/lib/photos.ts (server-only,
@@ -42,6 +42,13 @@ function fmtDate(iso: string): string {
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
+}
+
+/** Somma giorni a una data ISO yyyy-mm-dd, per le scelte rapide "+30/60/90 giorni". */
+function addDaysIso(iso: string, days: number): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
 }
 
 interface DeviceDetailModalProps {
@@ -88,15 +95,28 @@ export function DeviceDetailModal({
   const [rentTelefono, setRentTelefono] = useState("");
   const [rentContratto, setRentContratto] = useState("");
   const [rentDal, setRentDal] = useState(todayIso());
+  const [rentAlPrevisto, setRentAlPrevisto] = useState(addDaysIso(todayIso(), 30));
   const [showDoc, setShowDoc] = useState(false);
   const [docForcedTipo, setDocForcedTipo] = useState<DocumentoTipo | undefined>(undefined);
   const [docDevice, setDocDevice] = useState<Device>(device);
   const [events, setEvents] = useState<HistoryEvent[] | null>(isNew ? [] : null);
-  const [gallery, setGallery] = useState<DevicePhoto[]>([]);
+  const [gallery, setGallery] = useState<DevicePhotoMeta[]>([]);
   const [galleryTipo, setGalleryTipo] = useState("");
   const [uploadingGallery, setUploadingGallery] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [alPrevistoDraft, setAlPrevistoDraft] = useState(device.alPrevisto ?? "");
+  const [savingAlPrevisto, setSavingAlPrevisto] = useState(false);
+  // Sincronizzato con `current` (non con `form`, che può contenere una bozza
+  // non salvata): dopo un noleggio/restituzione o un aggiornamento riuscito
+  // qui sotto, il campo deve rispecchiare il dato realmente persistito.
+  // Aggiustato durante il render (non in un effect) seguendo il pattern
+  // ufficiale React per "adjusting state when a prop changes".
+  const [alPrevistoSyncedWith, setAlPrevistoSyncedWith] = useState(current.alPrevisto);
+  if (alPrevistoSyncedWith !== current.alPrevisto) {
+    setAlPrevistoSyncedWith(current.alPrevisto);
+    setAlPrevistoDraft(current.alPrevisto ?? "");
+  }
 
   function showToast(message: string) {
     setToast(message);
@@ -230,6 +250,7 @@ export function DeviceDetailModal({
     setRentTelefono("");
     setRentContratto("");
     setRentDal(todayIso());
+    setRentAlPrevisto(addDaysIso(todayIso(), 30));
   }
 
   function openRent() {
@@ -255,11 +276,12 @@ export function DeviceDetailModal({
           telefono: rentTelefono,
           contratto: rentContratto,
           dal: rentDal,
+          alPrevisto: rentAlPrevisto || null,
         }),
       });
       const body = await readJson(res);
       if (!res.ok) throw new Error(body.error || "Operazione non riuscita");
-      applyUpdate(body.devices, ["stato", "cliente", "telefono", "contratto", "dal"]);
+      applyUpdate(body.devices, ["stato", "cliente", "telefono", "contratto", "dal", "alPrevisto"]);
       loadHistory();
       setRenting(false);
       resetRentForm();
@@ -292,7 +314,7 @@ export function DeviceDetailModal({
       applyUpdate(
         body.devices,
         tipo === "restituzione"
-          ? ["stato", "cliente", "telefono", "contratto", "dal"]
+          ? ["stato", "cliente", "telefono", "contratto", "dal", "alPrevisto"]
           : ["stato", "sanificazione"]
       );
       loadHistory();
@@ -306,6 +328,35 @@ export function DeviceDetailModal({
       setError((err as Error).message);
     } finally {
       setSaving(false);
+    }
+  }
+
+  /**
+   * A differenza di cliente/telefono/contratto/dal, la data di rientro
+   * prevista non segue il ciclo di vita: può cambiare più volte durante lo
+   * stesso noleggio (es. dopo una visita di controllo che allunga la
+   * prescrizione), quindi è modificabile qui senza passare da
+   * restituzione+nuovo noleggio. Parte da `current` (non da `form`, che può
+   * contenere una bozza non salvata) per non rischiare di sovrascrivere gli
+   * altri dati del noleggio con valori non salvati.
+   */
+  async function handleUpdateAlPrevisto(value: string) {
+    setSavingAlPrevisto(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/dispositivi", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...current, alPrevisto: value || null }),
+      });
+      const body = await readJson(res);
+      if (!res.ok) throw new Error(body.error || "Aggiornamento non riuscito");
+      applyUpdate(body.devices, ["alPrevisto"]);
+      showToast("Data di rientro aggiornata");
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setSavingAlPrevisto(false);
     }
   }
 
@@ -459,9 +510,34 @@ export function DeviceDetailModal({
                   <input value={rentContratto} onChange={(e) => setRentContratto(e.target.value)} />
                 </div>
               </div>
-              <div className="field">
-                <label>Dal</label>
-                <input type="date" value={rentDal} onChange={(e) => setRentDal(e.target.value)} />
+              <div className="field-row">
+                <div className="field">
+                  <label>Dal</label>
+                  <input type="date" value={rentDal} onChange={(e) => setRentDal(e.target.value)} />
+                </div>
+                <div className="field">
+                  <label>Rientro previsto (facoltativo)</label>
+                  <input
+                    type="date"
+                    value={rentAlPrevisto}
+                    onChange={(e) => setRentAlPrevisto(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="chips" style={{ marginBottom: 14 }}>
+                {[15, 30, 60, 90].map((days) => (
+                  <button
+                    key={days}
+                    type="button"
+                    className="chip"
+                    onClick={() => setRentAlPrevisto(addDaysIso(rentDal, days))}
+                  >
+                    +{days} giorni
+                  </button>
+                ))}
+                <button type="button" className="chip" onClick={() => setRentAlPrevisto("")}>
+                  Nessuna scadenza
+                </button>
               </div>
               <div className="card-actions">
                 <button
@@ -527,16 +603,31 @@ export function DeviceDetailModal({
               </div>
               <div className="field">
                 <label>Stato</label>
-                <select
-                  value={form.stato}
-                  onChange={(e) => setForm({ ...form, stato: e.target.value as DeviceStatus })}
-                >
-                  {STATUS_OPTIONS.map((o) => (
-                    <option key={o.key} value={o.key}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
+                {current.stato === "noleggiato" || current.stato === "da_pulire" ? (
+                  <>
+                    <select value={form.stato} disabled>
+                      <option value={current.stato}>{STATUS_LABEL[current.stato]}</option>
+                    </select>
+                    <p className="hint" style={{ margin: "4px 0 0" }}>
+                      Usa i pulsanti sopra ({current.stato === "noleggiato" ? "Segna restituito" : "Segna sanificato"})
+                      per cambiarlo: cambia anche i dati del cliente e lo storico.
+                    </p>
+                  </>
+                ) : (
+                  <select
+                    value={form.stato}
+                    onChange={(e) => setForm({ ...form, stato: e.target.value as DeviceStatus })}
+                  >
+                    {/* "Noleggiato" e "Da pulire" si raggiungono solo con i
+                        pulsanti sopra: portano con sé dati del cliente e una
+                        riga di storico che questo form da solo non scrive. */}
+                    {STATUS_OPTIONS.filter((o) => o.key !== "noleggiato" && o.key !== "da_pulire").map((o) => (
+                      <option key={o.key} value={o.key}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
             </div>
             <div className="field-row">
@@ -578,39 +669,60 @@ export function DeviceDetailModal({
                 />
               </div>
             </div>
-            <div className="field-row">
-              <div className="field">
-                <label>Cliente</label>
-                <input
-                  value={form.cliente ?? ""}
-                  onChange={(e) => setForm({ ...form, cliente: e.target.value || null })}
-                />
+            {current.stato === "noleggiato" ? (
+              // Sola lettura di proposito: questi dati si scrivono con
+              // "Noleggia"/"Segna restituito", che registrano anche lo
+              // storico e l'anagrafica clienti. Modificarli qui li
+              // cambierebbe sulla scheda senza lasciarne traccia da nessuna
+              // parte, disallineando magazzino e storico.
+              <div className="rental-readonly">
+                <b>Noleggio in corso</b>
+                <div>
+                  {form.cliente || "—"}
+                  {form.telefono ? ` · ${form.telefono}` : ""}
+                  {form.contratto ? ` · contratto ${form.contratto}` : ""}
+                  {form.dal ? ` · dal ${fmtDate(form.dal)}` : ""}
+                </div>
+                <p className="hint" style={{ margin: "6px 0 0" }}>
+                  Per correggere questi dati, usa &quot;Segna restituito&quot; e poi
+                  &quot;Noleggia&quot; di nuovo con i dati giusti.
+                </p>
+                <div className="field-row" style={{ marginTop: 10, alignItems: "flex-end" }}>
+                  <div className="field">
+                    <label>Rientro previsto</label>
+                    <input
+                      type="date"
+                      value={alPrevistoDraft}
+                      onChange={(e) => setAlPrevistoDraft(e.target.value)}
+                    />
+                  </div>
+                  <div className="card-actions" style={{ marginTop: 0 }}>
+                    <button
+                      className="btn"
+                      type="button"
+                      disabled={savingAlPrevisto || alPrevistoDraft === (current.alPrevisto ?? "")}
+                      onClick={() => handleUpdateAlPrevisto(alPrevistoDraft)}
+                    >
+                      {savingAlPrevisto ? "Salvataggio…" : "Aggiorna data"}
+                    </button>
+                    {current.alPrevisto ? (
+                      <button
+                        className="btn"
+                        type="button"
+                        disabled={savingAlPrevisto}
+                        onClick={() => handleUpdateAlPrevisto("")}
+                      >
+                        Rimuovi scadenza
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+                <p className="hint" style={{ margin: "6px 0 0" }}>
+                  A differenza degli altri dati, questa data si può correggere in qualsiasi
+                  momento (es. dopo una visita di controllo che allunga la prescrizione).
+                </p>
               </div>
-              <div className="field">
-                <label>Telefono cliente</label>
-                <input
-                  value={form.telefono ?? ""}
-                  onChange={(e) => setForm({ ...form, telefono: e.target.value || null })}
-                />
-              </div>
-            </div>
-            <div className="field-row">
-              <div className="field">
-                <label>Numero contratto</label>
-                <input
-                  value={form.contratto ?? ""}
-                  onChange={(e) => setForm({ ...form, contratto: e.target.value || null })}
-                />
-              </div>
-              <div className="field">
-                <label>Dal (inizio noleggio)</label>
-                <input
-                  type="date"
-                  value={form.dal ?? ""}
-                  onChange={(e) => setForm({ ...form, dal: e.target.value || null })}
-                />
-              </div>
-            </div>
+            ) : null}
             <div className="field">
               <label>Nota</label>
               <textarea
@@ -673,8 +785,16 @@ export function DeviceDetailModal({
                 <div className="gallery-grid">
                   {gallery.map((p) => (
                     <div key={p.id} className="gallery-item">
+                      {/* L'elenco non porta più l'immagine (vedi photos.ts):
+                          questa richiesta separata scarica solo questa foto,
+                          non tutta la galleria di tutti i dispositivi. */}
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={p.immagine} alt={p.tipo || "Foto"} className="gallery-thumb" />
+                      <img
+                        src={`/api/dispositivi/${encodeURIComponent(current.codice)}/galleria/${p.id}`}
+                        alt={p.tipo || "Foto"}
+                        className="gallery-thumb"
+                        loading="lazy"
+                      />
                       <div className="gallery-caption">{p.tipo || "—"}</div>
                       <button
                         className="btn danger"

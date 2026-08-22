@@ -46,6 +46,8 @@ export interface Device {
   contratto: string | null;
   /** Data inizio noleggio, ISO yyyy-mm-dd. */
   dal: string | null;
+  /** Data di rientro prevista del noleggio in corso, ISO yyyy-mm-dd (facoltativa). */
+  alPrevisto: string | null;
   /** Data ultima sanificazione, ISO yyyy-mm-dd. */
   sanificazione: string | null;
   nota: string | null;

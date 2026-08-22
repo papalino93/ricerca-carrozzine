@@ -61,6 +61,73 @@ async function ensureTab(sheets: sheets_v4.Sheets, spreadsheetId: string, tab: s
 }
 
 /**
+ * Legge un intervallo specifico (es. "Foto!A:C"), invece dell'intera tab.
+ *
+ * Serve per non scaricare colonne pesanti quando non servono: la colonna
+ * delle immagini della tab Foto contiene data URI da ~45.000 caratteri
+ * ciascuno, e leggerla per elencare i metadati significherebbe scaricare
+ * decine di MB per mostrare qualche etichetta.
+ */
+export async function readRange(range: string): Promise<string[][]> {
+  const sheets = getSheetsApi();
+  try {
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId: getSpreadsheetId(),
+      range,
+    });
+    return (res.data.values as string[][] | undefined) ?? [];
+  } catch (err) {
+    if (isMissingRangeError(err)) return [];
+    throw err;
+  }
+}
+
+/** Id numerico interno di una tab, necessario per le operazioni strutturali. */
+async function getTabId(
+  sheets: sheets_v4.Sheets,
+  spreadsheetId: string,
+  tab: string
+): Promise<number | null> {
+  const meta = await sheets.spreadsheets.get({ spreadsheetId });
+  const found = (meta.data.sheets ?? []).find((s) => s.properties?.title === tab);
+  return found?.properties?.sheetId ?? null;
+}
+
+/**
+ * Elimina righe specifiche di una tab (indici in base 1, intestazione = 1).
+ *
+ * Alternativa mirata alla riscrittura completa: togliere una foto dalla
+ * galleria non deve comportare la rilettura e riscrittura di tutte le
+ * immagini di tutti i dispositivi.
+ */
+export async function deleteRows(tab: string, rowNumbers: number[]): Promise<void> {
+  if (rowNumbers.length === 0) return;
+  const sheets = getSheetsApi();
+  const spreadsheetId = getSpreadsheetId();
+  const tabId = await getTabId(sheets, spreadsheetId, tab);
+  if (tabId == null) return;
+
+  // Dal basso verso l'alto: eliminare una riga sposta in su quelle
+  // successive, quindi partire dalle ultime mantiene validi gli indici.
+  const ordered = [...new Set(rowNumbers)].sort((a, b) => b - a);
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId,
+    requestBody: {
+      requests: ordered.map((row) => ({
+        deleteDimension: {
+          range: {
+            sheetId: tabId,
+            dimension: "ROWS",
+            startIndex: row - 1, // l'API usa indici in base 0
+            endIndex: row,
+          },
+        },
+      })),
+    },
+  });
+}
+
+/**
  * Legge tutte le righe popolate di una tab, intestazione inclusa.
  * Se la tab non esiste ancora restituisce un elenco vuoto invece di errore.
  */

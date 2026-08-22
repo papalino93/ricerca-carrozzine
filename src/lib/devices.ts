@@ -30,6 +30,7 @@ const HEADER = [
   "Nota",
   "Foto",
   "Sottocategoria",
+  "AlPrevisto",
 ];
 
 function toDevice(row: string[]): Device {
@@ -48,6 +49,7 @@ function toDevice(row: string[]): Device {
     nota,
     foto,
     sottocategoria,
+    alPrevisto,
   ] = row;
 
   return {
@@ -67,6 +69,7 @@ function toDevice(row: string[]): Device {
     nota: nota || null,
     foto: foto || null,
     sottocategoria: sottocategoria || null,
+    alPrevisto: alPrevisto || null,
   };
 }
 
@@ -86,6 +89,7 @@ function toRow(d: Device): string[] {
     d.nota ?? "",
     d.foto ?? "",
     d.sottocategoria ?? "",
+    d.alPrevisto ?? "",
   ];
 }
 
@@ -157,6 +161,8 @@ export interface RentDeviceInput {
   telefono: string | null;
   contratto: string | null;
   dal: string | null;
+  /** Data di rientro prevista, ISO yyyy-mm-dd (facoltativa). */
+  alPrevisto: string | null;
 }
 
 /** disponibile → noleggiato: assegna il dispositivo a un cliente. */
@@ -180,6 +186,7 @@ export async function rentDevice(codice: string, input: RentDeviceInput): Promis
     telefono: input.telefono,
     contratto: input.contratto,
     dal,
+    alPrevisto: input.alPrevisto,
   };
   // Registra prima lo storico e solo dopo muta il dispositivo: se il
   // salvataggio del dispositivo falisce, resta comunque una traccia che il
@@ -231,6 +238,7 @@ export async function returnDevice(codice: string): Promise<Device[]> {
     telefono: null,
     contratto: null,
     dal: null,
+    alPrevisto: null,
   };
   await appendHistoryEvent({
     data: todayIso(),

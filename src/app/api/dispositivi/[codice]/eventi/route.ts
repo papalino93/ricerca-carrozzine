@@ -11,6 +11,7 @@ interface EventoBody {
   telefono?: string | null;
   contratto?: string | null;
   dal?: string | null;
+  alPrevisto?: string | null;
 }
 
 // Riservata all'amministrazione: storico eventi di un dispositivo.
@@ -56,6 +57,7 @@ export async function POST(
           telefono: body.telefono?.trim() || null,
           contratto: body.contratto?.trim() || null,
           dal: body.dal || null,
+          alPrevisto: body.alPrevisto || null,
         });
         break;
       case "restituzione":

@@ -486,6 +486,21 @@ h1 {
   color: var(--ink);
 }
 
+.refresh-hint {
+  background: none;
+  border: none;
+  color: var(--ink-soft);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0 0 0 4px;
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+}
+
+.refresh-hint:hover {
+  color: var(--accent-ink);
+}
+
 .sort-select {
   display: flex;
   align-items: center;
@@ -1270,6 +1285,31 @@ tr.clickable-row:hover td {
 .internal-note > div {
   margin: 6px 0 10px;
   white-space: pre-wrap;
+}
+
+/* Dati del noleggio in corso, nella scheda dispositivo: di sola lettura di
+   proposito (vedi DeviceDetailModal), non un campo del form come gli altri. */
+.rental-readonly {
+  background: var(--rent-bg);
+  border: 1px solid var(--rent-line);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.rental-readonly > div {
+  margin-top: 4px;
+  color: var(--rent-fg);
+  font-weight: 600;
+}
+
+.client-history {
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin: 4px 0;
 }
 
 /* Safari su iPhone ingrandisce la pagina a ogni tocco su un campo con

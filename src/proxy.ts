@@ -50,6 +50,19 @@ export default async function proxy(req: NextRequest) {
   const unauthorized = await requireBasicAuth(req);
   if (!unauthorized) return NextResponse.next();
 
+  // Vercel Cron chiama /api/backup una volta al giorno senza Basic Auth:
+  // qui si lascia passare solo con il segreto giusto (la rotta lo verifica
+  // di nuovo per conto suo — difesa in profondità, come le altre rotte
+  // sensibili). Senza questa eccezione il backup automatico riceverebbe
+  // sempre 401 prima ancora di arrivare al gestore.
+  if (req.nextUrl.pathname === "/api/backup") {
+    const cronSecret = process.env.CRON_SECRET;
+    if (cronSecret && req.headers.get("authorization") === `Bearer ${cronSecret}`) {
+      return NextResponse.next();
+    }
+    return unauthorized;
+  }
+
   if (req.nextUrl.pathname === "/" && CRAWLER_UA.test(req.headers.get("user-agent") ?? "")) {
     return new NextResponse(previewHtml(), {
       status: 200,

@@ -5,6 +5,9 @@ import { STATUS_COLOR, STATUS_OPTIONS, type Device, type DeviceStatus } from "@/
 import { DeviceCard } from "./DeviceCard";
 import { BrandHeader } from "./BrandHeader";
 import { StatTiles } from "./StatTiles";
+import { readJson } from "@/lib/fetch-json";
+import { useAutoRefresh } from "@/lib/use-auto-refresh";
+import { matchesQuery } from "@/lib/search-match";
 
 // Deve combaciare con le etichette del righello (35/40/45/50/55, distanziate
 // in modo uniforme): usare un altro WMIN qui sposta i punti rispetto alle
@@ -20,43 +23,6 @@ const WIDTH_RELEVANT_CATEGORY = "Carrozzine";
 
 function clamp(v: number, a: number, b: number): number {
   return Math.max(a, Math.min(b, v));
-}
-
-// Distanza di Levenshtein: usata solo per tollerare piccoli errori di
-// battitura nella ricerca libera (es. "betatx" trova "BETATEX").
-function levenshtein(a: string, b: string): number {
-  const m = a.length;
-  const n = b.length;
-  if (m === 0) return n;
-  if (n === 0) return m;
-  const dp: number[][] = Array.from({ length: m + 1 }, () => new Array<number>(n + 1).fill(0));
-  for (let i = 0; i <= m; i++) dp[i][0] = i;
-  for (let j = 0; j <= n; j++) dp[0][j] = j;
-  for (let i = 1; i <= m; i++) {
-    for (let j = 1; j <= n; j++) {
-      dp[i][j] =
-        a[i - 1] === b[j - 1] ? dp[i - 1][j - 1] : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
-    }
-  }
-  return dp[m][n];
-}
-
-// Un match esatto (substring) vince sempre; per parole di almeno 4
-// caratteri si accetta anche una piccola distanza di edit, per tollerare
-// refusi senza dare troppi falsi positivi su query corte.
-function matchesQuery(haystack: string, query: string): boolean {
-  if (!query) return true;
-  if (haystack.includes(query)) return true;
-  const qTokens = query.split(/\s+/).filter(Boolean);
-  const hTokens = haystack.split(/\s+/).filter(Boolean);
-  return qTokens.every((qt) =>
-    hTokens.some((ht) => {
-      if (ht.includes(qt)) return true;
-      if (qt.length < 4) return false;
-      const maxDist = qt.length > 6 ? 2 : 1;
-      return levenshtein(ht, qt) <= maxDist;
-    })
-  );
 }
 
 interface SearchClientProps {
@@ -78,8 +44,13 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
 const ALL_STATUSES = new Set(STATUS_OPTIONS.map((o) => o.key));
 
 export function SearchClient({ initialDevices, logoUrl, categories }: SearchClientProps) {
-  const [devices] = useState(initialDevices);
+  const [devices, setDevices] = useState(initialDevices);
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [width, setWidth] = useState<number | null>(null);
+  // Prima la larghezza serviva solo a ORDINARE per vicinanza: si digitava
+  // 44 e si continuava a vedere anche la 35 e la 55. Ora, quando c'è un
+  // valore, filtra davvero: nasconde chi è più lontano di questa tolleranza.
+  const [widthTolerance, setWidthTolerance] = useState(2);
   const [category, setCategory] = useState("Tutte");
   const [subcategory, setSubcategory] = useState("Tutte");
   const [statuses, setStatuses] = useState<Set<string>>(
@@ -108,6 +79,21 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
     return counts;
   }, [devices]);
 
+  async function refreshDevices() {
+    try {
+      const res = await fetch("/api/dispositivi");
+      const body = await readJson(res);
+      if (!res.ok) return;
+      setDevices(body.devices);
+      setLastRefresh(new Date());
+    } catch {
+      // Silenzioso: un aggiornamento in background che fallisce non deve
+      // interrompere chi sta lavorando con i dati già a schermo.
+    }
+  }
+
+  useAutoRefresh(refreshDevices);
+
   const isSearching = query.trim().length > 0;
 
   const filtered = useMemo(() => {
@@ -129,6 +115,11 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
           if (category !== "Tutte" && d.categoria !== category) return false;
           if (subcategory !== "Tutte" && d.sottocategoria !== subcategory) return false;
           if (!statuses.has(d.stato)) return false;
+          if (
+            width != null &&
+            (d.larghezza == null || Math.abs(d.larghezza - width) > widthTolerance)
+          )
+            return false;
           return true;
         });
 
@@ -146,7 +137,7 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
       list = [...list].sort((a, b) => (a[sortBy] ?? "").localeCompare(b[sortBy] ?? ""));
     }
     return list;
-  }, [devices, category, subcategory, statuses, query, width, sortBy]);
+  }, [devices, category, subcategory, statuses, query, width, widthTolerance, sortBy]);
 
   function toggleStatus(key: string) {
     setStatuses((prev) => {
@@ -223,9 +214,47 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
             onSelect={(key) => (key === "__all__" ? setStatuses(new Set(ALL_STATUSES)) : selectOnlyStatus(key as DeviceStatus))}
           />
 
+          <div className="panel">
+            <h2>Categoria</h2>
+            <div className="chips">
+              {categoryOptions.map((c) => (
+                <button
+                  key={c}
+                  className={`chip ${category === c ? "active" : ""}`}
+                  type="button"
+                  onClick={() => {
+                    setCategory(c);
+                    setSubcategory("Tutte");
+                    // Il filtro larghezza non ha senso fuori da "Tutte"/
+                    // Carrozzine: il pannello sparisce, ma senza questo il
+                    // filtro restava comunque attivo e nascosto, escludendo
+                    // in silenzio tutti gli ausili dell'altra categoria.
+                    if (c !== "Tutte" && c !== WIDTH_RELEVANT_CATEGORY) setWidth(null);
+                  }}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+            {subcategoryOptions.length > 0 ? (
+              <div className="chips" style={{ marginTop: 10 }}>
+                {["Tutte", ...subcategoryOptions].map((s) => (
+                  <button
+                    key={s}
+                    className={`chip ${subcategory === s ? "active" : ""}`}
+                    type="button"
+                    onClick={() => setSubcategory(s)}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+
           {category === "Tutte" || category === WIDTH_RELEVANT_CATEGORY ? (
           <div className="panel">
-            <h2>Larghezza seduta richiesta (se applicabile)</h2>
+            <h2>Larghezza seduta</h2>
             <div className="width-row">
               <div className="stepper">
                 <button aria-label="diminuisci" type="button" onClick={() => setWidth(clamp((width ?? 41) - 1, WMIN, WMAX))}>
@@ -249,9 +278,24 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
               </div>
               <span className="hint" style={{ margin: 0 }}>cm</span>
               <button className="clear-width" type="button" onClick={() => setWidth(null)}>
-                Nessun filtro larghezza
+                Tutte le larghezze
               </button>
             </div>
+            {width ? (
+              <div className="chips" style={{ marginTop: 10 }}>
+                <span className="hint" style={{ margin: "0 6px 0 0" }}>Tolleranza:</span>
+                {[0, 1, 2].map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    className={`chip ${widthTolerance === t ? "active" : ""}`}
+                    onClick={() => setWidthTolerance(t)}
+                  >
+                    {t === 0 ? "esatta" : `± ${t} cm`}
+                  </button>
+                ))}
+              </div>
+            ) : null}
             <div className="ruler-wrap">
               {/* Pallini, marker ed etichette sono TUTTI figli diretti di questo
                   stesso div, posizionati con la stessa identica percentuale:
@@ -312,39 +356,6 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
           ) : null}
 
           <div className="panel">
-            <h2>Categoria</h2>
-            <div className="chips">
-              {categoryOptions.map((c) => (
-                <button
-                  key={c}
-                  className={`chip ${category === c ? "active" : ""}`}
-                  type="button"
-                  onClick={() => {
-                    setCategory(c);
-                    setSubcategory("Tutte");
-                  }}
-                >
-                  {c}
-                </button>
-              ))}
-            </div>
-            {subcategoryOptions.length > 0 ? (
-              <div className="chips" style={{ marginTop: 10 }}>
-                {["Tutte", ...subcategoryOptions].map((s) => (
-                  <button
-                    key={s}
-                    className={`chip ${subcategory === s ? "active" : ""}`}
-                    type="button"
-                    onClick={() => setSubcategory(s)}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            ) : null}
-          </div>
-
-          <div className="panel">
             <h2>Stato</h2>
             <div className="chips">
               {STATUS_OPTIONS.map((o) => (
@@ -365,6 +376,11 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
       <div className="results-head">
         <span className="count">
           <b>{filtered.length}</b> unità trovate
+          <button type="button" className="refresh-hint" onClick={refreshDevices}>
+            {lastRefresh
+              ? `· aggiornato alle ${lastRefresh.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })} · aggiorna`
+              : "· aggiorna"}
+          </button>
         </span>
         <label className="sort-select">
           Ordina per

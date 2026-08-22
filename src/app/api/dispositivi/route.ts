@@ -5,13 +5,17 @@ import { toPublicDevice } from "@/lib/device-types";
 
 export const runtime = "nodejs";
 
-// Accessibile a chiunque sia autenticato (vedi proxy.ts): telefono e contratto
-// restano comunque riservati alla sola amministrazione, non vengono
-// restituiti qui (vedi toPublicDevice).
-export async function GET() {
+// Accessibile a chiunque sia autenticato (vedi proxy.ts): telefono e
+// contratto restano riservati alla schermata di ricerca (vedi
+// toPublicDevice) — chi è già autenticato può comunque vederli da
+// /admin, quindi "?vista=admin" (usato dal refresh automatico del
+// magazzino) non è una nuova esposizione di dati, solo la stessa vista
+// che /admin già serve.
+export async function GET(req: NextRequest) {
   try {
     const devices = await listDevices();
-    return NextResponse.json({ devices: devices.map(toPublicDevice) });
+    const full = req.nextUrl.searchParams.get("vista") === "admin";
+    return NextResponse.json({ devices: full ? devices : devices.map(toPublicDevice) });
   } catch (err) {
     return NextResponse.json(
       { error: (err as Error).message },
