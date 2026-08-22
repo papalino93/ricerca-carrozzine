@@ -4,12 +4,17 @@ import { useState } from "react";
 import { readJson } from "@/lib/fetch-json";
 import { addDaysIso, todayIso } from "@/lib/dates";
 import type { Device } from "@/lib/device-types";
-import { DocumentPanel } from "./DocumentPanel";
 
 interface QuickRentModalProps {
   device: Device;
   onClose: () => void;
-  /** Il dispositivo aggiornato dopo il noleggio: il chiamante aggiorna la sua lista. */
+  /**
+   * L'elenco aggiornato dopo il noleggio. Il chiamante decide cosa fare
+   * dopo (es. mostrare il verbale di consegna) e possiede quello stato: se
+   * lo facesse questa modale, e il chiamante è una card che il nuovo stato
+   * "noleggiato" fa sparire dai risultati filtrati, il verbale sparirebbe
+   * con lei prima che l'operatore lo veda.
+   */
   onRented: (devices: Device[]) => void;
 }
 
@@ -27,8 +32,6 @@ export function QuickRentModal({ device, onClose, onRented }: QuickRentModalProp
   const [alPrevisto, setAlPrevisto] = useState(addDaysIso(todayIso(), 30));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showDoc, setShowDoc] = useState(false);
-  const [rentedDevice, setRentedDevice] = useState<Device | null>(null);
 
   async function handleConfirm(e: React.FormEvent) {
     e.preventDefault();
@@ -54,21 +57,11 @@ export function QuickRentModal({ device, onClose, onRented }: QuickRentModalProp
       const body = await readJson(res);
       if (!res.ok) throw new Error(body.error || "Operazione non riuscita");
       onRented(body.devices);
-      const updated = body.devices.find((d: Device) => d.codice === device.codice) ?? device;
-      setRentedDevice(updated);
-      setShowDoc(true);
     } catch (err) {
       setError((err as Error).message);
     } finally {
       setSaving(false);
     }
-  }
-
-  // Il verbale di consegna resta apribile finché l'operatore non chiude
-  // anche questo pannello: chiuderlo subito dopo il noleggio confermato
-  // farebbe perdere l'occasione di stamparlo senza dover tornare in admin.
-  if (showDoc && rentedDevice) {
-    return <DocumentPanel device={rentedDevice} forcedTipo="consegna" onClose={onClose} />;
   }
 
   return (

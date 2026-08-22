@@ -5,6 +5,8 @@ import { STATUS_COLOR, STATUS_OPTIONS, type Device, type DeviceStatus } from "@/
 import { DeviceCard } from "./DeviceCard";
 import { BrandHeader } from "./BrandHeader";
 import { StatTiles } from "./StatTiles";
+import { DocumentPanel } from "./DocumentPanel";
+import { QuickRentModal } from "./QuickRentModal";
 import { readJson } from "@/lib/fetch-json";
 import { useAutoRefresh } from "@/lib/use-auto-refresh";
 import { matchesQuery } from "@/lib/search-match";
@@ -58,6 +60,13 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
   );
   const [query, setQuery] = useState("");
   const [sortBy, setSortBy] = useState<SortKey>("larghezza");
+  // Vivono qui, non nella singola DeviceCard: appena il noleggio viene
+  // confermato il dispositivo passa a "noleggiato" e sparisce dall'elenco
+  // filtrato (che per default mostra solo Disponibile/Da pulire) — se il
+  // verbale di consegna fosse dentro la card, sparirebbe con lei prima che
+  // l'operatore lo veda.
+  const [rentingDevice, setRentingDevice] = useState<Device | null>(null);
+  const [docPrompt, setDocPrompt] = useState<Device | null>(null);
 
   const categoryOptions = useMemo(() => ["Tutte", ...categories], [categories]);
 
@@ -406,10 +415,25 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
             device={d}
             exactWidth={Boolean(width && d.larghezza === width)}
             statusColor={STATUS_COLOR[d.stato]}
-            onRented={setDevices}
+            onRent={() => setRentingDevice(d)}
           />
         ))
       )}
+
+      {rentingDevice ? (
+        <QuickRentModal
+          device={rentingDevice}
+          onClose={() => setRentingDevice(null)}
+          onRented={(updated) => {
+            setDevices(updated);
+            setRentingDevice(null);
+            setDocPrompt(updated.find((d) => d.codice === rentingDevice.codice) ?? rentingDevice);
+          }}
+        />
+      ) : null}
+      {docPrompt ? (
+        <DocumentPanel device={docPrompt} forcedTipo="consegna" onClose={() => setDocPrompt(null)} />
+      ) : null}
     </div>
   );
 }

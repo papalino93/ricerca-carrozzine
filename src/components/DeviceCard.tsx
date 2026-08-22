@@ -4,7 +4,6 @@ import { useState } from "react";
 import { STATUS_LABEL, type Device } from "@/lib/device-types";
 import { DocumentPanel } from "./DocumentPanel";
 import { DevicePublicViewModal } from "./DevicePublicViewModal";
-import { QuickRentModal } from "./QuickRentModal";
 
 function fmtDate(iso: string | null): string {
   if (!iso) return "";
@@ -17,14 +16,19 @@ interface DeviceCardProps {
   device: Device;
   exactWidth?: boolean;
   statusColor: string;
-  /** Se passato, mostra "Noleggia" sulle card disponibili (solo dove ha senso: ricerca pubblica). */
-  onRented?: (devices: Device[]) => void;
+  /**
+   * Se passato, mostra "Noleggia" sulle card disponibili (solo dove ha
+   * senso: ricerca pubblica). La modale di noleggio vive nel chiamante,
+   * non qui: appena il noleggio va a buon fine questa card può sparire
+   * dall'elenco filtrato (stato non più "disponibile"), e portandosi via
+   * anche il verbale di consegna che dovrebbe apparire subito dopo.
+   */
+  onRent?: () => void;
 }
 
-export function DeviceCard({ device: d, exactWidth, statusColor, onRented }: DeviceCardProps) {
+export function DeviceCard({ device: d, exactWidth, statusColor, onRent }: DeviceCardProps) {
   const [showDoc, setShowDoc] = useState(false);
   const [showView, setShowView] = useState(false);
-  const [showRent, setShowRent] = useState(false);
 
   return (
     <div className="card" id={`device-${d.codice}`}>
@@ -52,8 +56,8 @@ export function DeviceCard({ device: d, exactWidth, statusColor, onRented }: Dev
         </div>
         {d.nota ? <div className="note">{d.nota}</div> : null}
         <div className="card-actions">
-          {onRented && d.stato === "disponibile" ? (
-            <button className="btn primary" type="button" onClick={() => setShowRent(true)}>
+          {onRent && d.stato === "disponibile" ? (
+            <button className="btn primary" type="button" onClick={onRent}>
               Noleggia
             </button>
           ) : null}
@@ -67,13 +71,6 @@ export function DeviceCard({ device: d, exactWidth, statusColor, onRented }: Dev
       </div>
       {showDoc ? <DocumentPanel device={d} onClose={() => setShowDoc(false)} /> : null}
       {showView ? <DevicePublicViewModal device={d} onClose={() => setShowView(false)} /> : null}
-      {showRent && onRented ? (
-        // Non chiude qui: dopo il noleggio confermato, QuickRentModal
-        // mostra da solo il verbale di consegna, e si chiude solo quando
-        // l'operatore chiude quello (altrimenti l'occasione di stamparlo
-        // subito, senza tornare in admin, andrebbe persa).
-        <QuickRentModal device={d} onClose={() => setShowRent(false)} onRented={onRented} />
-      ) : null}
     </div>
   );
 }
