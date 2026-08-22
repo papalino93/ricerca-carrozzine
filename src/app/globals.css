@@ -224,7 +224,9 @@ h1 {
 
 .ruler-wrap {
   position: relative;
-  padding: 6px 4px 22px;
+  /* Il padding-top ospita l'etichetta+triangolo del marker del valore
+     digitato, più alti di un semplice pallino. */
+  padding: 36px 4px 22px;
 }
 
 .ruler-line {
@@ -247,25 +249,46 @@ h1 {
 }
 
 .ruler-target {
+  /* Colore e forma deliberatamente diversi da QUALSIASI pallino dispositivo
+     (che usano i colori di stato: verde/blu/rosso/viola) e più marcati di
+     un semplice trattino, per non poter mai essere confusi con un pallino
+     vicino: questo indica solo ed esclusivamente il valore digitato. */
   position: absolute;
   top: -10px;
-  width: 2px;
+  width: 3px;
   height: 26px;
-  background: var(--accent-ink);
-  transform: translateX(-1px);
+  background: #1a1a1a;
+  transform: translateX(-1.5px);
+  border-radius: 2px;
+}
+
+.ruler-target::before {
+  content: "";
+  position: absolute;
+  top: -11px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid #1a1a1a;
 }
 
 .ruler-target::after {
   content: attr(data-label);
   position: absolute;
-  top: -20px;
+  top: -32px;
   left: 50%;
   transform: translateX(-50%);
   font-family: var(--mono);
   font-size: 11px;
-  color: var(--accent-ink);
+  color: #1a1a1a;
   white-space: nowrap;
   font-weight: 700;
+  background: #ffe6a3;
+  padding: 2px 6px;
+  border-radius: 5px;
 }
 
 .ruler-dot {
