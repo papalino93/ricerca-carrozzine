@@ -290,7 +290,7 @@ export function AdminDevicesClient({ initialDevices, categories }: AdminDevicesC
         )}
       </div>
 
-      <div className="panel admin-table-wrap">
+      <div className="panel">
         <div className="top-nav" style={{ marginBottom: 12 }}>
           <h2 style={{ margin: 0 }}>Tutti i dispositivi</h2>
           <div className="field" style={{ minWidth: 200, margin: 0 }}>
@@ -324,7 +324,9 @@ export function AdminDevicesClient({ initialDevices, categories }: AdminDevicesC
         </div>
         <p className="hint" style={{ marginBottom: 10 }}>
           Clicca su un dispositivo per vedere i dettagli, le note, lo storico e cambiarne lo stato.
+          <span className="mobile-scroll-hint"> Scorri la tabella lateralmente per vedere tutte le colonne.</span>
         </p>
+        <div className="admin-table-wrap">
         <table className="admin-table">
           <thead>
             <tr>
@@ -395,6 +397,7 @@ export function AdminDevicesClient({ initialDevices, categories }: AdminDevicesC
             ))}
           </tbody>
         </table>
+        </div>
         {visibleDevices.length === 0 ? (
           <div className="hint" style={{ padding: "20px 0", textAlign: "center" }}>
             Nessun dispositivo corrisponde ai filtri attivi.{" "}

@@ -56,7 +56,7 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
       <h2>Categorie ausili</h2>
       <p className="hint" style={{ marginBottom: 12 }}>
         Ogni dispositivo appartiene a una di queste categorie (carrozzine, rollatori,
-        stampelle, magnetoterapia, ecc.): compaiono come filtro nella ricerca pubblica e
+        stampelle, magnetoterapia, ecc.): compaiono come filtro nella ricerca e
         nella scelta della categoria quando aggiungi o modifichi un dispositivo. Non puoi
         eliminare una categoria ancora usata da qualche dispositivo.
       </p>

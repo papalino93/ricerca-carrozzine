@@ -43,6 +43,12 @@ body {
   color: var(--ink);
   font-family: var(--sans);
   -webkit-font-smoothing: antialiased;
+  /* Su schermi stretti una tabella con celle "nowrap" (vedi .admin-table)
+     è più larga del viewport: senza questo, è la PAGINA INTERA a scorrere
+     di lato (intestazioni e chip comprese) invece della sola tabella, che
+     ha già il suo scroll orizzontale dedicato (.admin-table-wrap). Non ha
+     alcun effetto su desktop, dove non c'è overflow da contenere. */
+  overflow-x: hidden;
 }
 
 a {
@@ -706,6 +712,19 @@ h1 {
 /* Admin */
 .admin-table-wrap {
   overflow-x: auto;
+  /* Su iOS Safari, senza questo lo scroll orizzontale della tabella può
+     risultare "a scatti" invece che fluido al dito. */
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobile-scroll-hint {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .mobile-scroll-hint {
+    display: inline;
+  }
 }
 
 table.admin-table {
@@ -979,6 +998,15 @@ tr.clickable-row:hover td {
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 
+.admin-sidebar-top {
+  display: flex;
+  align-items: center;
+}
+
+.admin-sidebar-toggle {
+  display: none;
+}
+
 .admin-sidebar-brand img {
   height: 28px;
   width: auto;
@@ -1059,10 +1087,6 @@ tr.clickable-row:hover td {
     width: 100%;
     min-height: auto;
     position: static;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
     padding: 14px 16px;
   }
 
@@ -1073,8 +1097,36 @@ tr.clickable-row:hover td {
     margin-right: auto;
   }
 
-  .admin-sidebar-divider {
+  .admin-sidebar-top {
+    justify-content: space-between;
+  }
+
+  /* Su schermi stretti "Magazzino" e "Impostazioni" affiancati/impilati
+     accanto al logo erano poco leggibili e poco intuitivi: qui restano
+     chiusi in un menu a comparsa, apribile con il pulsante ☰. */
+  .admin-sidebar-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    border: none;
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .admin-sidebar-menu {
     display: none;
+  }
+
+  .admin-sidebar-menu.open {
+    display: block;
+    margin-top: 14px;
   }
 }
 
@@ -1113,4 +1165,57 @@ tr.clickable-row:hover td {
   border: none;
   cursor: pointer;
   white-space: nowrap;
+}
+
+/* Banner "aggiungi alla schermata Home": solo mobile, il desktop non lo
+   vede mai, indipendentemente da cosa rilevi il componente. */
+.install-banner {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .install-banner {
+    display: block;
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    z-index: 40;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 14px 40px 14px 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+  }
+}
+
+.install-banner p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink);
+  line-height: 1.4;
+}
+
+.install-banner-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.install-banner-row p {
+  flex: 1;
+}
+
+.install-banner-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--ink-soft);
+  cursor: pointer;
+  padding: 4px;
 }

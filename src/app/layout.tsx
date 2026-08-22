@@ -1,5 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
+import { InstallPwaBanner } from "@/components/InstallPwaBanner";
 import "./globals.css";
 
 const heading = Inter({
@@ -20,6 +21,11 @@ export const metadata: Metadata = {
     apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
   },
   manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Ricerca Ausili",
+  },
   openGraph: {
     title: "Ricerca Ausili",
     description:
@@ -39,12 +45,19 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  themeColor: "#16302E",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="it" className={heading.variable}>
-      <body>{children}</body>
+      <body>
+        {children}
+        <InstallPwaBanner />
+      </body>
     </html>
   );
 }
