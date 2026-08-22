@@ -809,11 +809,14 @@ table.admin-table td {
    vuote allineate lo stesso. */
 .action-cell {
   width: 168px;
+  /* La colonna può finire più larga dei 168px richiesti (tabella al 100%,
+     le altre colonne non riempiono lo spazio): centra il pulsante nello
+     spazio reale invece di lasciarlo appiccicato al bordo sinistro. */
+  text-align: center;
 }
 
 .action-cell .btn {
-  width: 100%;
-  text-align: center;
+  min-width: 160px;
 }
 
 tr.clickable-row {
