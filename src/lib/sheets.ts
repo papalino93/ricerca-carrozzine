@@ -45,6 +45,22 @@ function isMissingRangeError(err: unknown): boolean {
   return message.includes("Unable to parse range");
 }
 
+/**
+ * Traduce in italiano gli errori tecnici più comuni dell'API di Google
+ * Sheets (es. quota di lettura superata durante un picco di richieste);
+ * lascia inalterato tutto il resto, per non nascondere errori applicativi
+ * reali sotto un messaggio generico.
+ */
+function friendlyError(err: unknown): Error {
+  const message = (err as { message?: string } | undefined)?.message ?? "";
+  if (/quota exceeded/i.test(message)) {
+    return new Error(
+      "Troppe richieste a Google Sheets in questo momento: riprova tra qualche secondo."
+    );
+  }
+  return err instanceof Error ? err : new Error(message || "Errore imprevisto");
+}
+
 /** Crea la tab se non esiste ancora (idempotente, con cache in memoria). */
 async function ensureTab(sheets: sheets_v4.Sheets, spreadsheetId: string, tab: string): Promise<void> {
   if (knownTabs.has(tab)) return;
@@ -78,7 +94,7 @@ export async function readRange(range: string): Promise<string[][]> {
     return (res.data.values as string[][] | undefined) ?? [];
   } catch (err) {
     if (isMissingRangeError(err)) return [];
-    throw err;
+    throw friendlyError(err);
   }
 }
 
@@ -102,29 +118,33 @@ async function getTabId(
  */
 export async function deleteRows(tab: string, rowNumbers: number[]): Promise<void> {
   if (rowNumbers.length === 0) return;
-  const sheets = getSheetsApi();
-  const spreadsheetId = getSpreadsheetId();
-  const tabId = await getTabId(sheets, spreadsheetId, tab);
-  if (tabId == null) return;
+  try {
+    const sheets = getSheetsApi();
+    const spreadsheetId = getSpreadsheetId();
+    const tabId = await getTabId(sheets, spreadsheetId, tab);
+    if (tabId == null) return;
 
-  // Dal basso verso l'alto: eliminare una riga sposta in su quelle
-  // successive, quindi partire dalle ultime mantiene validi gli indici.
-  const ordered = [...new Set(rowNumbers)].sort((a, b) => b - a);
-  await sheets.spreadsheets.batchUpdate({
-    spreadsheetId,
-    requestBody: {
-      requests: ordered.map((row) => ({
-        deleteDimension: {
-          range: {
-            sheetId: tabId,
-            dimension: "ROWS",
-            startIndex: row - 1, // l'API usa indici in base 0
-            endIndex: row,
+    // Dal basso verso l'alto: eliminare una riga sposta in su quelle
+    // successive, quindi partire dalle ultime mantiene validi gli indici.
+    const ordered = [...new Set(rowNumbers)].sort((a, b) => b - a);
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId,
+      requestBody: {
+        requests: ordered.map((row) => ({
+          deleteDimension: {
+            range: {
+              sheetId: tabId,
+              dimension: "ROWS",
+              startIndex: row - 1, // l'API usa indici in base 0
+              endIndex: row,
+            },
           },
-        },
-      })),
-    },
-  });
+        })),
+      },
+    });
+  } catch (err) {
+    throw friendlyError(err);
+  }
 }
 
 /**
@@ -141,7 +161,7 @@ export async function readSheet(tab: string): Promise<string[][]> {
     return (res.data.values as string[][] | undefined) ?? [];
   } catch (err) {
     if (isMissingRangeError(err)) return [];
-    throw err;
+    throw friendlyError(err);
   }
 }
 
@@ -158,30 +178,34 @@ export async function readSheet(tab: string): Promise<string[][]> {
  * precedente intatto.
  */
 export async function writeSheet(tab: string, rows: string[][]): Promise<void> {
-  const sheets = getSheetsApi();
-  const spreadsheetId = getSpreadsheetId();
-  await ensureTab(sheets, spreadsheetId, tab);
+  try {
+    const sheets = getSheetsApi();
+    const spreadsheetId = getSpreadsheetId();
+    await ensureTab(sheets, spreadsheetId, tab);
 
-  if (rows.length === 0) {
-    // Nessun contenuto nuovo da proteggere: qui svuotare è l'operazione richiesta.
-    await sheets.spreadsheets.values.clear({ spreadsheetId, range: tab });
-    return;
+    if (rows.length === 0) {
+      // Nessun contenuto nuovo da proteggere: qui svuotare è l'operazione richiesta.
+      await sheets.spreadsheets.values.clear({ spreadsheetId, range: tab });
+      return;
+    }
+
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: `${tab}!A1`,
+      valueInputOption: "RAW",
+      requestBody: { values: rows },
+    });
+
+    // Elimina solo le righe eventualmente residue di un contenuto precedente
+    // più lungo di quello appena scritto (range aperto: dalla riga successiva
+    // all'ultima della tab).
+    await sheets.spreadsheets.values.clear({
+      spreadsheetId,
+      range: `${tab}!A${rows.length + 1}:ZZ`,
+    });
+  } catch (err) {
+    throw friendlyError(err);
   }
-
-  await sheets.spreadsheets.values.update({
-    spreadsheetId,
-    range: `${tab}!A1`,
-    valueInputOption: "RAW",
-    requestBody: { values: rows },
-  });
-
-  // Elimina solo le righe eventualmente residue di un contenuto precedente
-  // più lungo di quello appena scritto (range aperto: dalla riga successiva
-  // all'ultima della tab).
-  await sheets.spreadsheets.values.clear({
-    spreadsheetId,
-    range: `${tab}!A${rows.length + 1}:ZZ`,
-  });
 }
 
 /**
@@ -189,28 +213,32 @@ export async function writeSheet(tab: string, rows: string[][]): Promise<void> {
  * senza dover rileggere/riscrivere tutto il contenuto esistente.
  */
 export async function appendRow(tab: string, row: string[], header?: string[]): Promise<void> {
-  const sheets = getSheetsApi();
-  const spreadsheetId = getSpreadsheetId();
-  const isNewTab = !knownTabs.has(tab);
-  await ensureTab(sheets, spreadsheetId, tab);
+  try {
+    const sheets = getSheetsApi();
+    const spreadsheetId = getSpreadsheetId();
+    const isNewTab = !knownTabs.has(tab);
+    await ensureTab(sheets, spreadsheetId, tab);
 
-  if (isNewTab && header) {
-    const existing = await readSheet(tab);
-    if (existing.length === 0) {
-      await sheets.spreadsheets.values.update({
-        spreadsheetId,
-        range: `${tab}!A1`,
-        valueInputOption: "RAW",
-        requestBody: { values: [header] },
-      });
+    if (isNewTab && header) {
+      const existing = await readSheet(tab);
+      if (existing.length === 0) {
+        await sheets.spreadsheets.values.update({
+          spreadsheetId,
+          range: `${tab}!A1`,
+          valueInputOption: "RAW",
+          requestBody: { values: [header] },
+        });
+      }
     }
-  }
 
-  await sheets.spreadsheets.values.append({
-    spreadsheetId,
-    range: tab,
-    valueInputOption: "RAW",
-    insertDataOption: "INSERT_ROWS",
-    requestBody: { values: [row] },
-  });
+    await sheets.spreadsheets.values.append({
+      spreadsheetId,
+      range: tab,
+      valueInputOption: "RAW",
+      insertDataOption: "INSERT_ROWS",
+      requestBody: { values: [row] },
+    });
+  } catch (err) {
+    throw friendlyError(err);
+  }
 }
