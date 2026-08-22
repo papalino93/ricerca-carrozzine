@@ -60,3 +60,18 @@ export async function upsertClient(input: {
   else clients.push(next);
   await writeSheet(TAB, [HEADER, ...clients.map(toRow)]);
 }
+
+/**
+ * Rimuove una riga dall'anagrafica (es. cliente creato per errore). Non
+ * tocca dispositivi o storico: l'anagrafica è solo una vista di comodo,
+ * la fonte di verità di un noleggio in corso resta il dispositivo stesso.
+ */
+export async function deleteClient(nome: string): Promise<ClientRecord[]> {
+  const clients = await readClients();
+  const remaining = clients.filter((c) => c.nome.toLowerCase() !== nome.trim().toLowerCase());
+  if (remaining.length === clients.length) {
+    throw new Error(`Cliente "${nome}" non trovato`);
+  }
+  await writeSheet(TAB, [HEADER, ...remaining.map(toRow)]);
+  return remaining;
+}

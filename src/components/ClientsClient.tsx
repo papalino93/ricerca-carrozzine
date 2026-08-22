@@ -1,10 +1,12 @@
 "use client";
 
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useMemo, useRef, useState } from "react";
 import type { ClientRecord } from "@/lib/clients";
 import type { HistoryEvent } from "@/lib/history";
 import type { Device } from "@/lib/device-types";
 import { matchesQuery } from "@/lib/search-match";
+import { readJson } from "@/lib/fetch-json";
+import { Toast } from "./Toast";
 
 interface ClientsClientProps {
   clients: ClientRecord[];
@@ -24,9 +26,19 @@ function fmtDate(iso: string): string {
   return `${d}/${m}/${y}`;
 }
 
-export function ClientsClient({ clients, history, devices }: ClientsClientProps) {
+export function ClientsClient({ clients: initialClients, history, devices }: ClientsClientProps) {
+  const [clients, setClients] = useState(initialClients);
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function showToast(message: string) {
+    setToast(message);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 2400);
+  }
 
   const sorted = useMemo(
     () => [...clients].sort((a, b) => a.nome.localeCompare(b.nome, "it")),
@@ -45,6 +57,28 @@ export function ClientsClient({ clients, history, devices }: ClientsClientProps)
 
   function currentDeviceFor(nome: string): Device | null {
     return devices.find((d) => d.stato === "noleggiato" && (d.cliente ?? "").toLowerCase() === nome.toLowerCase()) ?? null;
+  }
+
+  async function handleDelete(e: React.MouseEvent, nome: string) {
+    e.stopPropagation();
+    const current = currentDeviceFor(nome);
+    const warning = current
+      ? ` Attenzione: ha un noleggio in corso (${current.codice}), che NON verrà toccato — solo la riga in anagrafica.`
+      : "";
+    if (!confirm(`Eliminare "${nome}" dall'anagrafica clienti?${warning}`)) return;
+    setDeleting(nome);
+    try {
+      const res = await fetch(`/api/clienti?nome=${encodeURIComponent(nome)}`, { method: "DELETE" });
+      const body = await readJson(res);
+      if (!res.ok) throw new Error(body.error || "Eliminazione non riuscita");
+      setClients(body.clients);
+      if (open === nome) setOpen(null);
+      showToast(`"${nome}" eliminato dall'anagrafica`);
+    } catch (err) {
+      showToast((err as Error).message);
+    } finally {
+      setDeleting(null);
+    }
   }
 
   return (
@@ -85,6 +119,7 @@ export function ClientsClient({ clients, history, devices }: ClientsClientProps)
                   <th>Ultimo noleggio</th>
                   <th>Ultimo contratto</th>
                   <th>In corso</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
@@ -109,10 +144,20 @@ export function ClientsClient({ clients, history, devices }: ClientsClientProps)
                             "—"
                           )}
                         </td>
+                        <td>
+                          <button
+                            className="btn danger"
+                            type="button"
+                            onClick={(e) => handleDelete(e, c.nome)}
+                            disabled={deleting === c.nome}
+                          >
+                            {deleting === c.nome ? "…" : "Elimina"}
+                          </button>
+                        </td>
                       </tr>
                       {isOpen ? (
                         <tr key={`${c.nome}-detail`}>
-                          <td colSpan={6}>
+                          <td colSpan={7}>
                             <div className="client-history">
                               <b>Storico di {c.nome}</b>
                               {historyFor(c.nome).length === 0 ? (
@@ -165,6 +210,7 @@ export function ClientsClient({ clients, history, devices }: ClientsClientProps)
           </div>
         </div>
       )}
+      <Toast message={toast} />
     </div>
   );
 }
