@@ -13,6 +13,11 @@ const WMIN = 35;
 const WMAX = 55;
 const RULER_TICKS = [35, 40, 45, 50, 55];
 
+// La larghezza seduta ha senso solo per le carrozzine: se in futuro si
+// aggiungono altre categorie (rollatori, stampelle...) il filtro si nasconde
+// da solo quando non è quella la categoria selezionata.
+const WIDTH_RELEVANT_CATEGORY = "Carrozzine";
+
 function clamp(v: number, a: number, b: number): number {
   return Math.max(a, Math.min(b, v));
 }
@@ -218,6 +223,7 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
             onSelect={(key) => (key === "__all__" ? setStatuses(new Set(ALL_STATUSES)) : selectOnlyStatus(key as DeviceStatus))}
           />
 
+          {category === "Tutte" || category === WIDTH_RELEVANT_CATEGORY ? (
           <div className="panel">
             <h2>Larghezza seduta richiesta (se applicabile)</h2>
             <div className="width-row">
@@ -253,7 +259,11 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
                   dipendere da bordi/padding che possono far divergere la "base"
                   della percentuale tra elementi fratelli in contenitori diversi. */}
               <div className="ruler-line">
-                {devices
+                {/* Stessa lista mostrata sotto come risultati (categoria/
+                    sottocategoria/stato già applicati): un pallino qui
+                    corrisponde sempre a una card effettivamente visibile,
+                    così il click per scorrere alla card la trova sempre. */}
+                {filtered
                   .filter((d) => d.larghezza)
                   .map((d) => {
                     const pct = clamp((((d.larghezza as number) - WMIN) / (WMAX - WMIN)) * 100, 0, 100);
@@ -262,7 +272,12 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
                         key={d.codice}
                         className="ruler-dot"
                         style={{ left: `${pct}%`, background: STATUS_COLOR[d.stato] }}
-                        title={`${d.codice} · ${d.larghezza}cm`}
+                        title={`${d.codice} · ${d.larghezza}cm — clicca per vederlo nei risultati`}
+                        onClick={() => {
+                          document
+                            .getElementById(`device-${d.codice}`)
+                            ?.scrollIntoView({ behavior: "smooth", block: "center" });
+                        }}
                       />
                     );
                   })}
@@ -294,6 +309,7 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
               </div>
             </div>
           </div>
+          ) : null}
 
           <div className="panel">
             <h2>Categoria</h2>

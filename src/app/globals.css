@@ -300,6 +300,14 @@ h1 {
   border: 2px solid var(--surface);
   transform: translateX(-6px);
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+}
+
+.ruler-dot:hover {
+  width: 16px;
+  height: 16px;
+  top: -6px;
+  transform: translateX(-8px);
 }
 
 .ruler-tick {

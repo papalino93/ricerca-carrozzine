@@ -23,7 +23,7 @@ export function DeviceCard({ device: d, exactWidth, statusColor }: DeviceCardPro
   const [showView, setShowView] = useState(false);
 
   return (
-    <div className="card">
+    <div className="card" id={`device-${d.codice}`}>
       <div className="w-badge" style={exactWidth ? { borderColor: statusColor } : undefined}>
         {d.larghezza ?? "—"}
         <small>{d.larghezza != null ? "CM SEDUTA" : "N/D"}</small>
