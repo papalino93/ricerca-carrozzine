@@ -7,28 +7,34 @@ import { SearchClient } from "@/components/SearchClient";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  let devices: Awaited<ReturnType<typeof listDevices>> = [];
-  let loadError: string | null = null;
-  try {
-    devices = await listDevices();
-  } catch (err) {
-    loadError = (err as Error).message;
-  }
+  // Le tre letture sono indipendenti fra loro: eseguirle in parallelo
+  // invece che in serie evita di sommare tre round-trip verso Google
+  // Sheets a ogni apertura della pagina (erano circa un secondo in più).
+  const [devicesResult, logoUrl, categories] = await Promise.all([
+    listDevices().then(
+      (d) => ({ devices: d, error: null as string | null }),
+      (err: Error) => ({
+        devices: [] as Awaited<ReturnType<typeof listDevices>>,
+        error: err.message,
+      })
+    ),
+    getSettings()
+      .then((s) => s.logoUrl || null)
+      .catch(() => null),
+    listCategories().catch(() => []),
+  ]);
 
-  if (loadError) {
+  if (devicesResult.error) {
     return (
       <div className="wrap">
         <div className="banner error">
-          Impossibile leggere il magazzino da Google Sheets: {loadError}
+          Impossibile leggere il magazzino da Google Sheets: {devicesResult.error}
         </div>
       </div>
     );
   }
 
-  const logoUrl = await getSettings()
-    .then((s) => s.logoUrl || null)
-    .catch(() => null);
-  const categories = await listCategories().catch(() => []);
+  const devices = devicesResult.devices;
 
   return (
     <SearchClient

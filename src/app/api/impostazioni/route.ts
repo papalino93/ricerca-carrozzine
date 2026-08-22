@@ -1,10 +1,16 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { requireBasicAuth } from "@/lib/basic-auth";
 import { getSettings, saveSettings, type CompanySettings } from "@/lib/settings";
 
 export const runtime = "nodejs";
 
-// Protetta dal middleware (stessa Basic Auth dell'admin).
-export async function GET() {
+// Protetta dal proxy E da un controllo proprio in ogni gestore (difesa in
+// profondità): il matcher del proxy è una singola regex scritta a mano,
+// modificarla per sbaglio non deve poter esporre queste rotte.
+export async function GET(req: NextRequest) {
+  const unauthorized = await requireBasicAuth(req);
+  if (unauthorized) return unauthorized;
+
   try {
     const settings = await getSettings();
     return NextResponse.json({ settings });
@@ -16,7 +22,10 @@ export async function GET() {
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  const unauthorized = await requireBasicAuth(req);
+  if (unauthorized) return unauthorized;
+
   try {
     const body = (await req.json()) as CompanySettings;
     await saveSettings(body);

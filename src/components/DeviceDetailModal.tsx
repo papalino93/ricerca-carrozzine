@@ -1,5 +1,6 @@
 "use client";
 
+import { readJson } from "@/lib/fetch-json";
 import { useEffect, useRef, useState } from "react";
 import {
   STATUS_LABEL,
@@ -108,7 +109,7 @@ export function DeviceDetailModal({
     let cancelled = false;
     fetch(`/api/dispositivi/${encodeURIComponent(device.codice)}/eventi`)
       .then(async (res) => {
-        const body = await res.json();
+        const body = await readJson(res);
         if (!res.ok) throw new Error(body.error || "Impossibile leggere lo storico");
         if (!cancelled) setEvents(body.events);
       })
@@ -125,7 +126,7 @@ export function DeviceDetailModal({
     let cancelled = false;
     fetch(`/api/dispositivi/${encodeURIComponent(device.codice)}/galleria`)
       .then(async (res) => {
-        const body = await res.json();
+        const body = await readJson(res);
         if (!res.ok) throw new Error(body.error || "Impossibile leggere la galleria");
         if (!cancelled) setGallery(body.photos);
       })
@@ -189,7 +190,7 @@ export function DeviceDetailModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...form, codice }),
       });
-      const body = await res.json();
+      const body = await readJson(res);
       if (!res.ok) throw new Error(body.error || "Salvataggio non riuscito");
       onSaved(body.devices);
       const saved = body.devices.find((d: Device) => d.codice === codice);
@@ -214,7 +215,7 @@ export function DeviceDetailModal({
       const res = await fetch(`/api/dispositivi?codice=${encodeURIComponent(form.codice)}`, {
         method: "DELETE",
       });
-      const body = await res.json();
+      const body = await readJson(res);
       if (!res.ok) throw new Error(body.error || "Eliminazione non riuscita");
       onDeleted(body.devices);
     } catch (err) {
@@ -256,7 +257,7 @@ export function DeviceDetailModal({
           dal: rentDal,
         }),
       });
-      const body = await res.json();
+      const body = await readJson(res);
       if (!res.ok) throw new Error(body.error || "Operazione non riuscita");
       applyUpdate(body.devices, ["stato", "cliente", "telefono", "contratto", "dal"]);
       loadHistory();
@@ -286,7 +287,7 @@ export function DeviceDetailModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tipo }),
       });
-      const body = await res.json();
+      const body = await readJson(res);
       if (!res.ok) throw new Error(body.error || "Operazione non riuscita");
       applyUpdate(
         body.devices,
@@ -321,7 +322,7 @@ export function DeviceDetailModal({
         method: "POST",
         body: fd,
       });
-      const body = await res.json();
+      const body = await readJson(res);
       if (!res.ok) throw new Error(body.error || "Caricamento foto non riuscito");
       applyUpdate(body.devices, ["foto"]);
     } catch (err) {
@@ -338,7 +339,7 @@ export function DeviceDetailModal({
       const res = await fetch(`/api/dispositivi/${encodeURIComponent(form.codice)}/foto`, {
         method: "DELETE",
       });
-      const body = await res.json();
+      const body = await readJson(res);
       if (!res.ok) throw new Error(body.error || "Rimozione foto non riuscita");
       applyUpdate(body.devices, ["foto"]);
     } catch (err) {
@@ -362,7 +363,7 @@ export function DeviceDetailModal({
         method: "POST",
         body: fd,
       });
-      const body = await res.json();
+      const body = await readJson(res);
       if (!res.ok) throw new Error(body.error || "Caricamento foto non riuscito");
       setGallery(body.photos);
       setGalleryTipo("");
@@ -382,7 +383,7 @@ export function DeviceDetailModal({
         `/api/dispositivi/${encodeURIComponent(current.codice)}/galleria?id=${encodeURIComponent(id)}`,
         { method: "DELETE" }
       );
-      const body = await res.json();
+      const body = await readJson(res);
       if (!res.ok) throw new Error(body.error || "Rimozione foto non riuscita");
       setGallery(body.photos);
     } catch (err) {

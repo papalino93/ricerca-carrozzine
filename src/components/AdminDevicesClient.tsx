@@ -1,5 +1,6 @@
 "use client";
 
+import { readJson } from "@/lib/fetch-json";
 import { useMemo, useRef, useState } from "react";
 import { STATUS_COLOR, STATUS_LABEL, STATUS_OPTIONS, type Device, type DeviceStatus } from "@/lib/device-types";
 import { DeviceDetailModal } from "./DeviceDetailModal";
@@ -79,8 +80,12 @@ export function AdminDevicesClient({ initialDevices, categories }: AdminDevicesC
   }, [devices]);
 
   const alerts = useMemo(() => {
+    // Attenzione al caso "mai sanificato": con `?? 0` un ausilio senza
+    // alcuna data di sanificazione risultava a 0 giorni, quindi "a posto",
+    // mentre uno sanificato 31 giorni fa veniva segnalato. Esattamente al
+    // contrario del rischio reale. Nessuna data = caso peggiore.
     const staleCount = devices.filter(
-      (d) => d.stato === "disponibile" && (daysSince(d.sanificazione) ?? 0) > 30
+      (d) => d.stato === "disponibile" && (daysSince(d.sanificazione) ?? Infinity) > 30
     ).length;
     const incompleteCount = devices.filter((d) => !(d.marca && d.modello)).length;
     return [
@@ -190,7 +195,7 @@ export function AdminDevicesClient({ initialDevices, categories }: AdminDevicesC
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tipo: "restituzione" }),
       });
-      const body = await res.json();
+      const body = await readJson(res);
       if (!res.ok) throw new Error(body.error || "Operazione non riuscita");
       setDevices(body.devices);
       showToast(`${d.codice} segnato come restituito`);
@@ -214,7 +219,7 @@ export function AdminDevicesClient({ initialDevices, categories }: AdminDevicesC
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tipo: "sanificazione" }),
       });
-      const body = await res.json();
+      const body = await readJson(res);
       if (!res.ok) throw new Error(body.error || "Operazione non riuscita");
       setDevices(body.devices);
       showToast(`${codice} segnato come sanificato`);

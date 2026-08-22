@@ -54,6 +54,19 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="it" className={heading.variable}>
+      <head>
+        {/* Chrome emette `beforeinstallprompt` al caricamento, di norma
+            prima che React abbia idratato: qui lo intercettiamo subito e lo
+            parcheggiamo su window, così InstallPwaBanner può recuperarlo
+            quando si monta. Senza, su Android il pulsante "Installa" non
+            comparirebbe quasi mai. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__raInstallPrompt=e;});",
+          }}
+        />
+      </head>
       <body>
         {children}
         <InstallPwaBanner />

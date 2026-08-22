@@ -1,5 +1,6 @@
 "use client";
 
+import { readJson } from "@/lib/fetch-json";
 import { useState } from "react";
 import type { AdminUser } from "@/lib/users";
 
@@ -24,7 +25,7 @@ export function UsersManager({ initialUsers }: UsersManagerProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
       });
-      const body = await res.json();
+      const body = await readJson(res);
       if (!res.ok) throw new Error(body.error || "Impossibile aggiungere l'utente");
       setUsers(body.users);
       setUsername("");
@@ -47,7 +48,7 @@ export function UsersManager({ initialUsers }: UsersManagerProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: u, password: newPassword }),
       });
-      const body = await res.json();
+      const body = await readJson(res);
       if (!res.ok) throw new Error(body.error || "Impossibile reimpostare la password");
       alert(`Password aggiornata per "${u}".`);
     } catch (err) {
@@ -63,7 +64,7 @@ export function UsersManager({ initialUsers }: UsersManagerProps) {
     setError(null);
     try {
       const res = await fetch(`/api/utenti?username=${encodeURIComponent(u)}`, { method: "DELETE" });
-      const body = await res.json();
+      const body = await readJson(res);
       if (!res.ok) throw new Error(body.error || "Impossibile rimuovere l'utente");
       setUsers(body.users);
     } catch (err) {

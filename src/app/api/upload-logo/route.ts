@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireBasicAuth } from "@/lib/basic-auth";
 import { logoToDataUri } from "@/lib/image-to-data-uri";
 
 export const runtime = "nodejs";
 
-// Protetta dal middleware (stessa Basic Auth dell'admin). Il logo viene
-// salvato come data URI dentro la cella LogoURL del foglio Google (tab
-// Impostazioni), non su uno storage esterno.
+// Protetta dal proxy E da un controllo proprio (difesa in profondità). Il
+// logo viene salvato come data URI dentro la cella LogoURL del foglio
+// Google (tab Impostazioni), non su uno storage esterno.
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireBasicAuth(req);
+  if (unauthorized) return unauthorized;
+
   try {
     const form = await req.formData();
     const file = form.get("file");

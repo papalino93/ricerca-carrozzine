@@ -1,5 +1,6 @@
 "use client";
 
+import { readJson } from "@/lib/fetch-json";
 import { useRef, useState } from "react";
 import type { CompanySettings } from "@/lib/settings";
 import type { AdminUser } from "@/lib/users";
@@ -50,7 +51,7 @@ export function SettingsClient({
       const form = new FormData();
       form.append("file", file);
       const res = await fetch("/api/upload-logo", { method: "POST", body: form });
-      const body = await res.json();
+      const body = await readJson(res);
       if (!res.ok) throw new Error(body.error || "Caricamento del logo non riuscito");
       setSettings((s) => ({ ...s, logoUrl: body.url }));
     } catch (err) {
@@ -71,7 +72,7 @@ export function SettingsClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(settings),
       });
-      const body = await res.json();
+      const body = await readJson(res);
       if (!res.ok) throw new Error(body.error || "Salvataggio non riuscito");
       showToast("Impostazioni salvate");
     } catch (err) {

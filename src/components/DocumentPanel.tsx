@@ -30,7 +30,11 @@ export function DocumentPanel({ device, onClose, forcedTipo }: DocumentPanelProp
   );
   const [clienteNome, setClienteNome] = useState(device.cliente ?? "");
   const [clienteTelefono, setClienteTelefono] = useState(device.telefono ?? "");
-  const [note, setNote] = useState(device.nota ?? "");
+  // Parte VUOTO di proposito. La nota della scheda è un'annotazione interna
+  // di magazzino ("ruota da sostituire", "cliente moroso"): pre-riempirla
+  // qui la faceva finire stampata sul verbale che il cliente firma e porta
+  // via. La nota resta consultabile qui sotto, ma va copiata a mano.
+  const [note, setNote] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -127,9 +131,28 @@ export function DocumentPanel({ device, onClose, forcedTipo }: DocumentPanelProp
           </div>
         </div>
 
+        {device.nota ? (
+          <div className="internal-note">
+            <b>Nota interna</b> — resta in magazzino, NON viene stampata sul documento:
+            <div>{device.nota}</div>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => setNote((n) => (n ? `${n}\n${device.nota}` : device.nota ?? ""))}
+            >
+              Copia nelle note del documento
+            </button>
+          </div>
+        ) : null}
+
         <div className="field">
-          <label>Note</label>
-          <textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
+          <label>Note da stampare sul documento</label>
+          <textarea
+            rows={3}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Facoltative: verranno lette e firmate dal cliente"
+          />
         </div>
 
         <div className="doc-preview">

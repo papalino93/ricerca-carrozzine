@@ -522,7 +522,11 @@ h1 {
   font-size: 20px;
   color: var(--accent-ink);
   background: var(--accent-bg);
-  border: none;
+  /* Bordo trasparente, non "none": DeviceCard colora questo bordo quando la
+     larghezza combacia esattamente con quella cercata. Con "border: none"
+     il colore non produceva alcun effetto e l'evidenziazione della misura
+     esatta era di fatto invisibile. */
+  border: 2px solid transparent;
   border-radius: 14px;
   width: 58px;
   height: 58px;
@@ -1249,4 +1253,34 @@ tr.clickable-row:hover td {
   color: var(--ink-soft);
   cursor: pointer;
   padding: 4px;
+}
+
+/* Promemoria della nota interna nel pannello documento: visibile
+   all'operatore, mai stampato sul PDF che firma il cliente. */
+.internal-note {
+  background: #fdf6e3;
+  border: 1px solid #eadfc0;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.internal-note > div {
+  margin: 6px 0 10px;
+  white-space: pre-wrap;
+}
+
+/* Safari su iPhone ingrandisce la pagina a ogni tocco su un campo con
+   testo sotto i 16px, costringendo a rimettere lo zoom a mano dopo ogni
+   campo compilato. Su schermi touch stretti i campi vanno a 16px. */
+@media (max-width: 720px) {
+  input,
+  select,
+  textarea,
+  .searchbox,
+  .stepper .val {
+    font-size: 16px;
+  }
 }

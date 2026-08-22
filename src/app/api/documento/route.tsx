@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireBasicAuth } from "@/lib/basic-auth";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { getSettings, type CompanySettings } from "@/lib/settings";
 import { VerbaleDocument, type DocumentoTipo } from "@/lib/pdf/VerbaleDocument";
@@ -41,6 +42,12 @@ function buildDocument(body: DocumentoRequestBody, settings: CompanySettings) {
 // Generabile sia dalla pagina di ricerca sia dall'admin (entrambe richiedono
 // login, vedi proxy.ts).
 export async function POST(req: NextRequest) {
+  // Difesa in profondità: oltre al proxy, un controllo proprio — questa
+  // rotta genera documenti con carta intestata, P.IVA e condizioni
+  // dell'azienda, e scrive nel registro Documenti.
+  const unauthorized = await requireBasicAuth(req);
+  if (unauthorized) return unauthorized;
+
   try {
     const body = (await req.json()) as DocumentoRequestBody;
 

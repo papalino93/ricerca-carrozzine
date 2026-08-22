@@ -79,7 +79,10 @@ export async function addDevicePhoto(input: {
 
 export async function removeDevicePhoto(codice: string, id: string): Promise<DevicePhoto[]> {
   const photos = await readPhotos();
-  const next = photos.filter((p) => p.id !== id);
+  // Il confronto include il codice: senza, una richiesta con l'id di una
+  // foto di un ALTRO dispositivo la cancellava comunque, rispondendo con la
+  // galleria (apparentemente intatta) del dispositivo indicato.
+  const next = photos.filter((p) => !(p.id === id && p.codice === codice));
   if (next.length === photos.length) {
     throw new Error("Foto non trovata");
   }

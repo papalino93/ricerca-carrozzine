@@ -162,7 +162,16 @@ export interface RentDeviceInput {
 /** disponibile → noleggiato: assegna il dispositivo a un cliente. */
 export async function rentDevice(codice: string, input: RentDeviceInput): Promise<Device[]> {
   const devices = await listDevices();
-  const { idx } = findOrThrow(devices, codice);
+  const { idx, device } = findOrThrow(devices, codice);
+  // Controllo dello stato di partenza sul server, non solo nell'interfaccia:
+  // due operatori con la pagina aperta da prima vedrebbero entrambi il
+  // pulsante "Noleggia" sullo stesso ausilio, e il secondo sovrascriverebbe
+  // in silenzio il cliente del primo.
+  if (device.stato === "noleggiato") {
+    throw new Error(
+      `${codice} risulta già noleggiato${device.cliente ? ` a ${device.cliente}` : ""}. Ricarica la pagina per vedere la situazione aggiornata.`
+    );
+  }
   const dal = input.dal || todayIso();
   devices[idx] = {
     ...devices[idx],
@@ -205,6 +214,13 @@ export async function rentDevice(codice: string, input: RentDeviceInput): Promis
 export async function returnDevice(codice: string): Promise<Device[]> {
   const devices = await listDevices();
   const { idx, device } = findOrThrow(devices, codice);
+  // Vedi rentDevice: senza questo, un doppio click da due postazioni
+  // scriveva due eventi di restituzione, il secondo con cliente vuoto.
+  if (device.stato !== "noleggiato") {
+    throw new Error(
+      `${codice} non risulta noleggiato: non può essere segnato come rientrato. Ricarica la pagina per vedere la situazione aggiornata.`
+    );
+  }
   const previousCliente = device.cliente;
   const previousTelefono = device.telefono;
   const previousContratto = device.contratto;

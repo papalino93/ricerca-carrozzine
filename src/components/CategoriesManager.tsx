@@ -1,5 +1,6 @@
 "use client";
 
+import { readJson } from "@/lib/fetch-json";
 import { useState } from "react";
 
 interface CategoriesManagerProps {
@@ -22,7 +23,7 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ nome }),
       });
-      const body = await res.json();
+      const body = await readJson(res);
       if (!res.ok) throw new Error(body.error || "Impossibile aggiungere la categoria");
       setCategories(body.categories);
       setNome("");
@@ -41,7 +42,7 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
       const res = await fetch(`/api/categorie?nome=${encodeURIComponent(categoria)}`, {
         method: "DELETE",
       });
-      const body = await res.json();
+      const body = await readJson(res);
       if (!res.ok) throw new Error(body.error || "Impossibile eliminare la categoria");
       setCategories(body.categories);
     } catch (err) {
