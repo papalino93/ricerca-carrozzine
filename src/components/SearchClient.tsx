@@ -247,6 +247,11 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
               </button>
             </div>
             <div className="ruler-wrap">
+              {/* Pallini, marker ed etichette sono TUTTI figli diretti di questo
+                  stesso div, posizionati con la stessa identica percentuale:
+                  è l'unico modo per garantire che coincidano esattamente, senza
+                  dipendere da bordi/padding che possono far divergere la "base"
+                  della percentuale tra elementi fratelli in contenitori diversi. */}
               <div className="ruler-line">
                 {devices
                   .filter((d) => d.larghezza)
@@ -268,8 +273,6 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
                     style={{ left: `${clamp(((width - WMIN) / (WMAX - WMIN)) * 100, 0, 100)}%` }}
                   />
                 ) : null}
-              </div>
-              <div className="ruler-ticks">
                 {RULER_TICKS.map((v, i) => {
                   const pct = ((v - WMIN) / (WMAX - WMIN)) * 100;
                   const isFirst = i === 0;
@@ -277,6 +280,7 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
                   return (
                     <span
                       key={v}
+                      className="ruler-tick"
                       style={{
                         left: `${pct}%`,
                         transform: isFirst ? "none" : isLast ? "translateX(-100%)" : "translateX(-50%)",

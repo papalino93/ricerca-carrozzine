@@ -227,11 +227,8 @@ h1 {
   border-radius: 4px;
   background: #e7ecea;
   /* Il bordo è un pseudo-elemento (sotto), non un border vero: un border
-     sulla riga stessa ne accorcia il "content box" di 2px rispetto a
-     .ruler-ticks (che non ha bordo), e siccome i pallini/il marker sono
-     posizionati in percentuale su questo box, quei 2px spostavano via via
-     di più pallini e marker rispetto alle etichette man mano che il valore
-     si avvicinava a 55. */
+     vero qui accorcerebbe il "content box" usato come base per il
+     posizionamento in percentuale di pallini/marker/etichette. */
 }
 
 .ruler-line::before {
@@ -276,15 +273,11 @@ h1 {
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
 }
 
-.ruler-ticks {
-  position: relative;
-  height: 14px;
-  margin-top: 6px;
-}
-
-.ruler-ticks span {
+.ruler-tick {
+  /* Figlio di .ruler-line, non di un contenitore fratello separato: stessa
+     base per la percentuale di pallini e marker, garanzia che coincidano. */
   position: absolute;
-  top: 0;
+  top: 16px;
   font-family: var(--mono);
   font-size: 10px;
   color: var(--ink-soft);
