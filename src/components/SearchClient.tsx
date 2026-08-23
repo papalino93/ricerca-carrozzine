@@ -387,6 +387,7 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
           passaggio del mouse che non esiste su telefono) non sono chiari
           a chi non li ha ancora imparati a memoria. */}
       <div className="action-legend">
+        <span className="legend-label">Legenda delle icone:</span>
         <span className="legend-item">
           <span className="legend-swatch">＋</span> Noleggia
         </span>

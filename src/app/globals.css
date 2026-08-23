@@ -1427,6 +1427,15 @@ tr.clickable-row:hover td {
   color: var(--accent-ink);
 }
 
+.action-legend .legend-label {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--ink-soft);
+}
+
 .action-legend .legend-item {
   display: inline-flex;
   align-items: center;

@@ -421,6 +421,7 @@ export function AdminDevicesClient({ initialDevices, categories }: AdminDevicesC
         {/* Legenda delle icone-azione della colonna a destra: fissa sopra la
             tabella (non scorre via con lo scroll laterale). */}
         <div className="action-legend">
+          <span className="legend-label">Legenda delle icone:</span>
           <span className="legend-item">
             <span className="legend-swatch">＋</span> Noleggia
           </span>
