@@ -245,18 +245,27 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
                 </button>
               ))}
             </div>
-            {subcategoryOptions.length > 0 ? (
-              <div className="chips" style={{ marginTop: 10 }}>
-                {["Tutte", ...subcategoryOptions].map((s) => (
-                  <button
-                    key={s}
-                    className={`chip ${subcategory === s ? "active" : ""}`}
-                    type="button"
-                    onClick={() => setSubcategory(s)}
-                  >
-                    {s}
-                  </button>
-                ))}
+            {/* Solo dopo aver scelto una categoria specifica: sotto "Tutte" i
+                sottotipi di categorie diverse finivano mescolati nella stessa
+                riga (es. "Autospinta" delle carrozzine insieme a sottotipi di
+                tutt'altro), e due chip "Tutte" una sopra l'altra, senza
+                nessuna etichetta, sembravano un errore invece di due livelli
+                diversi. */}
+            {category !== "Tutte" && subcategoryOptions.length > 0 ? (
+              <div style={{ marginTop: 14 }}>
+                <p className="hint" style={{ margin: "0 0 6px" }}>Tipo</p>
+                <div className="chips">
+                  {["Tutte", ...subcategoryOptions].map((s) => (
+                    <button
+                      key={s}
+                      className={`chip ${subcategory === s ? "active" : ""}`}
+                      type="button"
+                      onClick={() => setSubcategory(s)}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
               </div>
             ) : null}
           </div>
