@@ -418,19 +418,32 @@ export function AdminDevicesClient({ initialDevices, categories }: AdminDevicesC
           Clicca su un dispositivo per vedere i dettagli, le note, lo storico e cambiarne lo stato.
           <span className="mobile-scroll-hint"> Scorri la tabella lateralmente per vedere tutte le colonne.</span>
         </p>
+        {/* Legenda delle icone-azione della colonna a destra: fissa sopra la
+            tabella (non scorre via con lo scroll laterale). */}
+        <div className="action-legend">
+          <span className="legend-item">
+            <span className="legend-swatch">＋</span> Noleggia
+          </span>
+          <span className="legend-item">
+            <span className="legend-swatch">↩</span> Segna restituito
+          </span>
+          <span className="legend-item">
+            <span className="legend-swatch">✓</span> Segna sanificato
+          </span>
+        </div>
         <div className="admin-table-wrap">
         <table className="admin-table">
           <thead>
             <tr>
               <th></th>
-              <th>Codice</th>
+              <th className="sticky-col sticky-left">Codice</th>
               <th>Categoria</th>
               <th>Tipo</th>
               <th>Marca / modello</th>
               <th>Largh.</th>
               <th>Stato</th>
               <th>Cliente</th>
-              <th></th>
+              <th className="sticky-col sticky-right">Azione</th>
             </tr>
           </thead>
           <tbody>
@@ -447,7 +460,7 @@ export function AdminDevicesClient({ initialDevices, categories }: AdminDevicesC
                 }}
               >
                 <td>{d.foto ? <img className="photo-thumb" src={d.foto} alt="" /> : null}</td>
-                <td>{d.codice}</td>
+                <td className="sticky-col sticky-left">{d.codice}</td>
                 <td>{d.categoria}</td>
                 <td>{d.sottocategoria ?? "—"}</td>
                 <td>
@@ -458,30 +471,40 @@ export function AdminDevicesClient({ initialDevices, categories }: AdminDevicesC
                   <span className={`pill ${d.stato}`}>{STATUS_LABEL[d.stato]}</span>
                 </td>
                 <td>{d.cliente ?? "—"}</td>
-                <td className="action-cell">
+                <td className="action-cell sticky-col sticky-right">
                   {d.stato === "disponibile" ? (
-                    <button className="btn primary" type="button" onClick={(e) => quickRent(e, d)}>
-                      Noleggia
+                    <button
+                      className="btn primary icon-only"
+                      type="button"
+                      title="Noleggia"
+                      aria-label="Noleggia"
+                      onClick={(e) => quickRent(e, d)}
+                    >
+                      ＋
                     </button>
                   ) : null}
                   {d.stato === "noleggiato" ? (
                     <button
-                      className="btn primary"
+                      className="btn primary icon-only"
                       type="button"
+                      title="Segna restituito"
+                      aria-label="Segna restituito"
                       onClick={(e) => quickReturn(e, d)}
                       disabled={saving}
                     >
-                      Segna restituito
+                      ↩
                     </button>
                   ) : null}
                   {d.stato === "da_pulire" ? (
                     <button
-                      className="btn primary"
+                      className="btn primary icon-only"
                       type="button"
+                      title="Segna sanificato"
+                      aria-label="Segna sanificato"
                       onClick={(e) => quickSanitize(e, d.codice)}
                       disabled={saving}
                     >
-                      Segna sanificato
+                      ✓
                     </button>
                   ) : null}
                 </td>

@@ -26,12 +26,20 @@ interface DeviceCardProps {
   onRent?: () => void;
 }
 
+// Riga compatta: l'intera riga apre "Visualizza" (stessa modale di prima,
+// nessun pulsante di testo dedicato), mentre "Noleggia" e "Genera
+// documento" restano pulsanti a icona da 44px per non essere confusi col
+// tocco sulla riga e restare comodi da telefono in magazzino.
 export function DeviceCard({ device: d, exactWidth, statusColor, onRent }: DeviceCardProps) {
   const [showDoc, setShowDoc] = useState(false);
   const [showView, setShowView] = useState(false);
 
   return (
-    <div className="card" id={`device-${d.codice}`}>
+    <div
+      className="card compact"
+      id={`device-${d.codice}`}
+      onClick={() => setShowView(true)}
+    >
       <div className="w-badge" style={exactWidth ? { borderColor: statusColor } : undefined}>
         {d.larghezza ?? "—"}
         <small>{d.larghezza != null ? "CM SEDUTA" : "N/D"}</small>
@@ -55,19 +63,28 @@ export function DeviceCard({ device: d, exactWidth, statusColor, onRent }: Devic
             : ""}
         </div>
         {d.nota ? <div className="note">{d.nota}</div> : null}
-        <div className="card-actions">
-          {onRent && d.stato === "disponibile" ? (
-            <button className="btn primary" type="button" onClick={onRent}>
-              Noleggia
-            </button>
-          ) : null}
-          <button className="btn" type="button" onClick={() => setShowView(true)}>
-            Visualizza
+      </div>
+      <div className="card-actions" onClick={(e) => e.stopPropagation()}>
+        {onRent && d.stato === "disponibile" ? (
+          <button
+            className="btn primary icon-only"
+            type="button"
+            title="Noleggia"
+            aria-label="Noleggia"
+            onClick={onRent}
+          >
+            ＋
           </button>
-          <button className="btn" type="button" onClick={() => setShowDoc(true)}>
-            Genera documento
-          </button>
-        </div>
+        ) : null}
+        <button
+          className="btn icon-only"
+          type="button"
+          title="Genera documento"
+          aria-label="Genera documento"
+          onClick={() => setShowDoc(true)}
+        >
+          📄
+        </button>
       </div>
       {showDoc ? <DocumentPanel device={d} onClose={() => setShowDoc(false)} /> : null}
       {showView ? <DevicePublicViewModal device={d} onClose={() => setShowView(false)} /> : null}

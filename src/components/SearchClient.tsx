@@ -382,6 +382,19 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
         </>
       ) : null}
 
+      {/* Spiega le icone-azione delle card qui sotto: senza, "＋"/"📄" da
+          soli (senza il testo che avevano prima, e senza il tooltip al
+          passaggio del mouse che non esiste su telefono) non sono chiari
+          a chi non li ha ancora imparati a memoria. */}
+      <div className="action-legend">
+        <span className="legend-item">
+          <span className="legend-swatch">＋</span> Noleggia
+        </span>
+        <span className="legend-item">
+          <span className="legend-swatch">📄</span> Genera documento
+        </span>
+      </div>
+
       <div className="results-head">
         <span className="count">
           <b>{filtered.length}</b> unità trovate

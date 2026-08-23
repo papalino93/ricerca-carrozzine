@@ -802,21 +802,13 @@ table.admin-table td {
   vertical-align: middle;
 }
 
-/* Colonna azioni rapide del magazzino: "Noleggia"/"Segna restituito"/
-   "Segna sanificato" hanno lunghezze diverse (e alcune righe non hanno
-   nessun pulsante), il che rendeva il bordo destro della colonna a
-   zig-zag. Larghezza fissa sul pulsante più lungo: bordo dritto, righe
-   vuote allineate lo stesso. */
+/* Colonna azioni rapide del magazzino: Noleggia/Segna restituito/Segna
+   sanificato sono ora pulsanti a icona da 44px (vedi .btn.icon-only), non
+   più di testo con lunghezze diverse — 60px basta e centra bene anche le
+   righe senza alcun pulsante (Guasto/Da verificare). */
 .action-cell {
-  width: 168px;
-  /* La colonna può finire più larga dei 168px richiesti (tabella al 100%,
-     le altre colonne non riempiono lo spazio): centra il pulsante nello
-     spazio reale invece di lasciarlo appiccicato al bordo sinistro. */
+  width: 60px;
   text-align: center;
-}
-
-.action-cell .btn {
-  min-width: 160px;
 }
 
 tr.clickable-row {
@@ -905,6 +897,12 @@ tr.clickable-row:hover td {
 
 .modal.wide {
   max-width: 720px;
+}
+
+/* Scheda dispositivo con sidebar (vedi .detail-layout più sotto): un po'
+   più larga della modale "wide" normale per fare spazio a due colonne. */
+.modal.wide.has-sidebar {
+  max-width: 860px;
 }
 
 @media (min-width: 640px) {
@@ -1348,5 +1346,179 @@ tr.clickable-row:hover td {
   .searchbox,
   .stepper .val {
     font-size: 16px;
+  }
+}
+
+/* ===================================================================
+   Miglioramenti UI (Claude Design): righe compatte in ricerca, azioni a
+   icona nel magazzino, sidebar nella scheda dispositivo.
+   =================================================================== */
+
+/* Pulsante a sola icona: 44px è la soglia minima di tocco comoda da
+   magazzino/telefono. Eredita i colori da .btn/.btn.primary/.btn.danger. */
+.btn.icon-only {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 12px;
+  font-size: 17px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Riga compatta della ricerca pubblica (DeviceCard). */
+.card.compact {
+  padding: 10px 12px;
+  gap: 10px;
+  margin-bottom: 8px;
+  align-items: center;
+  cursor: pointer;
+}
+
+.card.compact:hover {
+  background: #fbfaf5;
+}
+
+.card.compact .w-badge {
+  width: 40px;
+  height: 40px;
+  font-size: 14px;
+  border-radius: 11px;
+}
+
+.card.compact .w-badge small {
+  display: none;
+}
+
+.card.compact .card-top {
+  margin-bottom: 1px;
+}
+
+.card.compact .model {
+  font-size: 14px;
+}
+
+.card.compact .meta {
+  font-size: 12px;
+}
+
+.card.compact .card-actions {
+  margin-top: 0;
+  flex-wrap: nowrap;
+}
+
+/* Legenda delle icone-azione sopra la tabella del magazzino: fissa (non
+   scorre via con lo scroll laterale della tabella). */
+.action-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.action-legend .legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.action-legend .legend-swatch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+/* Colonne "appiccicate" della tabella magazzino: codice a sinistra e
+   azione a destra restano visibili durante lo scroll laterale. */
+.admin-table .sticky-col {
+  position: sticky;
+  background: var(--surface);
+  z-index: 1;
+}
+
+.admin-table .sticky-left {
+  left: 0;
+  box-shadow: 1px 0 0 var(--line);
+}
+
+.admin-table .sticky-right {
+  right: 0;
+  box-shadow: -1px 0 0 var(--line);
+}
+
+tr.clickable-row:hover .sticky-col {
+  background: #f0f3f2;
+}
+
+@media (max-width: 720px) {
+  .action-cell {
+    width: 52px;
+  }
+
+  .action-cell .btn.icon-only {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* Sidebar della scheda dispositivo (DeviceDetailModal): riepilogo fisso a
+   sinistra su schermi larghi, impilata sopra il resto su schermi stretti
+   (vedi la media query sotto). */
+.detail-layout {
+  display: flex;
+  gap: 22px;
+  align-items: flex-start;
+}
+
+.detail-sidebar {
+  width: 190px;
+  flex-shrink: 0;
+  padding-right: 20px;
+  border-right: 1px solid var(--line);
+}
+
+.detail-sidebar .model {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.detail-sidebar .card-actions {
+  flex-direction: column;
+  margin-top: 14px;
+}
+
+.detail-sidebar .btn {
+  width: 100%;
+}
+
+.detail-main {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 760px) {
+  .detail-layout {
+    flex-direction: column;
+  }
+
+  .detail-sidebar {
+    width: 100%;
+    padding-right: 0;
+    padding-bottom: 16px;
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 16px;
   }
 }

@@ -66,6 +66,13 @@ interface DeviceDetailModalProps {
 // Vista unica per un dispositivo: informazioni, modifica, cambio stato,
 // noleggio, storico e azioni (documento/duplica/elimina) in un solo posto,
 // aperta con un click sulla riga della tabella in AdminDevicesClient.
+//
+// Su schermi larghi (!isNew) la scheda si divide in una sidebar fissa
+// (codice/modello, pillola di stato, pulsante di ciclo vita, Genera
+// documento, Duplica) e un'area principale con i tab; su schermi stretti
+// torna una singola colonna (vedi .detail-layout in globals.css). Per un
+// nuovo dispositivo (isNew) niente sidebar: non c'è ancora nulla da
+// riepilogare.
 export function DeviceDetailModal({
   device,
   isNew,
@@ -443,10 +450,490 @@ export function DeviceDetailModal({
     }
   }
 
+  // Pulsante di ciclo vita (Noleggia / Segna restituito / Segna sanificato):
+  // un solo punto nel markup, riusato sia nella sidebar (schermi larghi) sia
+  // in cima alla scheda (schermi stretti, dove non c'è sidebar) — non più
+  // duplicato in due posti diversi della stessa scheda.
+  const lifecycleButton =
+    current.stato === "disponibile" && !renting ? (
+      <button className="btn primary" type="button" onClick={openRent}>
+        Noleggia
+      </button>
+    ) : current.stato === "noleggiato" ? (
+      <button className="btn primary" type="button" onClick={() => handleLifecycle("restituzione")} disabled={saving}>
+        Segna restituito
+      </button>
+    ) : current.stato === "da_pulire" ? (
+      <button className="btn primary" type="button" onClick={() => handleLifecycle("sanificazione")} disabled={saving}>
+        Segna sanificato
+      </button>
+    ) : null;
+
+  const sidebar = !isNew ? (
+    <div className="detail-sidebar">
+      <span className="code">{form.codice}</span>
+      <span className="model">
+        {form.marca} {form.modello}
+      </span>
+      <div style={{ margin: "8px 0 12px" }}>
+        <span className={`pill ${current.stato}`} style={{ marginLeft: 0 }}>
+          {STATUS_LABEL[current.stato]}
+        </span>
+      </div>
+      <div className="card-actions">
+        {lifecycleButton}
+        <button
+          className="btn"
+          type="button"
+          onClick={() => {
+            setDocDevice(form);
+            setDocForcedTipo(undefined);
+            setShowDoc(true);
+          }}
+        >
+          Genera documento
+        </button>
+        <button className="btn" type="button" onClick={() => onDuplicate(form)}>
+          Duplica
+        </button>
+      </div>
+    </div>
+  ) : null;
+
+  const mainContent = (
+    <div className="detail-main">
+      {renting ? (
+        <form className="panel" onSubmit={handleConfirmRent} style={{ margin: "0 0 16px" }}>
+          <h2>Assegna a un cliente</h2>
+          <div className="field">
+            <label>Cliente</label>
+            <input
+              value={rentCliente}
+              onChange={(e) => setRentCliente(e.target.value)}
+              placeholder="Nome e cognome"
+              autoFocus
+            />
+          </div>
+          <div className="field-row">
+            <div className="field">
+              <label>Telefono</label>
+              <input value={rentTelefono} onChange={(e) => setRentTelefono(e.target.value)} />
+            </div>
+            <div className="field">
+              <label>Numero contratto</label>
+              <input value={rentContratto} onChange={(e) => setRentContratto(e.target.value)} />
+            </div>
+          </div>
+          <div className="field-row">
+            <div className="field">
+              <label>Dal</label>
+              <input type="date" value={rentDal} onChange={(e) => setRentDal(e.target.value)} />
+            </div>
+            <div className="field">
+              <label>Rientro previsto (facoltativo)</label>
+              <input
+                type="date"
+                value={rentAlPrevisto}
+                onChange={(e) => setRentAlPrevisto(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="chips" style={{ marginBottom: 14 }}>
+            {[15, 30, 60, 90].map((days) => (
+              <button
+                key={days}
+                type="button"
+                className="chip"
+                onClick={() => setRentAlPrevisto(addDaysIso(rentDal, days))}
+              >
+                +{days} giorni
+              </button>
+            ))}
+            <button type="button" className="chip" onClick={() => setRentAlPrevisto("")}>
+              Nessuna scadenza
+            </button>
+          </div>
+          <div className="card-actions">
+            <button
+              className="btn"
+              type="button"
+              onClick={() => {
+                setRenting(false);
+                resetRentForm();
+              }}
+            >
+              Annulla
+            </button>
+            <button className="btn primary" type="submit" disabled={saving}>
+              {saving ? "Salvataggio…" : "Conferma noleggio"}
+            </button>
+          </div>
+        </form>
+      ) : null}
+
+      {!isNew ? (
+        <div className="chips" style={{ marginBottom: 16 }}>
+          {MODAL_TABS.map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              className={`chip ${tab === t.key ? "active" : ""}`}
+              onClick={() => setTab(t.key)}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      {isNew || tab === "dati" ? (
+      <form onSubmit={handleSave}>
+        <div className="field-row">
+          <div className="field">
+            <label>Codice</label>
+            <input
+              value={form.codice}
+              disabled={!isNew}
+              onChange={(e) => setForm({ ...form, codice: e.target.value })}
+              required
+            />
+          </div>
+          <div className="field">
+            <label>Categoria</label>
+            <select
+              value={form.categoria}
+              onChange={(e) => setForm({ ...form, categoria: e.target.value })}
+              required
+            >
+              <option value="" disabled>
+                — seleziona —
+              </option>
+              {categories.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="field-row">
+          <div className="field">
+            <label>Sottocategoria (facoltativa)</label>
+            <input
+              list="detail-sottocategorie-list"
+              value={form.sottocategoria ?? ""}
+              onChange={(e) => setForm({ ...form, sottocategoria: e.target.value || null })}
+              placeholder="es. Autospinta, Transito, Bimbi…"
+            />
+            <datalist id="detail-sottocategorie-list">
+              {sottocategorie.map((s) => (
+                <option key={s} value={s} />
+              ))}
+            </datalist>
+          </div>
+          <div className="field">
+            <label>Stato</label>
+            {current.stato === "noleggiato" || current.stato === "da_pulire" ? (
+              <>
+                <select value={form.stato} disabled>
+                  <option value={current.stato}>{STATUS_LABEL[current.stato]}</option>
+                </select>
+                <p className="hint" style={{ margin: "4px 0 0" }}>
+                  Usa il pulsante nella scheda ({current.stato === "noleggiato" ? "Segna restituito" : "Segna sanificato"})
+                  per cambiarlo: cambia anche i dati del cliente e lo storico.
+                </p>
+              </>
+            ) : (
+              <select
+                value={form.stato}
+                onChange={(e) => setForm({ ...form, stato: e.target.value as DeviceStatus })}
+              >
+                {/* "Noleggiato" e "Da pulire" si raggiungono solo con il
+                    pulsante di ciclo vita nella scheda: portano con sé dati
+                    del cliente e una riga di storico che questo form da
+                    solo non scrive. */}
+                {STATUS_OPTIONS.filter((o) => o.key !== "noleggiato" && o.key !== "da_pulire").map((o) => (
+                  <option key={o.key} value={o.key}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+        </div>
+        <div className="field-row">
+          <div className="field">
+            <label>Marca</label>
+            <input
+              list="detail-marche-list"
+              value={form.marca}
+              onChange={(e) => setForm({ ...form, marca: e.target.value })}
+            />
+            <datalist id="detail-marche-list">
+              {marche.map((m) => (
+                <option key={m} value={m} />
+              ))}
+            </datalist>
+          </div>
+          <div className="field">
+            <label>Modello</label>
+            <input value={form.modello} onChange={(e) => setForm({ ...form, modello: e.target.value })} />
+          </div>
+        </div>
+        <div className="field-row">
+          <div className="field">
+            <label>Larghezza seduta (cm, se applicabile)</label>
+            <input
+              type="number"
+              value={form.larghezza ?? ""}
+              onChange={(e) =>
+                setForm({ ...form, larghezza: e.target.value ? Number(e.target.value) : null })
+              }
+            />
+          </div>
+          <div className="field">
+            <label>Sanificazione (ultima)</label>
+            <input
+              type="date"
+              value={form.sanificazione ?? ""}
+              onChange={(e) => setForm({ ...form, sanificazione: e.target.value || null })}
+            />
+          </div>
+        </div>
+        {current.stato === "noleggiato" ? (
+          // Sola lettura di proposito: questi dati si scrivono con
+          // "Noleggia"/"Segna restituito", che registrano anche lo
+          // storico e l'anagrafica clienti. Modificarli qui li
+          // cambierebbe sulla scheda senza lasciarne traccia da nessuna
+          // parte, disallineando magazzino e storico. La data di rientro
+          // prevista fa eccezione: vedi handleUpdateAlPrevisto.
+          <div className="rental-readonly">
+            <b>Noleggio in corso</b>
+            <div>
+              {form.cliente || "—"}
+              {form.telefono ? ` · ${form.telefono}` : ""}
+              {form.contratto ? ` · contratto ${form.contratto}` : ""}
+              {form.dal ? ` · dal ${fmtDate(form.dal)}` : ""}
+            </div>
+            <p className="hint" style={{ margin: "6px 0 0" }}>
+              Per correggere questi dati, usa &quot;Segna restituito&quot; e poi
+              &quot;Noleggia&quot; di nuovo con i dati giusti.
+            </p>
+            <div className="field-row" style={{ marginTop: 10, alignItems: "flex-end" }}>
+              <div className="field">
+                <label>Rientro previsto</label>
+                <input
+                  type="date"
+                  value={alPrevistoDraft}
+                  onChange={(e) => setAlPrevistoDraft(e.target.value)}
+                />
+              </div>
+              <div className="card-actions" style={{ marginTop: 0 }}>
+                <button
+                  className="btn"
+                  type="button"
+                  disabled={savingAlPrevisto || alPrevistoDraft === (current.alPrevisto ?? "")}
+                  onClick={() => handleUpdateAlPrevisto(alPrevistoDraft)}
+                >
+                  {savingAlPrevisto ? "Salvataggio…" : "Aggiorna data"}
+                </button>
+                {current.alPrevisto ? (
+                  <button
+                    className="btn"
+                    type="button"
+                    disabled={savingAlPrevisto}
+                    onClick={() => handleUpdateAlPrevisto("")}
+                  >
+                    Rimuovi scadenza
+                  </button>
+                ) : null}
+              </div>
+            </div>
+            <p className="hint" style={{ margin: "6px 0 0" }}>
+              A differenza degli altri dati, questa data si può correggere in qualsiasi
+              momento (es. dopo una visita di controllo che allunga la prescrizione).
+            </p>
+          </div>
+        ) : null}
+        <div className="field">
+          <label>Nota</label>
+          <textarea
+            rows={2}
+            value={form.nota ?? ""}
+            onChange={(e) => setForm({ ...form, nota: e.target.value || null })}
+          />
+        </div>
+
+        <div className="field">
+          <label>Foto</label>
+          {!isNew ? (
+            <div className="photo-field">
+              {form.foto ? (
+                <img className="photo-preview" src={form.foto} alt={`Foto ${form.codice}`} />
+              ) : null}
+              <div className="card-actions" style={{ marginTop: 0 }}>
+                <label className="btn">
+                  {uploadingPhoto ? "Caricamento…" : form.foto ? "Cambia foto" : "Carica foto"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                    disabled={uploadingPhoto}
+                    style={{ display: "none" }}
+                  />
+                </label>
+                {form.foto ? (
+                  <button
+                    className="btn danger"
+                    type="button"
+                    onClick={handlePhotoRemove}
+                    disabled={uploadingPhoto}
+                  >
+                    Rimuovi foto
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          ) : (
+            <p className="hint">Salva il dispositivo per poter caricare una foto.</p>
+          )}
+        </div>
+
+        <div className="card-actions">
+          <button className="btn primary" type="submit" disabled={saving}>
+            {saving ? "Salvataggio…" : isNew ? "Aggiungi dispositivo" : "Salva modifiche"}
+          </button>
+        </div>
+      </form>
+      ) : null}
+
+      {!isNew && tab === "galleria" ? (
+        <div className="detail-section">
+          <h2>Galleria foto ({gallery.length}/{MAX_GALLERY_PHOTOS})</h2>
+          <p className="hint" style={{ marginBottom: 10 }}>
+            Foto aggiuntive oltre a quella principale (es. laterale, etichetta, un difetto
+            da documentare). Ogni foto ha un&apos;etichetta libera facoltativa.
+          </p>
+          {gallery.length > 0 ? (
+            <div className="gallery-grid">
+              {gallery.map((p) => (
+                <div key={p.id} className="gallery-item">
+                  {/* L'elenco non porta più l'immagine (vedi photos.ts):
+                      questa richiesta separata scarica solo questa foto,
+                      non tutta la galleria di tutti i dispositivi. */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`/api/dispositivi/${encodeURIComponent(current.codice)}/galleria/${p.id}`}
+                    alt={p.tipo || "Foto"}
+                    className="gallery-thumb"
+                    loading="lazy"
+                  />
+                  <div className="gallery-caption">{p.tipo || "—"}</div>
+                  <button
+                    className="btn danger"
+                    type="button"
+                    onClick={() => handleGalleryRemove(p.id)}
+                    disabled={uploadingGallery}
+                  >
+                    Rimuovi
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="hint">Nessuna foto aggiuntiva.</p>
+          )}
+          {gallery.length < MAX_GALLERY_PHOTOS ? (
+            <div className="card-actions" style={{ marginTop: 12 }}>
+              <input
+                value={galleryTipo}
+                onChange={(e) => setGalleryTipo(e.target.value)}
+                placeholder="Etichetta (facoltativa): es. Laterale, Etichetta, Difetto…"
+                style={{ maxWidth: 280 }}
+              />
+              <label className="btn">
+                {uploadingGallery ? "Caricamento…" : "Aggiungi foto"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleGalleryUpload}
+                  disabled={uploadingGallery}
+                  style={{ display: "none" }}
+                />
+              </label>
+            </div>
+          ) : (
+            <p className="hint">
+              Limite di {MAX_GALLERY_PHOTOS} foto raggiunto: rimuovine una per aggiungerne altre.
+            </p>
+          )}
+        </div>
+      ) : null}
+
+      {!isNew && tab === "storico" ? (
+        <div className="detail-section">
+          <h2>Storico</h2>
+          {events === null ? <p className="hint">Caricamento…</p> : null}
+          {events && events.length === 0 ? (
+            <p className="hint">Nessun evento registrato per questo dispositivo.</p>
+          ) : null}
+          {events && events.length > 0 ? (
+            <div className="admin-table-wrap">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Evento</th>
+                    <th>Cliente</th>
+                    <th>Telefono</th>
+                    <th>Contratto</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {events.map((e, i) => (
+                    <tr key={i}>
+                      <td>{fmtDate(e.data)}</td>
+                      <td>
+                        <span
+                          className={`pill ${
+                            e.evento === "noleggio"
+                              ? "noleggiato"
+                              : e.evento === "restituzione"
+                                ? "da_pulire"
+                                : "disponibile"
+                          }`}
+                        >
+                          {EVENT_LABEL[e.evento]}
+                        </span>
+                      </td>
+                      <td>{e.cliente ?? "—"}</td>
+                      <td>{e.telefono ?? "—"}</td>
+                      <td>{e.contratto ?? "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {!isNew ? (
+        // Isolata dalle azioni non distruttive (ora nella sidebar): un click
+        // qui non si annulla, resta a un dito di distanza dal resto.
+        <div className="danger-zone">
+          <button className="btn danger" type="button" onClick={handleDelete} disabled={saving}>
+            Elimina dispositivo
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+
   return (
     <>
       <div className="modal-overlay" onClick={onClose}>
-        <div className="modal wide" onClick={(e) => e.stopPropagation()}>
+        <div className={`modal wide ${!isNew ? "has-sidebar" : ""}`} onClick={(e) => e.stopPropagation()}>
           <div className="modal-head">
             <h3>{isNew ? "Nuovo dispositivo" : `${form.codice} — ${form.marca} ${form.modello}`}</h3>
             <button className="modal-close" onClick={onClose} aria-label="Chiudi" type="button">
@@ -456,479 +943,14 @@ export function DeviceDetailModal({
 
           {error ? <div className="banner error">{error}</div> : null}
 
-          {!isNew ? (
-            <div className="detail-status-row">
-              <span className={`pill ${current.stato}`}>{STATUS_LABEL[current.stato]}</span>
-              {current.stato === "disponibile" && !renting ? (
-                <button className="btn primary" type="button" onClick={openRent}>
-                  Noleggia
-                </button>
-              ) : null}
-              {current.stato === "noleggiato" ? (
-                <button
-                  className="btn primary"
-                  type="button"
-                  onClick={() => handleLifecycle("restituzione")}
-                  disabled={saving}
-                >
-                  Segna restituito
-                </button>
-              ) : null}
-              {current.stato === "da_pulire" ? (
-                <button
-                  className="btn primary"
-                  type="button"
-                  onClick={() => handleLifecycle("sanificazione")}
-                  disabled={saving}
-                >
-                  Segna sanificato
-                </button>
-              ) : null}
+          {isNew ? (
+            mainContent
+          ) : (
+            <div className="detail-layout">
+              {sidebar}
+              {mainContent}
             </div>
-          ) : null}
-
-          {renting ? (
-            <form className="panel" onSubmit={handleConfirmRent} style={{ margin: "0 0 16px" }}>
-              <h2>Assegna a un cliente</h2>
-              <div className="field">
-                <label>Cliente</label>
-                <input
-                  value={rentCliente}
-                  onChange={(e) => setRentCliente(e.target.value)}
-                  placeholder="Nome e cognome"
-                  autoFocus
-                />
-              </div>
-              <div className="field-row">
-                <div className="field">
-                  <label>Telefono</label>
-                  <input value={rentTelefono} onChange={(e) => setRentTelefono(e.target.value)} />
-                </div>
-                <div className="field">
-                  <label>Numero contratto</label>
-                  <input value={rentContratto} onChange={(e) => setRentContratto(e.target.value)} />
-                </div>
-              </div>
-              <div className="field-row">
-                <div className="field">
-                  <label>Dal</label>
-                  <input type="date" value={rentDal} onChange={(e) => setRentDal(e.target.value)} />
-                </div>
-                <div className="field">
-                  <label>Rientro previsto (facoltativo)</label>
-                  <input
-                    type="date"
-                    value={rentAlPrevisto}
-                    onChange={(e) => setRentAlPrevisto(e.target.value)}
-                  />
-                </div>
-              </div>
-              <div className="chips" style={{ marginBottom: 14 }}>
-                {[15, 30, 60, 90].map((days) => (
-                  <button
-                    key={days}
-                    type="button"
-                    className="chip"
-                    onClick={() => setRentAlPrevisto(addDaysIso(rentDal, days))}
-                  >
-                    +{days} giorni
-                  </button>
-                ))}
-                <button type="button" className="chip" onClick={() => setRentAlPrevisto("")}>
-                  Nessuna scadenza
-                </button>
-              </div>
-              <div className="card-actions">
-                <button
-                  className="btn"
-                  type="button"
-                  onClick={() => {
-                    setRenting(false);
-                    resetRentForm();
-                  }}
-                >
-                  Annulla
-                </button>
-                <button className="btn primary" type="submit" disabled={saving}>
-                  {saving ? "Salvataggio…" : "Conferma noleggio"}
-                </button>
-              </div>
-            </form>
-          ) : null}
-
-          {!isNew ? (
-            <div className="chips" style={{ marginBottom: 16 }}>
-              {MODAL_TABS.map((t) => (
-                <button
-                  key={t.key}
-                  type="button"
-                  className={`chip ${tab === t.key ? "active" : ""}`}
-                  onClick={() => setTab(t.key)}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-          ) : null}
-
-          {isNew || tab === "dati" ? (
-          <form onSubmit={handleSave}>
-            <div className="field-row">
-              <div className="field">
-                <label>Codice</label>
-                <input
-                  value={form.codice}
-                  disabled={!isNew}
-                  onChange={(e) => setForm({ ...form, codice: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="field">
-                <label>Categoria</label>
-                <select
-                  value={form.categoria}
-                  onChange={(e) => setForm({ ...form, categoria: e.target.value })}
-                  required
-                >
-                  <option value="" disabled>
-                    — seleziona —
-                  </option>
-                  {categories.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="field-row">
-              <div className="field">
-                <label>Sottocategoria (facoltativa)</label>
-                <input
-                  list="detail-sottocategorie-list"
-                  value={form.sottocategoria ?? ""}
-                  onChange={(e) => setForm({ ...form, sottocategoria: e.target.value || null })}
-                  placeholder="es. Autospinta, Transito, Bimbi…"
-                />
-                <datalist id="detail-sottocategorie-list">
-                  {sottocategorie.map((s) => (
-                    <option key={s} value={s} />
-                  ))}
-                </datalist>
-              </div>
-              <div className="field">
-                <label>Stato</label>
-                {current.stato === "noleggiato" || current.stato === "da_pulire" ? (
-                  <>
-                    <select value={form.stato} disabled>
-                      <option value={current.stato}>{STATUS_LABEL[current.stato]}</option>
-                    </select>
-                    <p className="hint" style={{ margin: "4px 0 0" }}>
-                      Usa i pulsanti sopra ({current.stato === "noleggiato" ? "Segna restituito" : "Segna sanificato"})
-                      per cambiarlo: cambia anche i dati del cliente e lo storico.
-                    </p>
-                  </>
-                ) : (
-                  <select
-                    value={form.stato}
-                    onChange={(e) => setForm({ ...form, stato: e.target.value as DeviceStatus })}
-                  >
-                    {/* "Noleggiato" e "Da pulire" si raggiungono solo con i
-                        pulsanti sopra: portano con sé dati del cliente e una
-                        riga di storico che questo form da solo non scrive. */}
-                    {STATUS_OPTIONS.filter((o) => o.key !== "noleggiato" && o.key !== "da_pulire").map((o) => (
-                      <option key={o.key} value={o.key}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-            </div>
-            <div className="field-row">
-              <div className="field">
-                <label>Marca</label>
-                <input
-                  list="detail-marche-list"
-                  value={form.marca}
-                  onChange={(e) => setForm({ ...form, marca: e.target.value })}
-                />
-                <datalist id="detail-marche-list">
-                  {marche.map((m) => (
-                    <option key={m} value={m} />
-                  ))}
-                </datalist>
-              </div>
-              <div className="field">
-                <label>Modello</label>
-                <input value={form.modello} onChange={(e) => setForm({ ...form, modello: e.target.value })} />
-              </div>
-            </div>
-            <div className="field-row">
-              <div className="field">
-                <label>Larghezza seduta (cm, se applicabile)</label>
-                <input
-                  type="number"
-                  value={form.larghezza ?? ""}
-                  onChange={(e) =>
-                    setForm({ ...form, larghezza: e.target.value ? Number(e.target.value) : null })
-                  }
-                />
-              </div>
-              <div className="field">
-                <label>Sanificazione (ultima)</label>
-                <input
-                  type="date"
-                  value={form.sanificazione ?? ""}
-                  onChange={(e) => setForm({ ...form, sanificazione: e.target.value || null })}
-                />
-              </div>
-            </div>
-            {current.stato === "noleggiato" ? (
-              // Sola lettura di proposito: questi dati si scrivono con
-              // "Noleggia"/"Segna restituito", che registrano anche lo
-              // storico e l'anagrafica clienti. Modificarli qui li
-              // cambierebbe sulla scheda senza lasciarne traccia da nessuna
-              // parte, disallineando magazzino e storico.
-              <div className="rental-readonly">
-                <b>Noleggio in corso</b>
-                <div>
-                  {form.cliente || "—"}
-                  {form.telefono ? ` · ${form.telefono}` : ""}
-                  {form.contratto ? ` · contratto ${form.contratto}` : ""}
-                  {form.dal ? ` · dal ${fmtDate(form.dal)}` : ""}
-                </div>
-                <p className="hint" style={{ margin: "6px 0 0" }}>
-                  Per correggere questi dati, usa &quot;Segna restituito&quot; e poi
-                  &quot;Noleggia&quot; di nuovo con i dati giusti.
-                </p>
-                <div className="field-row" style={{ marginTop: 10, alignItems: "flex-end" }}>
-                  <div className="field">
-                    <label>Rientro previsto</label>
-                    <input
-                      type="date"
-                      value={alPrevistoDraft}
-                      onChange={(e) => setAlPrevistoDraft(e.target.value)}
-                    />
-                  </div>
-                  <div className="card-actions" style={{ marginTop: 0 }}>
-                    <button
-                      className="btn"
-                      type="button"
-                      disabled={savingAlPrevisto || alPrevistoDraft === (current.alPrevisto ?? "")}
-                      onClick={() => handleUpdateAlPrevisto(alPrevistoDraft)}
-                    >
-                      {savingAlPrevisto ? "Salvataggio…" : "Aggiorna data"}
-                    </button>
-                    {current.alPrevisto ? (
-                      <button
-                        className="btn"
-                        type="button"
-                        disabled={savingAlPrevisto}
-                        onClick={() => handleUpdateAlPrevisto("")}
-                      >
-                        Rimuovi scadenza
-                      </button>
-                    ) : null}
-                  </div>
-                </div>
-                <p className="hint" style={{ margin: "6px 0 0" }}>
-                  A differenza degli altri dati, questa data si può correggere in qualsiasi
-                  momento (es. dopo una visita di controllo che allunga la prescrizione).
-                </p>
-              </div>
-            ) : null}
-            <div className="field">
-              <label>Nota</label>
-              <textarea
-                rows={2}
-                value={form.nota ?? ""}
-                onChange={(e) => setForm({ ...form, nota: e.target.value || null })}
-              />
-            </div>
-
-            <div className="field">
-              <label>Foto</label>
-              {!isNew ? (
-                <div className="photo-field">
-                  {form.foto ? (
-                    <img className="photo-preview" src={form.foto} alt={`Foto ${form.codice}`} />
-                  ) : null}
-                  <div className="card-actions" style={{ marginTop: 0 }}>
-                    <label className="btn">
-                      {uploadingPhoto ? "Caricamento…" : form.foto ? "Cambia foto" : "Carica foto"}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handlePhotoUpload}
-                        disabled={uploadingPhoto}
-                        style={{ display: "none" }}
-                      />
-                    </label>
-                    {form.foto ? (
-                      <button
-                        className="btn danger"
-                        type="button"
-                        onClick={handlePhotoRemove}
-                        disabled={uploadingPhoto}
-                      >
-                        Rimuovi foto
-                      </button>
-                    ) : null}
-                  </div>
-                </div>
-              ) : (
-                <p className="hint">Salva il dispositivo per poter caricare una foto.</p>
-              )}
-            </div>
-
-            <div className="card-actions">
-              <button className="btn primary" type="submit" disabled={saving}>
-                {saving ? "Salvataggio…" : isNew ? "Aggiungi dispositivo" : "Salva modifiche"}
-              </button>
-            </div>
-          </form>
-          ) : null}
-
-          {!isNew && tab === "galleria" ? (
-            <div className="detail-section">
-              <h2>Galleria foto ({gallery.length}/{MAX_GALLERY_PHOTOS})</h2>
-              <p className="hint" style={{ marginBottom: 10 }}>
-                Foto aggiuntive oltre a quella principale (es. laterale, etichetta, un difetto
-                da documentare). Ogni foto ha un&apos;etichetta libera facoltativa.
-              </p>
-              {gallery.length > 0 ? (
-                <div className="gallery-grid">
-                  {gallery.map((p) => (
-                    <div key={p.id} className="gallery-item">
-                      {/* L'elenco non porta più l'immagine (vedi photos.ts):
-                          questa richiesta separata scarica solo questa foto,
-                          non tutta la galleria di tutti i dispositivi. */}
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={`/api/dispositivi/${encodeURIComponent(current.codice)}/galleria/${p.id}`}
-                        alt={p.tipo || "Foto"}
-                        className="gallery-thumb"
-                        loading="lazy"
-                      />
-                      <div className="gallery-caption">{p.tipo || "—"}</div>
-                      <button
-                        className="btn danger"
-                        type="button"
-                        onClick={() => handleGalleryRemove(p.id)}
-                        disabled={uploadingGallery}
-                      >
-                        Rimuovi
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="hint">Nessuna foto aggiuntiva.</p>
-              )}
-              {gallery.length < MAX_GALLERY_PHOTOS ? (
-                <div className="card-actions" style={{ marginTop: 12 }}>
-                  <input
-                    value={galleryTipo}
-                    onChange={(e) => setGalleryTipo(e.target.value)}
-                    placeholder="Etichetta (facoltativa): es. Laterale, Etichetta, Difetto…"
-                    style={{ maxWidth: 280 }}
-                  />
-                  <label className="btn">
-                    {uploadingGallery ? "Caricamento…" : "Aggiungi foto"}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleGalleryUpload}
-                      disabled={uploadingGallery}
-                      style={{ display: "none" }}
-                    />
-                  </label>
-                </div>
-              ) : (
-                <p className="hint">
-                  Limite di {MAX_GALLERY_PHOTOS} foto raggiunto: rimuovine una per aggiungerne altre.
-                </p>
-              )}
-            </div>
-          ) : null}
-
-          {!isNew && tab === "storico" ? (
-            <div className="detail-section">
-              <h2>Storico</h2>
-              {events === null ? <p className="hint">Caricamento…</p> : null}
-              {events && events.length === 0 ? (
-                <p className="hint">Nessun evento registrato per questo dispositivo.</p>
-              ) : null}
-              {events && events.length > 0 ? (
-                <div className="admin-table-wrap">
-                  <table className="admin-table">
-                    <thead>
-                      <tr>
-                        <th>Data</th>
-                        <th>Evento</th>
-                        <th>Cliente</th>
-                        <th>Telefono</th>
-                        <th>Contratto</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {events.map((e, i) => (
-                        <tr key={i}>
-                          <td>{fmtDate(e.data)}</td>
-                          <td>
-                            <span
-                              className={`pill ${
-                                e.evento === "noleggio"
-                                  ? "noleggiato"
-                                  : e.evento === "restituzione"
-                                    ? "da_pulire"
-                                    : "disponibile"
-                              }`}
-                            >
-                              {EVENT_LABEL[e.evento]}
-                            </span>
-                          </td>
-                          <td>{e.cliente ?? "—"}</td>
-                          <td>{e.telefono ?? "—"}</td>
-                          <td>{e.contratto ?? "—"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-
-          {!isNew ? (
-            <div className="detail-section">
-              <div className="card-actions">
-                <button
-                  className="btn"
-                  type="button"
-                  onClick={() => {
-                    setDocDevice(form);
-                    setDocForcedTipo(undefined);
-                    setShowDoc(true);
-                  }}
-                >
-                  Genera documento
-                </button>
-                <button className="btn" type="button" onClick={() => onDuplicate(form)}>
-                  Duplica
-                </button>
-              </div>
-              {/* Isolata dalle azioni sopra (non distruttive): un click qui
-                  non si annulla, meglio non averla a un dito di distanza da
-                  "Duplica"/"Genera documento". */}
-              <div className="danger-zone">
-                <button className="btn danger" type="button" onClick={handleDelete} disabled={saving}>
-                  Elimina dispositivo
-                </button>
-              </div>
-            </div>
-          ) : null}
+          )}
         </div>
       </div>
 
