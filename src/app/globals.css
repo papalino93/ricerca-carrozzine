@@ -1410,15 +1410,21 @@ tr.clickable-row:hover td {
   flex-wrap: nowrap;
 }
 
-/* Legenda delle icone-azione sopra la tabella del magazzino: fissa (non
-   scorre via con lo scroll laterale della tabella). */
+/* Legenda delle icone-azione: prima era una riga di testo grigio, facile
+   da ignorare — un'icona sola non è mai ovvia quanto una parola, quindi la
+   legenda deve saltare all'occhio, non essere una nota a margine. */
 .action-legend {
   display: flex;
   flex-wrap: wrap;
   gap: 14px;
-  margin-bottom: 12px;
-  font-size: 12px;
-  color: var(--ink-soft);
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  background: var(--accent-bg);
+  border: 1px solid var(--ok-line);
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--accent-ink);
 }
 
 .action-legend .legend-item {
