@@ -6,6 +6,7 @@ import { STATUS_COLOR, STATUS_LABEL, STATUS_OPTIONS, type Device, type DeviceSta
 import { DeviceDetailModal } from "./DeviceDetailModal";
 import { DocumentPanel } from "./DocumentPanel";
 import type { DocumentoTipo } from "@/lib/pdf/VerbaleDocument";
+import type { Tariffa } from "@/lib/tariffe-types";
 import { StatTiles } from "./StatTiles";
 import { Toast } from "./Toast";
 import { useAutoRefresh } from "@/lib/use-auto-refresh";
@@ -51,9 +52,10 @@ function daysUntil(iso: string | null): number | null {
 interface AdminDevicesClientProps {
   initialDevices: Device[];
   categories: string[];
+  tariffe: Tariffa[];
 }
 
-export function AdminDevicesClient({ initialDevices, categories }: AdminDevicesClientProps) {
+export function AdminDevicesClient({ initialDevices, categories, tariffe }: AdminDevicesClientProps) {
   const [devices, setDevices] = useState(initialDevices);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [detail, setDetail] = useState<{ device: Device; isNew: boolean; autoRent?: boolean } | null>(null);
@@ -562,6 +564,7 @@ export function AdminDevicesClient({ initialDevices, categories }: AdminDevicesC
           categories={categories}
           sottocategorie={sottocategorie}
           marche={marche}
+          tariffe={tariffe}
           existingCodici={devices.map((d) => d.codice)}
           onClose={() => setDetail(null)}
           onSaved={(updated) => setDevices(updated)}

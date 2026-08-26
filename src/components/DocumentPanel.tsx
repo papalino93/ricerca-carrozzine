@@ -113,7 +113,7 @@ export function DocumentPanel({ device, onClose, forcedTipo }: DocumentPanelProp
 
         <div className="field-row">
           <div className="field">
-            <label>Numero contratto</label>
+            <label>N. Noleggio</label>
             <input value={numeroContratto} onChange={(e) => setNumeroContratto(e.target.value)} />
           </div>
           <div className="field">

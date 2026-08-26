@@ -117,7 +117,7 @@ export function ClientsClient({ clients: initialClients, history, devices }: Cli
                   <th>Nome</th>
                   <th>Telefono</th>
                   <th>Ultimo noleggio</th>
-                  <th>Ultimo contratto</th>
+                  <th>Ultimo n. noleggio</th>
                   <th>In corso</th>
                   <th></th>
                 </tr>
@@ -171,7 +171,7 @@ export function ClientsClient({ clients: initialClients, history, devices }: Cli
                                       <th>Data</th>
                                       <th>Dispositivo</th>
                                       <th>Evento</th>
-                                      <th>Contratto</th>
+                                      <th>N. Noleggio</th>
                                     </tr>
                                   </thead>
                                   <tbody>

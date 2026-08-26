@@ -14,7 +14,7 @@ export interface HistoryEvent {
 }
 
 const TAB = "Storico";
-const HEADER = ["Data", "Codice", "Evento", "Cliente", "Telefono", "Contratto", "Nota"];
+const HEADER = ["Data", "Codice", "Evento", "Cliente", "Telefono", "NumeroNoleggio", "Nota"];
 
 const VALID_EVENTS: HistoryEventType[] = ["noleggio", "restituzione", "sanificazione"];
 

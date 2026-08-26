@@ -9,7 +9,6 @@ interface EventoBody {
   tipo: "noleggio" | "restituzione" | "sanificazione";
   cliente?: string;
   telefono?: string | null;
-  contratto?: string | null;
   dal?: string | null;
   alPrevisto?: string | null;
 }
@@ -55,7 +54,6 @@ export async function POST(
         devices = await rentDevice(codice, {
           cliente: body.cliente.trim(),
           telefono: body.telefono?.trim() || null,
-          contratto: body.contratto?.trim() || null,
           dal: body.dal || null,
           alPrevisto: body.alPrevisto || null,
         });

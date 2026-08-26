@@ -4,9 +4,11 @@ import { useState } from "react";
 import { readJson } from "@/lib/fetch-json";
 import { addDaysIso, todayIso } from "@/lib/dates";
 import type { Device } from "@/lib/device-types";
+import { findTariffa, fmtTariffa, type Tariffa } from "@/lib/tariffe-types";
 
 interface QuickRentModalProps {
   device: Device;
+  tariffe: Tariffa[];
   onClose: () => void;
   /**
    * L'elenco aggiornato dopo il noleggio. Il chiamante decide cosa fare
@@ -24,11 +26,11 @@ interface QuickRentModalProps {
 // dalla card di un ausilio disponibile — nessun dato nuovo, nessun
 // permesso nuovo: chi arriva qui è già autenticato come chiunque acceda
 // all'amministrazione (un solo livello di accesso in questo sito).
-export function QuickRentModal({ device, onClose, onRented }: QuickRentModalProps) {
+export function QuickRentModal({ device, tariffe, onClose, onRented }: QuickRentModalProps) {
   const [cliente, setCliente] = useState("");
   const [telefono, setTelefono] = useState("");
-  const [contratto, setContratto] = useState("");
   const [dal, setDal] = useState(todayIso());
+  const tariffa = findTariffa(tariffe, device.categoria, device.sottocategoria);
   const [alPrevisto, setAlPrevisto] = useState(addDaysIso(todayIso(), 30));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +51,6 @@ export function QuickRentModal({ device, onClose, onRented }: QuickRentModalProp
           tipo: "noleggio",
           cliente,
           telefono,
-          contratto,
           dal,
           alPrevisto: alPrevisto || null,
         }),
@@ -76,6 +77,13 @@ export function QuickRentModal({ device, onClose, onRented }: QuickRentModalProp
 
         {error ? <div className="banner error">{error}</div> : null}
 
+        {tariffa ? (
+          <p className="hint" style={{ margin: "0 0 14px" }}>
+            Tariffa: <b>{fmtTariffa(tariffa)}</b>
+            {tariffa.nota ? ` (${tariffa.nota})` : ""}
+          </p>
+        ) : null}
+
         <form onSubmit={handleConfirm}>
           <div className="field">
             <label>Cliente</label>
@@ -86,15 +94,9 @@ export function QuickRentModal({ device, onClose, onRented }: QuickRentModalProp
               autoFocus
             />
           </div>
-          <div className="field-row">
-            <div className="field">
-              <label>Telefono</label>
-              <input value={telefono} onChange={(e) => setTelefono(e.target.value)} />
-            </div>
-            <div className="field">
-              <label>Numero contratto</label>
-              <input value={contratto} onChange={(e) => setContratto(e.target.value)} />
-            </div>
+          <div className="field">
+            <label>Telefono</label>
+            <input value={telefono} onChange={(e) => setTelefono(e.target.value)} />
           </div>
           <div className="field-row">
             <div className="field">

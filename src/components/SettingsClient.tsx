@@ -4,21 +4,25 @@ import { readJson } from "@/lib/fetch-json";
 import { useRef, useState } from "react";
 import type { CompanySettings } from "@/lib/settings";
 import type { AdminUser } from "@/lib/users";
+import type { Tariffa } from "@/lib/tariffe-types";
 import { UsersManager } from "./UsersManager";
 import { CategoriesManager } from "./CategoriesManager";
+import { TariffeManager } from "./TariffeManager";
 import { Toast } from "./Toast";
 
 interface SettingsClientProps {
   initialSettings: CompanySettings;
   initialUsers: AdminUser[];
   initialCategories: string[];
+  initialTariffe: Tariffa[];
 }
 
-type SettingsTab = "azienda" | "categorie" | "utenti";
+type SettingsTab = "azienda" | "categorie" | "tariffe" | "utenti";
 
 const TABS: { key: SettingsTab; label: string }[] = [
   { key: "azienda", label: "Azienda" },
   { key: "categorie", label: "Categorie" },
+  { key: "tariffe", label: "Tariffe" },
   { key: "utenti", label: "Utenti" },
 ];
 
@@ -26,6 +30,7 @@ export function SettingsClient({
   initialSettings,
   initialUsers,
   initialCategories,
+  initialTariffe,
 }: SettingsClientProps) {
   const [tab, setTab] = useState<SettingsTab>("azienda");
   const [settings, setSettings] = useState(initialSettings);
@@ -86,7 +91,7 @@ export function SettingsClient({
     <div className="wrap">
       <header className="page-header">
         <h1>Impostazioni</h1>
-        <p className="sub">Dati aziendali, categorie ausili e utenti autorizzati.</p>
+        <p className="sub">Dati aziendali, categorie ausili, tariffe e utenti autorizzati.</p>
       </header>
 
       <div className="chips" style={{ marginBottom: 20 }}>
@@ -188,6 +193,10 @@ export function SettingsClient({
 
       <div style={{ display: tab === "categorie" ? "block" : "none" }}>
         <CategoriesManager initialCategories={initialCategories} />
+      </div>
+
+      <div style={{ display: tab === "tariffe" ? "block" : "none" }}>
+        <TariffeManager initialTariffe={initialTariffe} categories={initialCategories} />
       </div>
 
       <div style={{ display: tab === "utenti" ? "block" : "none" }}>

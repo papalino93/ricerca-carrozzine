@@ -1,5 +1,6 @@
 import { listDevices } from "@/lib/devices";
 import { listCategories } from "@/lib/categories";
+import { listTariffe } from "@/lib/tariffe";
 import { AdminDevicesClient } from "@/components/AdminDevicesClient";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +25,7 @@ export default async function AdminPage() {
   }
 
   const categories = await listCategories().catch(() => []);
+  const tariffe = await listTariffe().catch(() => []);
 
-  return <AdminDevicesClient initialDevices={devices} categories={categories} />;
+  return <AdminDevicesClient initialDevices={devices} categories={categories} tariffe={tariffe} />;
 }

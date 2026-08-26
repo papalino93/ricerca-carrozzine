@@ -245,7 +245,7 @@ export function VerbaleDocument({
         <View style={styles.titleRow}>
           <Text style={styles.title}>{TITLE[tipo]}</Text>
           <View style={styles.metaBlock}>
-            <Text style={styles.metaLine}>Contratto</Text>
+            <Text style={styles.metaLine}>N. Noleggio</Text>
             <Text style={styles.metaValue}>{numeroContratto || "—"}</Text>
             <Text style={[styles.metaLine, { marginTop: 6 }]}>Data</Text>
             <Text style={styles.metaValue}>{fmtDate(data)}</Text>

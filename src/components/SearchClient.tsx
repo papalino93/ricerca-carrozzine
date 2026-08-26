@@ -9,6 +9,7 @@ import { DocumentPanel } from "./DocumentPanel";
 import { QuickRentModal } from "./QuickRentModal";
 import { Toast } from "./Toast";
 import type { DocumentoTipo } from "@/lib/pdf/VerbaleDocument";
+import type { Tariffa } from "@/lib/tariffe-types";
 import { readJson } from "@/lib/fetch-json";
 import { useAutoRefresh } from "@/lib/use-auto-refresh";
 import { matchesQuery } from "@/lib/search-match";
@@ -33,6 +34,7 @@ interface SearchClientProps {
   initialDevices: Device[];
   logoUrl?: string | null;
   categories: string[];
+  tariffe: Tariffa[];
 }
 
 type SortKey = "larghezza" | "codice" | "marca" | "stato" | "cliente";
@@ -47,7 +49,7 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
 
 const ALL_STATUSES = new Set(STATUS_OPTIONS.map((o) => o.key));
 
-export function SearchClient({ initialDevices, logoUrl, categories }: SearchClientProps) {
+export function SearchClient({ initialDevices, logoUrl, categories, tariffe }: SearchClientProps) {
   const [devices, setDevices] = useState(initialDevices);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [width, setWidth] = useState<number | null>(null);
@@ -513,6 +515,7 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
       {rentingDevice ? (
         <QuickRentModal
           device={rentingDevice}
+          tariffe={tariffe}
           onClose={() => setRentingDevice(null)}
           onRented={(updated) => {
             setDevices(updated);

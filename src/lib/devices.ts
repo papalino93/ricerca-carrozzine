@@ -2,6 +2,7 @@ import "server-only";
 import { readSheet, writeSheet } from "./sheets";
 import { appendHistoryEvent } from "./history";
 import { upsertClient } from "./clients";
+import { nextNumeroNoleggio } from "./counter";
 import { removeAllDevicePhotos } from "./photos";
 import { STATUS_OPTIONS, type Device, type DeviceStatus } from "./device-types";
 
@@ -24,7 +25,7 @@ const HEADER = [
   "Stato",
   "Cliente",
   "Telefono",
-  "Contratto",
+  "NumeroNoleggio",
   "Dal",
   "Sanificazione",
   "Nota",
@@ -159,13 +160,19 @@ export async function deleteDevice(codice: string): Promise<Device[]> {
 export interface RentDeviceInput {
   cliente: string;
   telefono: string | null;
-  contratto: string | null;
   dal: string | null;
   /** Data di rientro prevista, ISO yyyy-mm-dd (facoltativa). */
   alPrevisto: string | null;
 }
 
-/** disponibile → noleggiato: assegna il dispositivo a un cliente. */
+/**
+ * disponibile → noleggiato: assegna il dispositivo a un cliente.
+ *
+ * Il numero di noleggio (campo "contratto") non è più digitato
+ * dall'operatore: viene generato qui, progressivo e condiviso da tutti i
+ * dispositivi (vedi counter.ts), così da avere un solo numero univoco per
+ * ogni noleggio invece di quello che l'operatore ricordava di scrivere.
+ */
 export async function rentDevice(codice: string, input: RentDeviceInput): Promise<Device[]> {
   const devices = await listDevices();
   const { idx, device } = findOrThrow(devices, codice);
@@ -179,12 +186,13 @@ export async function rentDevice(codice: string, input: RentDeviceInput): Promis
     );
   }
   const dal = input.dal || todayIso();
+  const contratto = await nextNumeroNoleggio();
   devices[idx] = {
     ...devices[idx],
     stato: "noleggiato",
     cliente: input.cliente,
     telefono: input.telefono,
-    contratto: input.contratto,
+    contratto,
     dal,
     alPrevisto: input.alPrevisto,
   };
@@ -197,7 +205,7 @@ export async function rentDevice(codice: string, input: RentDeviceInput): Promis
     evento: "noleggio",
     cliente: input.cliente,
     telefono: input.telefono,
-    contratto: input.contratto,
+    contratto,
     nota: null,
   });
   await saveAllDevices(devices);
@@ -208,7 +216,7 @@ export async function rentDevice(codice: string, input: RentDeviceInput): Promis
     await upsertClient({
       nome: input.cliente,
       telefono: input.telefono,
-      contratto: input.contratto,
+      contratto,
       dal,
     });
   } catch {

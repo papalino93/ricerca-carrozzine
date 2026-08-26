@@ -12,6 +12,7 @@ import {
 import { DocumentPanel } from "./DocumentPanel";
 import type { DocumentoTipo } from "@/lib/pdf/VerbaleDocument";
 import type { DevicePhotoMeta } from "@/lib/photos";
+import { findTariffa, fmtTariffa, type Tariffa } from "@/lib/tariffe-types";
 import { Toast } from "./Toast";
 
 // Deve combaciare con MAX_PHOTOS_PER_DEVICE in src/lib/photos.ts (server-only,
@@ -56,6 +57,7 @@ interface DeviceDetailModalProps {
   categories: string[];
   sottocategorie: string[];
   marche: string[];
+  tariffe: Tariffa[];
   existingCodici: string[];
   onClose: () => void;
   onSaved: (devices: Device[]) => void;
@@ -80,6 +82,7 @@ export function DeviceDetailModal({
   categories,
   sottocategorie,
   marche,
+  tariffe,
   existingCodici,
   onClose,
   onSaved,
@@ -98,7 +101,6 @@ export function DeviceDetailModal({
   const [renting, setRenting] = useState(Boolean(autoRent));
   const [rentCliente, setRentCliente] = useState("");
   const [rentTelefono, setRentTelefono] = useState("");
-  const [rentContratto, setRentContratto] = useState("");
   const [rentDal, setRentDal] = useState(todayIso());
   const [rentAlPrevisto, setRentAlPrevisto] = useState(addDaysIso(todayIso(), 30));
   const [showDoc, setShowDoc] = useState(false);
@@ -259,7 +261,6 @@ export function DeviceDetailModal({
   function resetRentForm() {
     setRentCliente("");
     setRentTelefono("");
-    setRentContratto("");
     setRentDal(todayIso());
     setRentAlPrevisto(addDaysIso(todayIso(), 30));
   }
@@ -285,7 +286,6 @@ export function DeviceDetailModal({
           tipo: "noleggio",
           cliente: rentCliente,
           telefono: rentTelefono,
-          contratto: rentContratto,
           dal: rentDal,
           alPrevisto: rentAlPrevisto || null,
         }),
@@ -455,6 +455,8 @@ export function DeviceDetailModal({
     }
   }
 
+  const tariffa = findTariffa(tariffe, current.categoria, current.sottocategoria);
+
   // Pulsante di ciclo vita (Noleggia / Segna restituito / Segna sanificato):
   // un solo punto nel markup, riusato sia nella sidebar (schermi larghi) sia
   // in cima alla scheda (schermi stretti, dove non c'è sidebar) — non più
@@ -510,6 +512,12 @@ export function DeviceDetailModal({
       {renting ? (
         <form className="panel" onSubmit={handleConfirmRent} style={{ margin: "0 0 16px" }}>
           <h2>Assegna a un cliente</h2>
+          {tariffa ? (
+            <p className="hint" style={{ margin: "0 0 14px" }}>
+              Tariffa: <b>{fmtTariffa(tariffa)}</b>
+              {tariffa.nota ? ` (${tariffa.nota})` : ""}
+            </p>
+          ) : null}
           <div className="field">
             <label>Cliente</label>
             <input
@@ -519,16 +527,13 @@ export function DeviceDetailModal({
               autoFocus
             />
           </div>
-          <div className="field-row">
-            <div className="field">
-              <label>Telefono</label>
-              <input value={rentTelefono} onChange={(e) => setRentTelefono(e.target.value)} />
-            </div>
-            <div className="field">
-              <label>Numero contratto</label>
-              <input value={rentContratto} onChange={(e) => setRentContratto(e.target.value)} />
-            </div>
+          <div className="field">
+            <label>Telefono</label>
+            <input value={rentTelefono} onChange={(e) => setRentTelefono(e.target.value)} />
           </div>
+          <p className="hint" style={{ margin: "0 0 12px" }}>
+            Il numero di noleggio viene assegnato automaticamente alla conferma.
+          </p>
           <div className="field-row">
             <div className="field">
               <label>Dal</label>
@@ -717,7 +722,7 @@ export function DeviceDetailModal({
             <div>
               {form.cliente || "—"}
               {form.telefono ? ` · ${form.telefono}` : ""}
-              {form.contratto ? ` · contratto ${form.contratto}` : ""}
+              {form.contratto ? ` · n. noleggio ${form.contratto}` : ""}
               {form.dal ? ` · dal ${fmtDate(form.dal)}` : ""}
             </div>
             <p className="hint" style={{ margin: "6px 0 0" }}>
@@ -891,7 +896,7 @@ export function DeviceDetailModal({
                     <th>Evento</th>
                     <th>Cliente</th>
                     <th>Telefono</th>
-                    <th>Contratto</th>
+                    <th>N. Noleggio</th>
                   </tr>
                 </thead>
                 <tbody>
