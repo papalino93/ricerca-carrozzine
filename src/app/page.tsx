@@ -1,51 +1,89 @@
-import { listDevices } from "@/lib/devices";
-import { toPublicDevice } from "@/lib/device-types";
+import Link from "next/link";
 import { getSettings } from "@/lib/settings";
-import { listCategories } from "@/lib/categories";
-import { listTariffe } from "@/lib/tariffe";
-import { SearchClient } from "@/components/SearchClient";
+import { IconClienti, IconCommessa, IconFidelity, IconNoleggio } from "@/components/ReceptionIcons";
 
 export const dynamic = "force-dynamic";
 
-export default async function HomePage() {
-  // Le letture sono indipendenti fra loro: eseguirle in parallelo invece
-  // che in serie evita di sommare più round-trip verso Google Sheets a
-  // ogni apertura della pagina.
-  const [devicesResult, logoUrl, categories, tariffe] = await Promise.all([
-    listDevices().then(
-      (d) => ({ devices: d, error: null as string | null }),
-      (err: Error) => ({
-        devices: [] as Awaited<ReturnType<typeof listDevices>>,
-        error: err.message,
-      })
-    ),
-    getSettings()
-      .then((s) => s.logoUrl || null)
-      .catch(() => null),
-    listCategories().catch(() => []),
-    listTariffe().catch(() => []),
-  ]);
+function greeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return "Buongiorno";
+  if (h < 18) return "Buon pomeriggio";
+  return "Buonasera";
+}
 
-  if (devicesResult.error) {
-    return (
-      <div className="wrap">
-        <div className="banner error">
-          Impossibile leggere il magazzino da Google Sheets: {devicesResult.error}
-        </div>
-      </div>
-    );
-  }
+function todayLabel(): string {
+  return new Date().toLocaleDateString("it-IT", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+}
 
-  // Un dispositivo venduto/rottamato non è più noleggiabile: non deve
-  // comparire nella ricerca pubblica, solo in admin (dietro conferma).
-  const devices = devicesResult.devices.filter((d) => !d.archiviato);
+const CARDS = [
+  {
+    href: "/noleggi",
+    icon: <IconNoleggio />,
+    color: "info",
+    label: "Noleggia un ausilio",
+    sub: "Cerca disponibilità",
+  },
+  {
+    href: "/commesse",
+    icon: <IconCommessa />,
+    color: "warn",
+    label: "Nuova commessa",
+    sub: "Vendita o riparazione",
+  },
+  {
+    href: "/fidelity",
+    icon: <IconFidelity />,
+    color: "purple",
+    label: "Fidelity card",
+    sub: "Iscrivi o aggiungi punti",
+  },
+  {
+    href: "/clienti",
+    icon: <IconClienti />,
+    color: "accent",
+    label: "Clienti",
+    sub: "Anagrafica e storico",
+  },
+];
+
+export default async function ReceptionPage() {
+  const logoUrl = await getSettings()
+    .then((s) => s.logoUrl || null)
+    .catch(() => null);
 
   return (
-    <SearchClient
-      initialDevices={devices.map(toPublicDevice)}
-      logoUrl={logoUrl}
-      categories={categories}
-      tariffe={tariffe}
-    />
+    <div className="reception">
+      <div className="reception-top">
+        <div className="reception-brand">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={logoUrl || "/logo.png"} alt="" />
+          <b>Ricerca Ausili</b>
+        </div>
+        <Link href="/admin" className="reception-admin-link">
+          Amministrazione ↗
+        </Link>
+      </div>
+
+      <div className="reception-hero">
+        <div className="reception-greet">
+          <h1>{greeting()}</h1>
+          <p>{todayLabel()}</p>
+        </div>
+
+        <div className="reception-grid">
+          {CARDS.map((c) => (
+            <Link key={c.href} href={c.href} className="reception-card">
+              <span className={`reception-icon reception-icon-${c.color}`}>{c.icon}</span>
+              <span className="reception-label">{c.label}</span>
+              <span className="reception-sub">{c.sub}</span>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }

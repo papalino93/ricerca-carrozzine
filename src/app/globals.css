@@ -153,148 +153,231 @@ h1 {
   flex-wrap: wrap;
 }
 
-/* ---------- Home (dashboard admin) ---------- */
-.hub-top {
+/* ---------- Reception (home fronte banco) ---------- */
+.reception {
+  min-height: 100dvh;
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
+  background:
+    radial-gradient(720px 420px at 50% -8%, var(--accent-bg) 0%, transparent 70%),
+    var(--bg);
+  padding: 28px 24px 48px;
+}
+
+.reception-top {
+  display: flex;
+  align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-  margin-bottom: 24px;
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
 }
 
-.hub-top h1 {
-  margin: 0 0 4px;
+.reception-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-.hub-settings-link {
-  font-size: 13px;
+.reception-brand img {
+  height: 30px;
+  width: auto;
+  border-radius: 8px;
+  background: #fff;
+  padding: 3px;
+}
+
+.reception-brand b {
+  font-family: var(--heading);
+  font-size: 14px;
   font-weight: 600;
-  color: var(--ink-soft);
-  text-decoration: none;
-  padding: 8px 14px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  white-space: nowrap;
-}
-
-.hub-settings-link:hover {
-  background: var(--surface-2, #f2f5f0);
   color: var(--ink);
 }
 
-.hub-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+.reception-admin-link {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  text-decoration: none;
+  padding: 7px 13px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  white-space: nowrap;
+  background: var(--surface);
 }
 
-@media (max-width: 640px) {
-  .hub-grid {
+.reception-admin-link:hover {
+  color: var(--ink);
+  border-color: var(--ink-soft);
+}
+
+.reception-hero {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.reception-greet {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.reception-greet h1 {
+  font-family: var(--heading);
+  font-size: clamp(28px, 4vw, 38px);
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 8px;
+  letter-spacing: -0.01em;
+}
+
+.reception-greet p {
+  font-size: 14px;
+  color: var(--ink-soft);
+  margin: 0;
+  text-transform: capitalize;
+}
+
+.reception-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
+}
+
+@media (max-width: 620px) {
+  .reception-grid {
     grid-template-columns: 1fr;
   }
 }
 
-.hub-card {
+.reception-card {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 22px;
-  padding: 22px;
+  border-radius: 26px;
+  padding: 36px 20px;
   text-decoration: none;
   color: var(--ink);
-  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 1px 2px rgba(23, 48, 27, 0.04);
+  transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
 }
 
-.hub-card:hover {
+.reception-card:hover {
   border-color: var(--accent);
-  transform: translateY(-2px);
-  box-shadow: 0 10px 24px -16px rgba(23, 48, 27, 0.35);
+  transform: translateY(-3px);
+  box-shadow: 0 16px 32px -18px rgba(23, 48, 27, 0.35);
 }
 
-.hub-card-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+.reception-card:hover .reception-icon {
+  transform: scale(1.08);
 }
 
-.hub-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
+.reception-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 19px;
   flex: none;
+  transition: transform 0.18s ease;
 }
 
-.hub-icon-info {
+.reception-icon svg {
+  width: 30px;
+  height: 30px;
+}
+
+.reception-icon-info {
   background: var(--rent-bg);
   color: var(--rent-fg);
 }
 
-.hub-icon-warn {
+.reception-icon-warn {
   background: var(--clean-bg);
   color: var(--clean-fg);
 }
 
-.hub-icon-accent {
+.reception-icon-purple {
+  background: var(--check-bg);
+  color: var(--check-fg);
+}
+
+.reception-icon-accent {
   background: var(--accent-bg);
   color: var(--accent-ink);
 }
 
-.hub-icon-purple {
-  background: var(--check-bg);
-  color: var(--check-fg);
-}
-
-.hub-flag {
-  font-size: 10.5px;
-  font-weight: 700;
-  padding: 3px 9px;
-  border-radius: 999px;
-  white-space: nowrap;
-}
-
-.hub-flag-danger {
-  background: var(--broken-bg);
-  color: var(--broken-fg);
-}
-
-.hub-flag-warn {
-  background: var(--clean-bg);
-  color: var(--clean-fg);
-}
-
-.hub-flag-purple {
-  background: var(--check-bg);
-  color: var(--check-fg);
-}
-
-.hub-num {
+.reception-label {
   font-family: var(--heading);
-  font-size: 30px;
+  font-size: 16.5px;
   font-weight: 700;
   color: var(--ink);
-  line-height: 1;
-  margin-top: 4px;
 }
 
-.hub-label {
-  font-size: 13px;
+.reception-sub {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  margin-top: -8px;
+}
+
+/* ---------- FrontBar (Commesse/Fidelity/Clienti dal fronte banco) ---------- */
+.front-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+  flex-wrap: wrap;
+}
+
+.front-bar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.front-bar-brand img {
+  height: 26px;
+  width: auto;
+  border-radius: 7px;
+  background: #fff;
+  padding: 2px;
+}
+
+.front-bar-brand b {
+  font-family: var(--heading);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.front-bar-links {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.front-bar-links a {
+  font-size: 12.5px;
   font-weight: 600;
   color: var(--ink-soft);
+  text-decoration: none;
 }
 
-.hub-cta {
-  font-size: 12px;
-  font-weight: 700;
+.front-bar-links a:hover {
   color: var(--accent);
-  margin-top: 2px;
 }
 
 .stepper {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { STATUS_COLOR, STATUS_OPTIONS, type Device, type DeviceStatus } from "@/lib/device-types";
 import { DeviceCard } from "./DeviceCard";
 import { BrandHeader } from "./BrandHeader";
@@ -249,9 +250,11 @@ export function SearchClient({ initialDevices, logoUrl, categories, tariffe }: S
       <header className="page-header">
         <div className="top-nav">
           <h1>Trova l&apos;ausilio giusto</h1>
-          <a href="/admin">Area amministrazione →</a>
+          <Link href="/admin">Area amministrazione →</Link>
         </div>
-        <p className="sub">{devices.length} ausili in magazzino</p>
+        <p className="sub">
+          <Link href="/">← Home</Link> · {devices.length} ausili in magazzino
+        </p>
       </header>
 
       <div className="panel hero-search">

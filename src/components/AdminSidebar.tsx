@@ -8,12 +8,12 @@ interface AdminSidebarProps {
   logoUrl?: string | null;
 }
 
-// L'operatività di ogni giorno: separata da Impostazioni (configurazione
-// tecnica), che vive a parte più sotto — vedi la home (/admin) per il
-// perché di questa distinzione.
+// Gestione e configurazione (il "dietro le quinte"): il lavoro di ogni
+// giorno al banco vive altrove, vedi il link "Vai al fronte banco" più
+// sotto — qui restano le stesse aree ma con il dettaglio in più che serve
+// per la configurazione (tariffe, controllo qualità sulle commesse, ecc.).
 const NAV_ITEMS = [
-  { href: "/admin", label: "Home" },
-  { href: "/admin/magazzino", label: "Magazzino" },
+  { href: "/admin", label: "Magazzino" },
   { href: "/admin/registro", label: "Registro noleggi" },
   { href: "/admin/commesse", label: "Commesse" },
   { href: "/admin/clienti", label: "Clienti" },
@@ -69,7 +69,7 @@ export function AdminSidebar({ logoUrl }: AdminSidebarProps) {
           ⚙ Impostazioni
         </Link>
         <Link href="/" className="admin-sidebar-link muted" onClick={() => setOpen(false)}>
-          Vai alla ricerca ↗
+          Vai al fronte banco ↗
         </Link>
       </div>
     </aside>
