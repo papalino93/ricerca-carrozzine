@@ -15,7 +15,11 @@ export async function GET(req: NextRequest) {
   try {
     const devices = await listDevices();
     const full = req.nextUrl.searchParams.get("vista") === "admin";
-    return NextResponse.json({ devices: full ? devices : devices.map(toPublicDevice) });
+    // Un dispositivo venduto/rottamato non è più noleggiabile: fuori dalla
+    // vista pubblica (come il caricamento iniziale della home, vedi
+    // app/page.tsx), visibile solo da admin dietro "Mostra archiviati".
+    const visible = full ? devices : devices.filter((d) => !d.archiviato);
+    return NextResponse.json({ devices: full ? visible : visible.map(toPublicDevice) });
   } catch (err) {
     return NextResponse.json(
       { error: (err as Error).message },
