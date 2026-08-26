@@ -36,7 +36,9 @@ export default async function HomePage() {
     );
   }
 
-  const devices = devicesResult.devices;
+  // Un dispositivo venduto/rottamato non è più noleggiabile: non deve
+  // comparire nella ricerca pubblica, solo in admin (dietro conferma).
+  const devices = devicesResult.devices.filter((d) => !d.archiviato);
 
   return (
     <SearchClient

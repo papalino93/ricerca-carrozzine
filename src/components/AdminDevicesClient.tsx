@@ -2,7 +2,7 @@
 
 import { readJson } from "@/lib/fetch-json";
 import { useMemo, useRef, useState } from "react";
-import { STATUS_COLOR, STATUS_LABEL, STATUS_OPTIONS, type Device, type DeviceStatus } from "@/lib/device-types";
+import { ARCHIVE_LABEL, STATUS_COLOR, STATUS_LABEL, STATUS_OPTIONS, type Device, type DeviceStatus } from "@/lib/device-types";
 import { DeviceDetailModal } from "./DeviceDetailModal";
 import { DocumentPanel } from "./DocumentPanel";
 import type { DocumentoTipo } from "@/lib/pdf/VerbaleDocument";
@@ -28,6 +28,9 @@ const EMPTY_FORM: Device = {
   nota: null,
   foto: null,
   sottocategoria: null,
+  prezzoAcquisto: null,
+  prezzoVendita: null,
+  archiviato: null,
 };
 
 type IssueFilter = "stale" | "incomplete" | "overdue" | "duesoon" | "longrental" | null;
@@ -66,6 +69,10 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
     new Set(STATUS_OPTIONS.map((o) => o.key))
   );
   const [issueFilter, setIssueFilter] = useState<IssueFilter>(null);
+  // I dispositivi venduti/rottamati restano nel magazzino (storico intatto)
+  // ma non devono intasare la vista normale: nascosti finché non si chiede
+  // esplicitamente di vederli.
+  const [showArchived, setShowArchived] = useState(false);
   const [saving, setSaving] = useState(false);
   const [docPrompt, setDocPrompt] = useState<{ device: Device; tipo: DocumentoTipo } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -105,6 +112,11 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
     [devices]
   );
 
+  // Un dispositivo venduto/rottamato non è più magazzino attivo: contarlo
+  // qui gonfierebbe le tessere di stato con unità che non ci sono più.
+  const activeDevices = useMemo(() => devices.filter((d) => !d.archiviato), [devices]);
+  const archivedCount = devices.length - activeDevices.length;
+
   const stats = useMemo(() => {
     const counts: Record<DeviceStatus, number> = {
       disponibile: 0,
@@ -113,33 +125,33 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
       guasto: 0,
       da_verificare: 0,
     };
-    for (const d of devices) counts[d.stato] += 1;
+    for (const d of activeDevices) counts[d.stato] += 1;
     return counts;
-  }, [devices]);
+  }, [activeDevices]);
 
   const alerts = useMemo(() => {
     // Attenzione al caso "mai sanificato": con `?? 0` un ausilio senza
     // alcuna data di sanificazione risultava a 0 giorni, quindi "a posto",
     // mentre uno sanificato 31 giorni fa veniva segnalato. Esattamente al
     // contrario del rischio reale. Nessuna data = caso peggiore.
-    const staleCount = devices.filter(
+    const staleCount = activeDevices.filter(
       (d) => d.stato === "disponibile" && (daysSince(d.sanificazione) ?? Infinity) > 30
     ).length;
-    const incompleteCount = devices.filter((d) => !(d.marca && d.modello)).length;
+    const incompleteCount = activeDevices.filter((d) => !(d.marca && d.modello)).length;
     // Prima dell'introduzione di "AlPrevisto" non c'era alcun modo di sapere
     // quali noleggi fossero scaduti: l'unico modo era ricordarselo o
     // controllare il contratto cartaceo. Sono in overdueCount solo i
     // noleggi CON una data prevista superata: senza data non si può dire
     // che sia in ritardo, semplicemente non è stata impostata.
-    const overdueCount = devices.filter(
+    const overdueCount = activeDevices.filter(
       (d) => d.stato === "noleggiato" && d.alPrevisto != null && (daysUntil(d.alPrevisto) ?? 1) < 0
     ).length;
-    const dueSoonCount = devices.filter((d) => {
+    const dueSoonCount = activeDevices.filter((d) => {
       if (d.stato !== "noleggiato" || d.alPrevisto == null) return false;
       const days = daysUntil(d.alPrevisto);
       return days != null && days >= 0 && days <= 7;
     }).length;
-    const longRentalCount = devices.filter(
+    const longRentalCount = activeDevices.filter(
       (d) => d.stato === "noleggiato" && (daysSince(d.dal) ?? 0) > LONG_RENTAL_DAYS
     ).length;
     return [
@@ -216,11 +228,12 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
         },
       },
     ].filter(Boolean) as { text: string; color: string; onClick: () => void }[];
-  }, [devices, stats]);
+  }, [activeDevices, stats]);
 
   const visibleDevices = useMemo(() => {
     const q = query.trim().toLowerCase();
     return devices.filter((d) => {
+      if (!showArchived && d.archiviato) return false;
       if (categoryFilter !== "Tutte" && d.categoria !== categoryFilter) return false;
       if (!statusFilter.has(d.stato)) return false;
       if (issueFilter === "stale" && !(d.stato === "disponibile" && (daysSince(d.sanificazione) ?? 0) > 30))
@@ -243,7 +256,7 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
       }
       return true;
     });
-  }, [devices, categoryFilter, statusFilter, issueFilter, query]);
+  }, [devices, categoryFilter, statusFilter, issueFilter, query, showArchived]);
 
   function toggleStatusFilter(key: DeviceStatus) {
     setIssueFilter(null);
@@ -338,7 +351,8 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
           <h1>Magazzino</h1>
         </div>
         <p className="sub">
-          {devices.length} unità in magazzino
+          {activeDevices.length} unità in magazzino
+          {archivedCount > 0 ? ` (+ ${archivedCount} archiviate)` : ""}
           <button type="button" className="refresh-hint" onClick={refreshDevices}>
             {lastRefresh
               ? `· aggiornato alle ${lastRefresh.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })} · aggiorna`
@@ -357,7 +371,7 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
           {
             key: "__all__",
             label: "Totale",
-            value: devices.length,
+            value: activeDevices.length,
             color: "var(--accent)",
             active: statusFilter.size === STATUS_OPTIONS.length && issueFilter === null,
           },
@@ -435,6 +449,15 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
               {o.label}
             </button>
           ))}
+          {archivedCount > 0 ? (
+            <button
+              className={`chip ${showArchived ? "active" : ""}`}
+              type="button"
+              onClick={() => setShowArchived((v) => !v)}
+            >
+              {showArchived ? "Nascondi archiviati" : `Mostra archiviati (${archivedCount})`}
+            </button>
+          ) : null}
         </div>
         <p className="hint" style={{ marginBottom: 10 }}>
           Clicca su un dispositivo per vedere i dettagli, le note, lo storico e cambiarne lo stato.
@@ -491,11 +514,15 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
                 </td>
                 <td>{d.larghezza ?? "—"}</td>
                 <td>
-                  <span className={`pill ${d.stato}`}>{STATUS_LABEL[d.stato]}</span>
+                  {d.archiviato ? (
+                    <span className="pill archiviato">{ARCHIVE_LABEL[d.archiviato]}</span>
+                  ) : (
+                    <span className={`pill ${d.stato}`}>{STATUS_LABEL[d.stato]}</span>
+                  )}
                 </td>
                 <td>{d.cliente ?? "—"}</td>
                 <td className="action-cell sticky-col sticky-right">
-                  {d.stato === "disponibile" ? (
+                  {!d.archiviato && d.stato === "disponibile" ? (
                     <button
                       className="btn primary icon-only"
                       type="button"
@@ -506,7 +533,7 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
                       ＋
                     </button>
                   ) : null}
-                  {d.stato === "noleggiato" ? (
+                  {!d.archiviato && d.stato === "noleggiato" ? (
                     <button
                       className="btn primary icon-only"
                       type="button"
@@ -518,7 +545,7 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
                       ↩
                     </button>
                   ) : null}
-                  {d.stato === "da_pulire" ? (
+                  {!d.archiviato && d.stato === "da_pulire" ? (
                     <button
                       className="btn primary icon-only"
                       type="button"

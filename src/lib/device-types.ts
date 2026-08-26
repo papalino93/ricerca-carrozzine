@@ -28,6 +28,21 @@ export const STATUS_COLOR: Record<DeviceStatus, string> = {
   da_verificare: "#6B4E93",
 };
 
+/**
+ * Archiviazione: deliberatamente NON uno stato dentro DeviceStatus.
+ * Un dispositivo venduto o rottamato non "torna disponibile" — esce
+ * dal ciclo di vita normale, ma la scheda e lo storico noleggi restano
+ * intatti (vedi devices.ts archiveDevice/unarchiveDevice). Un valore
+ * aggiuntivo dentro DeviceStatus avrebbe richiesto di insegnare a ogni
+ * controllo esistente su "stato" a ignorare anche questo caso.
+ */
+export type ArchiveStatus = "venduto" | "rottamato";
+
+export const ARCHIVE_LABEL: Record<ArchiveStatus, string> = {
+  venduto: "Venduto",
+  rottamato: "Rottamato",
+};
+
 export interface Device {
   /** Identificativo univoco dell'unità (es. codice inventario). */
   codice: string;
@@ -53,14 +68,21 @@ export interface Device {
   nota: string | null;
   /** Foto del dispositivo, come data URI (vedi image-to-data-uri.ts). */
   foto: string | null;
+  /** Prezzo di acquisto del dispositivo, in euro. */
+  prezzoAcquisto: number | null;
+  /** Prezzo di ipotetica vendita, in euro. */
+  prezzoVendita: number | null;
+  /** Non null se il dispositivo è stato archiviato come venduto o rottamato. */
+  archiviato: ArchiveStatus | null;
 }
 
 /**
  * Versione del dispositivo per la pagina di ricerca (accessibile solo dopo
  * login, vedi proxy.ts, ma comunque distinta dall'admin): il nome cliente
- * resta visibile (come nel prototipo originale), ma telefono e numero
- * contratto — dati più sensibili — restano riservati a chi opera dall'admin.
+ * resta visibile (come nel prototipo originale), ma telefono, numero di
+ * noleggio e prezzi — dati più sensibili — restano riservati a chi opera
+ * dall'admin.
  */
 export function toPublicDevice(d: Device): Device {
-  return { ...d, telefono: null, contratto: null };
+  return { ...d, telefono: null, contratto: null, prezzoAcquisto: null, prezzoVendita: null };
 }

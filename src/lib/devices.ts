@@ -4,10 +4,10 @@ import { appendHistoryEvent } from "./history";
 import { upsertClient } from "./clients";
 import { nextNumeroNoleggio } from "./counter";
 import { removeAllDevicePhotos } from "./photos";
-import { STATUS_OPTIONS, type Device, type DeviceStatus } from "./device-types";
+import { STATUS_OPTIONS, type ArchiveStatus, type Device, type DeviceStatus } from "./device-types";
 
-export type { Device, DeviceStatus } from "./device-types";
-export { STATUS_COLOR, STATUS_LABEL, STATUS_OPTIONS } from "./device-types";
+export type { Device, DeviceStatus, ArchiveStatus } from "./device-types";
+export { STATUS_COLOR, STATUS_LABEL, STATUS_OPTIONS, ARCHIVE_LABEL } from "./device-types";
 
 const VALID_STATUSES = STATUS_OPTIONS.map((o) => o.key);
 
@@ -32,7 +32,12 @@ const HEADER = [
   "Foto",
   "Sottocategoria",
   "AlPrevisto",
+  "PrezzoAcquisto",
+  "PrezzoVendita",
+  "Archiviato",
 ];
+
+const VALID_ARCHIVE_STATUSES = ["venduto", "rottamato"];
 
 function toDevice(row: string[]): Device {
   const [
@@ -51,6 +56,9 @@ function toDevice(row: string[]): Device {
     foto,
     sottocategoria,
     alPrevisto,
+    prezzoAcquisto,
+    prezzoVendita,
+    archiviato,
   ] = row;
 
   return {
@@ -71,6 +79,9 @@ function toDevice(row: string[]): Device {
     foto: foto || null,
     sottocategoria: sottocategoria || null,
     alPrevisto: alPrevisto || null,
+    prezzoAcquisto: prezzoAcquisto ? Number(prezzoAcquisto) || null : null,
+    prezzoVendita: prezzoVendita ? Number(prezzoVendita) || null : null,
+    archiviato: VALID_ARCHIVE_STATUSES.includes(archiviato) ? (archiviato as ArchiveStatus) : null,
   };
 }
 
@@ -91,6 +102,9 @@ function toRow(d: Device): string[] {
     d.foto ?? "",
     d.sottocategoria ?? "",
     d.alPrevisto ?? "",
+    d.prezzoAcquisto != null ? String(d.prezzoAcquisto) : "",
+    d.prezzoVendita != null ? String(d.prezzoVendita) : "",
+    d.archiviato ?? "",
   ];
 }
 
@@ -280,6 +294,39 @@ export async function sanitizeDevice(codice: string): Promise<Device[]> {
     contratto: null,
     nota: null,
   });
+  await saveAllDevices(devices);
+  return devices;
+}
+
+/**
+ * Segna un dispositivo come venduto o rottamato SENZA eliminarlo: resta in
+ * magazzino (nascosto dalle viste normali, vedi AdminDevicesClient/
+ * SearchClient) insieme a tutto il suo storico noleggi, invece di sparire
+ * come farebbe "Elimina dispositivo". Un flag separato dallo stato normale
+ * (non un valore dentro DeviceStatus, vedi ArchiveStatus in device-types.ts),
+ * così i controlli già esistenti su "stato" non devono imparare a ignorarlo.
+ */
+export async function archiveDevice(codice: string, tipo: ArchiveStatus): Promise<Device[]> {
+  const devices = await listDevices();
+  const { idx, device } = findOrThrow(devices, codice);
+  if (device.stato === "noleggiato") {
+    throw new Error(`${codice} è attualmente noleggiato: segna prima il rientro.`);
+  }
+  const breadcrumb = `Archiviato come ${tipo} il ${todayIso()}.`;
+  devices[idx] = {
+    ...device,
+    archiviato: tipo,
+    nota: device.nota ? `${device.nota}\n${breadcrumb}` : breadcrumb,
+  };
+  await saveAllDevices(devices);
+  return devices;
+}
+
+/** Riporta un dispositivo archiviato in magazzino attivo. */
+export async function unarchiveDevice(codice: string): Promise<Device[]> {
+  const devices = await listDevices();
+  const { idx, device } = findOrThrow(devices, codice);
+  devices[idx] = { ...device, archiviato: null };
   await saveAllDevices(devices);
   return devices;
 }

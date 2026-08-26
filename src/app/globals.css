@@ -689,6 +689,15 @@ h1 {
   border-color: var(--check-line);
 }
 
+/* Venduto/rottamato: un asse a parte dallo stato normale (disponibile/
+   noleggiato/ecc.), quindi un colore neutro invece che uno dei cinque già
+   usati per gli stati — non deve sembrare "guasto" o "da verificare". */
+.pill.archiviato {
+  color: var(--ink-soft);
+  background: var(--line);
+  border-color: var(--line);
+}
+
 .meta {
   font-size: 13px;
   color: var(--ink-soft);
@@ -1328,6 +1337,14 @@ tr.clickable-row:hover td {
   border-radius: 10px;
   padding: 12px 14px;
   margin: 4px 0;
+}
+
+/* Segna come venduto/rottamato: meno grave di "Elimina" (reversibile,
+   niente doppia conferma), ma comunque separata dal resto del form. */
+.archive-zone {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--line);
 }
 
 /* Separa un'azione irreversibile (Elimina) da quelle accanto che non lo

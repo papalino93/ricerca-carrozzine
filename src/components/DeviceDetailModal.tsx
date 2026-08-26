@@ -4,6 +4,7 @@ import { readJson } from "@/lib/fetch-json";
 import { addDaysIso, todayIso } from "@/lib/dates";
 import { useEffect, useRef, useState } from "react";
 import {
+  ARCHIVE_LABEL,
   STATUS_LABEL,
   STATUS_OPTIONS,
   type Device,
@@ -342,6 +343,46 @@ export function DeviceDetailModal({
     }
   }
 
+  async function handleArchive(tipo: "venduto" | "rottamato") {
+    if (!confirm(`Segnare ${current.codice} come ${tipo}? Resterà in archivio, con tutto lo storico, ma sparirà dalle viste normali.`))
+      return;
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/dispositivi/${encodeURIComponent(current.codice)}/archivio`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tipo }),
+      });
+      const body = await readJson(res);
+      if (!res.ok) throw new Error(body.error || "Operazione non riuscita");
+      applyUpdate(body.devices, ["archiviato", "nota"]);
+      showToast(tipo === "venduto" ? "Segnato come venduto" : "Segnato come rottamato");
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleUnarchive() {
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/dispositivi/${encodeURIComponent(current.codice)}/archivio`, {
+        method: "DELETE",
+      });
+      const body = await readJson(res);
+      if (!res.ok) throw new Error(body.error || "Operazione non riuscita");
+      applyUpdate(body.devices, ["archiviato"]);
+      showToast("Dispositivo ripristinato in magazzino");
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   /**
    * A differenza di cliente/telefono/contratto/dal, la data di rientro
    * prevista non segue il ciclo di vita: può cambiare più volte durante lo
@@ -461,7 +502,7 @@ export function DeviceDetailModal({
   // un solo punto nel markup, riusato sia nella sidebar (schermi larghi) sia
   // in cima alla scheda (schermi stretti, dove non c'è sidebar) — non più
   // duplicato in due posti diversi della stessa scheda.
-  const lifecycleButton =
+  const lifecycleButton = current.archiviato ? null : (
     current.stato === "disponibile" && !renting ? (
       <button className="btn primary" type="button" onClick={openRent}>
         Noleggia
@@ -474,7 +515,8 @@ export function DeviceDetailModal({
       <button className="btn primary" type="button" onClick={() => handleLifecycle("sanificazione")} disabled={saving}>
         Segna sanificato
       </button>
-    ) : null;
+    ) : null
+  );
 
   const sidebar = !isNew ? (
     <div className="detail-sidebar">
@@ -483,9 +525,15 @@ export function DeviceDetailModal({
         {form.marca} {form.modello}
       </span>
       <div style={{ margin: "8px 0 12px" }}>
-        <span className={`pill ${current.stato}`} style={{ marginLeft: 0 }}>
-          {STATUS_LABEL[current.stato]}
-        </span>
+        {current.archiviato ? (
+          <span className="pill archiviato" style={{ marginLeft: 0 }}>
+            {ARCHIVE_LABEL[current.archiviato]}
+          </span>
+        ) : (
+          <span className={`pill ${current.stato}`} style={{ marginLeft: 0 }}>
+            {STATUS_LABEL[current.stato]}
+          </span>
+        )}
       </div>
       <div className="card-actions">
         {lifecycleButton}
@@ -710,6 +758,30 @@ export function DeviceDetailModal({
             />
           </div>
         </div>
+        <div className="field-row">
+          <div className="field">
+            <label>Prezzo di acquisto (€)</label>
+            <input
+              type="number"
+              step="0.01"
+              value={form.prezzoAcquisto ?? ""}
+              onChange={(e) =>
+                setForm({ ...form, prezzoAcquisto: e.target.value ? Number(e.target.value) : null })
+              }
+            />
+          </div>
+          <div className="field">
+            <label>Prezzo di vendita stimato (€)</label>
+            <input
+              type="number"
+              step="0.01"
+              value={form.prezzoVendita ?? ""}
+              onChange={(e) =>
+                setForm({ ...form, prezzoVendita: e.target.value ? Number(e.target.value) : null })
+              }
+            />
+          </div>
+        </div>
         {current.stato === "noleggiato" ? (
           // Sola lettura di proposito: questi dati si scrivono con
           // "Noleggia"/"Segna restituito", che registrano anche lo
@@ -925,6 +997,41 @@ export function DeviceDetailModal({
               </table>
             </div>
           ) : null}
+        </div>
+      ) : null}
+
+      {!isNew ? (
+        <div className="archive-zone">
+          {current.archiviato ? (
+            <>
+              <p className="hint" style={{ margin: "0 0 8px" }}>
+                Dispositivo archiviato come <b>{ARCHIVE_LABEL[current.archiviato]}</b>: nascosto
+                dalle viste normali, ma lo storico noleggi resta consultabile qui sopra.
+              </p>
+              <button className="btn" type="button" onClick={handleUnarchive} disabled={saving}>
+                Ripristina in magazzino
+              </button>
+            </>
+          ) : current.stato === "noleggiato" ? (
+            <p className="hint" style={{ margin: 0 }}>
+              Non puoi archiviare un dispositivo attualmente noleggiato: segna prima il rientro.
+            </p>
+          ) : (
+            <>
+              <p className="hint" style={{ margin: "0 0 8px" }}>
+                Segna questo dispositivo come venduto o rottamato: esce dal magazzino attivo, ma
+                resta consultabile con tutto il suo storico.
+              </p>
+              <div className="card-actions" style={{ marginTop: 0 }}>
+                <button className="btn" type="button" onClick={() => handleArchive("venduto")} disabled={saving}>
+                  Segna come venduto
+                </button>
+                <button className="btn" type="button" onClick={() => handleArchive("rottamato")} disabled={saving}>
+                  Segna come rottamato
+                </button>
+              </div>
+            </>
+          )}
         </div>
       ) : null}
 
