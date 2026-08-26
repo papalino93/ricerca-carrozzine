@@ -262,7 +262,11 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
       if (!showArchived && d.archiviato) return false;
       if (categoryFilter !== "Tutte" && d.categoria !== categoryFilter) return false;
       if (!statusFilter.has(d.stato)) return false;
-      if (issueFilter === "stale" && !(d.stato === "disponibile" && (daysSince(d.sanificazione) ?? 0) > 30))
+      // Stessa regola del conteggio in "Attenzione" (?? Infinity, mai
+      // sanificato = caso peggiore): con `?? 0` il filtro escludeva proprio i
+      // dispositivi senza data che l'avviso aveva contato, e "Vedi →"
+      // rispondeva "Nessun dispositivo".
+      if (issueFilter === "stale" && !(d.stato === "disponibile" && (daysSince(d.sanificazione) ?? Infinity) > 30))
         return false;
       if (issueFilter === "incomplete" && d.marca && d.modello) return false;
       if (issueFilter === "overdue" && !(d.stato === "noleggiato" && d.alPrevisto != null && (daysUntil(d.alPrevisto) ?? 1) < 0))
@@ -372,24 +376,22 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
 
   return (
     <div className="wrap wide">
-      <header className="page-header">
-        <div className="top-nav">
+      <header className="page-header with-action">
+        <div className="page-header-text">
           <h1>Magazzino</h1>
+          <p className="sub">
+            {activeDevices.length} unità in magazzino
+            {archivedCount > 0 ? ` (+ ${archivedCount} archiviate)` : ""}
+            <button type="button" className="refresh-hint" onClick={refreshDevices}>
+              {lastRefresh
+                ? `· aggiornato alle ${lastRefresh.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })} · aggiorna`
+                : "· aggiorna"}
+            </button>
+          </p>
         </div>
-        <p className="sub">
-          {activeDevices.length} unità in magazzino
-          {archivedCount > 0 ? ` (+ ${archivedCount} archiviate)` : ""}
-          <button type="button" className="refresh-hint" onClick={refreshDevices}>
-            {lastRefresh
-              ? `· aggiornato alle ${lastRefresh.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })} · aggiorna`
-              : "· aggiorna"}
-          </button>
-        </p>
-        <div className="card-actions" style={{ marginTop: 12 }}>
-          <button className="btn primary" type="button" onClick={openNew}>
-            + Aggiungi dispositivo
-          </button>
-        </div>
+        <button className="btn primary" type="button" onClick={openNew}>
+          + Aggiungi dispositivo
+        </button>
       </header>
 
       <StatTiles

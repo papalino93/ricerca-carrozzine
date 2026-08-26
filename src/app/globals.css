@@ -43,11 +43,18 @@ body {
   color: var(--ink);
   font-family: var(--sans);
   -webkit-font-smoothing: antialiased;
-  /* Su schermi stretti una tabella con celle "nowrap" (vedi .admin-table)
-     è più larga del viewport: senza questo, è la PAGINA INTERA a scorrere
-     di lato (intestazioni e chip comprese) invece della sola tabella, che
-     ha già il suo scroll orizzontale dedicato (.admin-table-wrap). Non ha
-     alcun effetto su desktop, dove non c'è overflow da contenere. */
+}
+
+/* Su schermi stretti una tabella con celle "nowrap" (vedi .admin-table)
+   è più larga del viewport: senza questo, è la PAGINA INTERA a scorrere
+   di lato (intestazioni e chip comprese) invece della sola tabella, che
+   ha già il suo scroll orizzontale dedicato (.admin-table-wrap).
+
+   Solo su <html>, MAI su <body>: con overflow-x su body, il body diventa
+   un contenitore di scorrimento e la sidebar dell'amministrazione
+   (position: sticky) smette di restare agganciata in alto, scorrendo via
+   con la pagina. */
+html {
   overflow-x: hidden;
 }
 
@@ -67,6 +74,22 @@ a {
 
 header.page-header {
   margin-bottom: 18px;
+}
+
+/* Intestazione con l'azione principale sulla stessa riga del titolo
+   (Magazzino, Commesse): il pulsante è il comando più usato della pagina,
+   sotto al sottotitolo si perdeva come terzo blocco impilato. */
+.page-header.with-action {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.page-header-text {
+  min-width: 0;
 }
 
 .page-title-row {
@@ -145,7 +168,7 @@ header.page-header {
 h1 {
   font-family: var(--heading);
   font-size: 26px;
-  font-weight: 600;
+  font-weight: 700;
   margin: 0 0 2px;
   letter-spacing: -0.01em;
 }
@@ -167,7 +190,7 @@ h1 {
 
 .panel h2 {
   font-family: var(--heading);
-  font-size: 15px;
+  font-size: 16px;
   color: var(--ink);
   margin: 0 0 15px;
   font-weight: 600;
@@ -207,9 +230,13 @@ h1 {
   gap: 10px;
 }
 
+/* Il logo è caricabile da Impostazioni: se qualcuno carica un marchio molto
+   largo, senza un limite spingerebbe fuori schermo il pulsante accanto. */
 .reception-brand img {
   height: 44px;
   width: auto;
+  max-width: 45vw;
+  object-fit: contain;
 }
 
 .reception-admin-link {
@@ -289,13 +316,18 @@ h1 {
   transition: transform 0.22s ease, box-shadow 0.22s ease;
 }
 
-.reception-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 28px 48px -22px rgba(23, 48, 27, 0.38);
-}
+/* Solo dove esiste un vero puntatore: su touch il ":hover" resta attaccato
+   dopo il tocco, quindi il riquadro rimarrebbe sollevato e ombreggiato
+   anche dopo aver tolto il dito. */
+@media (hover: hover) and (pointer: fine) {
+  .reception-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 28px 48px -22px rgba(23, 48, 27, 0.38);
+  }
 
-.reception-card:hover .reception-icon {
-  transform: scale(1.08);
+  .reception-card:hover .reception-icon {
+    transform: scale(1.08);
+  }
 }
 
 .reception-card-info {
@@ -386,6 +418,8 @@ h1 {
 .front-bar-brand img {
   height: 40px;
   width: auto;
+  max-width: 45vw;
+  object-fit: contain;
 }
 
 .front-bar-links {
@@ -555,11 +589,16 @@ h1 {
   cursor: pointer;
 }
 
-.ruler-dot:hover {
-  width: 16px;
-  height: 16px;
-  top: -6px;
-  transform: translateX(-8px);
+/* Solo con il mouse: su touch l'hover resterebbe attivo dopo il tocco e il
+   pallino continuerebbe a mostrarsi ingrandito e spostato di 2px — su un
+   righello che serve proprio a leggere una misura esatta. */
+@media (hover: hover) and (pointer: fine) {
+  .ruler-dot:hover {
+    width: 16px;
+    height: 16px;
+    top: -6px;
+    transform: translateX(-8px);
+  }
 }
 
 .ruler-tick {
@@ -616,13 +655,20 @@ h1 {
 .field select,
 .field textarea {
   width: 100%;
-  padding: 11px 12px;
-  border-radius: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
   border: 1px solid var(--line);
   font-size: 14px;
   font-family: var(--sans);
   color: var(--ink);
   background: var(--surface);
+}
+
+/* La ricerca è la prima cosa che si usa in ogni elenco: un gradino più
+   grande dei campi del modulo, così si distingue a colpo d'occhio. */
+.searchbox {
+  padding: 13px 16px;
+  border-radius: 14px;
 }
 
 .searchbox:focus,
@@ -643,9 +689,14 @@ h1 {
   border-radius: 14px;
 }
 
+/* minmax(0, 1fr) e non 1fr: con "1fr" ogni colonna non può restringersi
+   sotto la sua parola più lunga ("Disponibile"), così a sei colonne la
+   fila diventa più larga dello spazio disponibile e gli ultimi riquadri
+   (Guasto, Da verificare) finiscono tagliati fuori — proprio quelli che
+   servono per filtrare i problemi. */
 .stats-row {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 10px;
   margin-bottom: 16px;
 }
@@ -667,9 +718,11 @@ h1 {
   transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
 
-.stat-tile:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 16px 28px -18px rgba(23, 48, 27, 0.3);
+@media (hover: hover) and (pointer: fine) {
+  .stat-tile:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 28px -18px rgba(23, 48, 27, 0.3);
+  }
 }
 
 .stat-tile.active {
@@ -690,11 +743,22 @@ h1 {
   color: var(--ink-soft);
   text-transform: uppercase;
   letter-spacing: 0.03em;
+  text-align: center;
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 700px) {
   .stats-row {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* In amministrazione la sidebar si mangia 220px: la fila a sei riquadri
+   va stretta molto prima che sul fronte banco, altrimenti su tablet resta
+   illeggibile. */
+@media (max-width: 980px) {
+  .admin-shell .stats-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
@@ -903,6 +967,21 @@ h1 {
   padding: 2px 9px;
 }
 
+/* Numero di noleggio nel Registro: larghezza minima fissa così la colonna
+   resta incolonnata anche quando i numeri hanno cifre diverse. */
+.num-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 46px;
+  padding: 4px 9px;
+  border-radius: 9px;
+  background: var(--accent-bg);
+  color: var(--accent-ink);
+  font-weight: 700;
+  font-size: 12.5px;
+}
+
 .pill {
   font-size: 11px;
   font-weight: 700;
@@ -995,9 +1074,9 @@ h1 {
 }
 
 .btn {
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 600;
-  padding: 9px 16px;
+  padding: 11px 18px;
   border-radius: 12px;
   border: 1px solid var(--line);
   background: var(--surface);
@@ -1007,13 +1086,24 @@ h1 {
 }
 
 .btn:hover {
-  background: #f0f3f2;
+  background: var(--accent-bg);
 }
 
 .btn.primary {
   background: var(--accent);
   border-color: var(--accent);
   color: #fff;
+  font-size: 14px;
+  padding: 12px 20px;
+}
+
+/* Su schermi touch i pulsanti di testo devono raggiungere i 44px come
+   quelli a sola icona, altrimenti restano i soli comandi difficili da
+   centrare col dito. */
+@media (pointer: coarse) {
+  .btn {
+    min-height: 44px;
+  }
 }
 
 .btn.primary:hover {
@@ -1051,7 +1141,12 @@ h1 {
 
 table.admin-table {
   width: 100%;
-  border-collapse: collapse;
+  /* separate invece di collapse: con "collapse" le colonne fisse
+     (position: sticky su Codice e Azione) non restano agganciate su Safari
+     meno recente. Ogni cella disegna già il proprio bordo inferiore, quindi
+     il risultato a schermo è identico. */
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 13px;
 }
 
@@ -1074,6 +1169,14 @@ table.admin-table td {
   vertical-align: middle;
 }
 
+/* Riga di dettaglio espansa (le celle con colspan in Commesse/Clienti):
+   contiene form e testo libero, non dati tabellari. Senza questo eredita
+   il "nowrap" delle celle normali e diventa una riga unica larghissima,
+   spingendo pulsanti e campi fuori dallo schermo. */
+table.admin-table td[colspan] {
+  white-space: normal;
+}
+
 /* Colonna azioni rapide del magazzino: Noleggia/Segna restituito/Segna
    sanificato sono ora pulsanti a icona da 44px (vedi .btn.icon-only), non
    più di testo con lunghezze diverse — 60px basta e centra bene anche le
@@ -1087,8 +1190,14 @@ tr.clickable-row {
   cursor: pointer;
 }
 
-tr.clickable-row:hover td {
-  background: #f0f3f2;
+/* Evidenziazione della riga sotto il mouse: utile per non perdere il segno
+   su tabelle larghe che scorrono di lato (Registro, Clienti, Fidelity), non
+   solo su quelle cliccabili. Solo con puntatore vero: su touch resterebbe
+   accesa dopo il tocco, sembrando una riga selezionata. */
+@media (hover: hover) and (pointer: fine) {
+  table.admin-table tbody tr:hover > td {
+    background: #f0f3f2;
+  }
 }
 
 .detail-status-row {
@@ -1170,10 +1279,15 @@ tr.clickable-row:hover td {
 .modal {
   background: var(--surface);
   border-radius: 16px 16px 0 0;
-  padding: 20px;
+  /* Spazio in fondo per la barra gestuale degli iPhone recenti, altrimenti
+     l'ultima fila di pulsanti ci finisce sotto. */
+  padding: 20px 20px calc(20px + env(safe-area-inset-bottom, 0px));
   width: 100%;
   max-width: 560px;
-  max-height: 92vh;
+  /* dvh e non vh: su Safari iOS "vh" misura lo schermo senza la barra degli
+     indirizzi, quindi una modale alta usciva dallo schermo verso l'alto
+     portandosi via titolo e pulsante di chiusura. */
+  max-height: 92dvh;
   overflow-y: auto;
 }
 
@@ -1190,6 +1304,7 @@ tr.clickable-row:hover td {
 @media (min-width: 640px) {
   .modal {
     border-radius: 16px;
+    padding: 20px;
   }
 }
 
@@ -1214,7 +1329,16 @@ tr.clickable-row:hover td {
   color: var(--ink-soft);
   cursor: pointer;
   line-height: 1;
-  padding: 4px;
+  /* Su telefono la × è il modo principale per chiudere: va toccata al primo
+     colpo, quindi area di tocco piena invece di 28px scarsi. */
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-right: -10px;
 }
 
 .doc-type-tabs {
@@ -1239,6 +1363,13 @@ tr.clickable-row:hover td {
 
 .doc-preview b {
   color: var(--ink);
+}
+
+.logo-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
 .logo-preview {
@@ -1305,7 +1436,7 @@ tr.clickable-row:hover td {
 /* Toast */
 .toast {
   position: fixed;
-  bottom: 24px;
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%);
   background: var(--ink);
@@ -1316,13 +1447,17 @@ tr.clickable-row:hover td {
   font-weight: 600;
   z-index: 500;
   box-shadow: 0 10px 28px rgba(23, 48, 27, 0.28);
+  /* I messaggi possono essere lunghi (es. il riepilogo dell'import CSV):
+     senza un limite escono dai bordi dello schermo e vengono tagliati. */
+  max-width: calc(100vw - 32px);
+  text-align: center;
 }
 
 /* Admin shell: sidebar + contenuto */
 .admin-shell {
   display: flex;
   align-items: flex-start;
-  min-height: 100vh;
+  min-height: 100dvh;
   background: var(--bg);
 }
 
@@ -1330,12 +1465,20 @@ tr.clickable-row:hover td {
   width: 220px;
   flex-shrink: 0;
   background: var(--ink);
-  min-height: 100vh;
+  min-height: 100dvh;
   padding: 24px 14px;
   position: sticky;
   top: 0;
   display: flex;
   flex-direction: column;
+}
+
+/* Il menu occupa tutta l'altezza rimasta, così la voce col margine
+   automatico (Impostazioni) può appoggiarsi in fondo alla sidebar. */
+.admin-sidebar-menu {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
 
 .admin-sidebar-footer {
@@ -1445,6 +1588,15 @@ tr.clickable-row:hover td {
   max-width: none;
 }
 
+/* Su schermo largo il contenuto non deve stare attaccato al bordo scuro
+   della sidebar. Sotto i 720px la sidebar diventa una barra in alto e la
+   spaziatura normale della pagina va già bene. */
+@media (min-width: 721px) {
+  .admin-main .wrap {
+    padding: 32px 32px 60px;
+  }
+}
+
 @media (max-width: 720px) {
   .admin-shell {
     flex-direction: column;
@@ -1492,8 +1644,17 @@ tr.clickable-row:hover td {
   }
 
   .admin-sidebar-menu.open {
-    display: block;
+    display: flex;
     margin-top: 14px;
+  }
+
+  /* Su telefono la sidebar è una barra in alto, non una colonna alta quanto
+     lo schermo: qui Impostazioni è semplicemente l'ultima voce del menu,
+     senza spinta in fondo né riga di separazione doppia. */
+  .admin-sidebar-footer {
+    margin-top: 4px;
+    padding-top: 0;
+    border-top: none;
   }
 }
 
@@ -1541,6 +1702,10 @@ tr.clickable-row:hover td {
   border: none;
   cursor: pointer;
   white-space: nowrap;
+  /* Area toccabile decente senza allargare visivamente la riga: il margine
+     negativo riassorbe il padding aggiunto. */
+  padding: 10px 12px;
+  margin: -10px -12px;
 }
 
 /* Banner "aggiungi alla schermata Home": solo mobile, il desktop non lo
@@ -1562,6 +1727,14 @@ tr.clickable-row:hover td {
     border-radius: 14px;
     padding: 14px 40px 14px 16px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+  }
+
+  /* Il banner è fisso sopra il contenuto: senza spazio in fondo copriva
+     l'ultima parte della pagina — compreso "Salva impostazioni" e l'ultimo
+     riquadro della home. */
+  .wrap,
+  .reception {
+    padding-bottom: 140px;
   }
 }
 
@@ -1633,9 +1806,24 @@ tr.clickable-row:hover td {
 
 .client-history {
   background: var(--bg);
-  border-radius: 10px;
-  padding: 12px 14px;
+  border-radius: 14px;
+  padding: 16px 18px;
   margin: 4px 0;
+  line-height: 1.5;
+}
+
+/* I punti sono il dato per cui esistono le pagine Clienti e Fidelity:
+   devono staccarsi dal resto della riga. */
+.punti-cell {
+  font-weight: 700;
+  color: var(--accent-ink);
+}
+
+.punti-total {
+  font-family: var(--heading);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--accent-ink);
 }
 
 /* Segna come venduto/rottamato: meno grave di "Elimina" (reversibile,
@@ -1667,8 +1855,12 @@ tr.clickable-row:hover td {
 
 /* Safari su iPhone ingrandisce la pagina a ogni tocco su un campo con
    testo sotto i 16px, costringendo a rimettere lo zoom a mano dopo ogni
-   campo compilato. Su schermi touch stretti i campi vanno a 16px. */
-@media (max-width: 720px) {
+   campo compilato.
+
+   Legato al tipo di schermo e non alla larghezza: un iPhone in orizzontale
+   è largo 850-930px, quindi con la soglia a 720px i campi tornavano a 14px
+   proprio lì, e lo zoom indesiderato ricompariva. */
+@media (hover: none) and (pointer: coarse) {
   input,
   select,
   textarea,
@@ -1709,10 +1901,12 @@ tr.clickable-row:hover td {
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
 
-.card.compact:hover {
-  transform: translateY(-2px);
-  border-color: var(--accent);
-  box-shadow: 0 16px 28px -18px rgba(23, 48, 27, 0.3);
+@media (hover: hover) and (pointer: fine) {
+  .card.compact:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent);
+    box-shadow: 0 16px 28px -18px rgba(23, 48, 27, 0.3);
+  }
 }
 
 .card.compact .id-badge {
@@ -1803,8 +1997,10 @@ tr.clickable-row:hover td {
   box-shadow: -1px 0 0 var(--line);
 }
 
-tr.clickable-row:hover .sticky-col {
-  background: #f0f3f2;
+@media (hover: hover) and (pointer: fine) {
+  table.admin-table tbody tr:hover .sticky-col {
+    background: #f0f3f2;
+  }
 }
 
 @media (max-width: 720px) {

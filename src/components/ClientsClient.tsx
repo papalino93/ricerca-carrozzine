@@ -38,6 +38,7 @@ export function ClientsClient({ clients: initialClients, history, devices }: Cli
   const [importing, setImporting] = useState(false);
   const [puntiDelta, setPuntiDelta] = useState("");
   const [adjustingPunti, setAdjustingPunti] = useState(false);
+  const [assigningTessera, setAssigningTessera] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [newClientForm, setNewClientForm] = useState(emptyNewClientForm);
   const [savingNewClient, setSavingNewClient] = useState(false);
@@ -149,6 +150,25 @@ export function ClientsClient({ clients: initialClients, history, devices }: Cli
     }
   }
 
+  async function handleAssignTessera(nome: string) {
+    setAssigningTessera(nome);
+    try {
+      const res = await fetch("/api/clienti", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nome, azione: "tessera" }),
+      });
+      const body = await readJson(res);
+      if (!res.ok) throw new Error(body.error || "Assegnazione non riuscita");
+      setClients(body.clients);
+      showToast(`Tessera n. ${body.client.fidelity} assegnata a "${nome}"`);
+    } catch (err) {
+      showToast((err as Error).message);
+    } finally {
+      setAssigningTessera(null);
+    }
+  }
+
   async function handleDelete(e: React.MouseEvent, nome: string) {
     e.stopPropagation();
     const current = currentDeviceFor(nome);
@@ -173,12 +193,17 @@ export function ClientsClient({ clients: initialClients, history, devices }: Cli
 
   return (
     <div className="wrap wide">
-      <header className="page-header">
-        <h1>Clienti</h1>
-        <p className="sub">
-          {clients.length} clienti in anagrafica · si aggiorna da sola a ogni noleggio, più i dati
-          importati da CSV
-        </p>
+      <header className="page-header with-action">
+        <div className="page-header-text">
+          <h1>Clienti</h1>
+          <p className="sub">
+            {clients.length} clienti in anagrafica · si aggiorna da sola a ogni noleggio, più i dati
+            importati da CSV
+          </p>
+        </div>
+        <button className="btn primary" type="button" onClick={() => setCreating((v) => !v)}>
+          {creating ? "Annulla" : "+ Nuovo cliente"}
+        </button>
       </header>
 
       <div className="panel">
@@ -190,13 +215,6 @@ export function ClientsClient({ clients: initialClients, history, devices }: Cli
           onChange={(e) => setQuery(e.target.value)}
         />
         <div className="card-actions">
-          <button
-            className="btn primary"
-            type="button"
-            onClick={() => setCreating((v) => !v)}
-          >
-            {creating ? "Annulla" : "+ Nuovo cliente"}
-          </button>
           <button
             className="btn"
             type="button"
@@ -308,7 +326,7 @@ export function ClientsClient({ clients: initialClients, history, devices }: Cli
                         <td>{c.nome}</td>
                         <td>{c.telefono ?? c.cellulare ?? "—"}</td>
                         <td>{c.fidelity ?? "—"}</td>
-                        <td>{c.punti}</td>
+                        <td className="punti-cell">{c.punti}</td>
                         <td>{c.ultimoNoleggio ? fmtDate(c.ultimoNoleggio) : "—"}</td>
                         <td>{c.ultimoContratto ?? "—"}</td>
                         <td>
@@ -346,7 +364,7 @@ export function ClientsClient({ clients: initialClients, history, devices }: Cli
                               ) : null}
 
                               <div className="card-actions" style={{ marginBottom: 14, alignItems: "center" }}>
-                                <b>{c.punti} punti fedeltà</b>
+                                <span className="punti-total">{c.punti} punti fedeltà</span>
                                 <input
                                   type="number"
                                   min={1}
@@ -371,6 +389,20 @@ export function ClientsClient({ clients: initialClients, history, devices }: Cli
                                 >
                                   − Togli
                                 </button>
+                                {/* L'anagrafica si popola anche da sola (noleggi,
+                                    punti di una commessa): chi arriva così non ha
+                                    tessera e non potrebbe ottenerla da "Nuovo
+                                    cliente", che lo vedrebbe come duplicato. */}
+                                {!c.fidelity ? (
+                                  <button
+                                    className="btn"
+                                    type="button"
+                                    disabled={assigningTessera === c.nome}
+                                    onClick={() => handleAssignTessera(c.nome)}
+                                  >
+                                    {assigningTessera === c.nome ? "…" : "Rilascia tessera fedeltà"}
+                                  </button>
+                                ) : null}
                               </div>
 
                               <b>Storico di {c.nome}</b>

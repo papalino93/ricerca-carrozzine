@@ -77,7 +77,7 @@ export function FidelityView({ clients, settings, commesseHref, clientiHref }: F
                   <tr key={c.nome}>
                     <td>{c.nome}</td>
                     <td>{c.fidelity ?? "—"}</td>
-                    <td>{c.punti.toLocaleString("it-IT")}</td>
+                    <td className="punti-cell">{c.punti.toLocaleString("it-IT")}</td>
                   </tr>
                 ))}
               </tbody>
@@ -107,7 +107,7 @@ export function FidelityView({ clients, settings, commesseHref, clientiHref }: F
                   <tr key={c.nome}>
                     <td>{c.nome}</td>
                     <td>{c.fidelity ?? "—"}</td>
-                    <td>{c.punti.toLocaleString("it-IT")}</td>
+                    <td className="punti-cell">{c.punti.toLocaleString("it-IT")}</td>
                   </tr>
                 ))}
               </tbody>

@@ -88,7 +88,8 @@ export function UsersManager({ initialUsers }: UsersManagerProps) {
       {users.length === 0 ? (
         <p className="hint">Nessun utente aggiuntivo autorizzato per ora.</p>
       ) : (
-        <table className="admin-table" style={{ marginBottom: 16 }}>
+        <div className="admin-table-wrap" style={{ marginBottom: 16 }}>
+        <table className="admin-table">
           <thead>
             <tr>
               <th>Username</th>
@@ -113,6 +114,7 @@ export function UsersManager({ initialUsers }: UsersManagerProps) {
             ))}
           </tbody>
         </table>
+        </div>
       )}
 
       <form onSubmit={handleAdd}>

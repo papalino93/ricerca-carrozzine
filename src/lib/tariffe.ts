@@ -55,7 +55,11 @@ async function saveAllTariffe(tariffe: Tariffa[]): Promise<void> {
 
 export async function listTariffe(): Promise<Tariffa[]> {
   const rows = await readSheet(TAB);
-  if (rows.length <= 1) {
+  // Solo se il foglio non esiste proprio (nessuna riga, nemmeno
+  // l'intestazione): un foglio con la sola intestazione significa che le
+  // tariffe sono state eliminate di proposito, e riscriverci dentro i valori
+  // predefiniti le farebbe ricomparire tutte al primo ricaricamento.
+  if (rows.length === 0) {
     await saveAllTariffe(DEFAULT_TARIFFE);
     return DEFAULT_TARIFFE;
   }

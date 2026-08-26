@@ -159,21 +159,36 @@ export function SettingsClient({
 
           <div className="field">
             <label>Logo aziendale</label>
-            {settings.logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={settings.logoUrl} alt="Logo aziendale" className="logo-preview" />
-            ) : (
-              <p className="hint">Nessun logo caricato: sui documenti verrà mostrata solo la ragione sociale in testo.</p>
-            )}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleLogoChange}
-              disabled={uploading}
-              style={{ marginTop: 8 }}
-            />
-            {uploading ? <p className="hint">Caricamento…</p> : null}
+            <div className="logo-row">
+              {settings.logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={settings.logoUrl} alt="Logo aziendale" className="logo-preview" />
+              ) : null}
+              {/* Il selettore file vero resta nascosto: il pulsante lo apre.
+                  Così il comando ha lo stesso aspetto di tutti gli altri
+                  invece del controllo grezzo del browser. */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleLogoChange}
+                disabled={uploading}
+                style={{ display: "none" }}
+              />
+              <button
+                className="btn"
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+              >
+                {uploading ? "Caricamento…" : settings.logoUrl ? "Cambia logo" : "Carica logo"}
+              </button>
+            </div>
+            {!settings.logoUrl ? (
+              <p className="hint">
+                Nessun logo caricato: sui documenti verrà mostrata solo la ragione sociale in testo.
+              </p>
+            ) : null}
           </div>
 
           <div className="field">

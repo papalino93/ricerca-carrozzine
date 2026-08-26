@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireBasicAuth } from "@/lib/basic-auth";
-import { adjustClientPunti, createClient, deleteClient } from "@/lib/clients";
+import { adjustClientPunti, assignFidelity, createClient, deleteClient } from "@/lib/clients";
 
 export const runtime = "nodejs";
 
@@ -44,11 +44,28 @@ export async function PATCH(req: NextRequest) {
   if (unauthorized) return unauthorized;
 
   try {
-    const { nome, delta } = (await req.json()) as { nome?: string; delta?: number };
-    if (!nome || !Number.isFinite(delta)) {
+    const body = (await req.json()) as {
+      nome?: string;
+      delta?: number;
+      azione?: "tessera";
+    };
+    if (!body.nome) {
+      return NextResponse.json({ error: "Nome obbligatorio" }, { status: 400 });
+    }
+
+    // Rilascio della tessera a un cliente già in anagrafica (arrivato da un
+    // noleggio o dai punti di una commessa): createClient lo rifiuterebbe
+    // come duplicato, quindi senza questo non avrebbe altro modo di averne
+    // una.
+    if (body.azione === "tessera") {
+      const { client, clients } = await assignFidelity(body.nome);
+      return NextResponse.json({ client, clients });
+    }
+
+    if (!Number.isFinite(body.delta)) {
       return NextResponse.json({ error: "Nome e delta obbligatori" }, { status: 400 });
     }
-    const clients = await adjustClientPunti(nome, Math.trunc(delta as number));
+    const clients = await adjustClientPunti(body.nome, Math.trunc(body.delta as number));
     return NextResponse.json({ clients });
   } catch (err) {
     return NextResponse.json(

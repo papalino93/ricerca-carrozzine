@@ -40,10 +40,17 @@ export function RegistroClient({ noleggi, devices, firmeDrive }: RegistroClientP
   // specifico (il numero da solo già basterebbe, essendo progressivo e
   // unico, ma il codice in più costa nulla ed evita ambiguità sui pochi
   // noleggi più vecchi con numeri di contratto manuali non garantiti unici).
+  //
+  // I verbali SENZA numero di noleggio vengono ignorati di proposito: senza
+  // quel numero la chiave sarebbe solo il codice del dispositivo, e due
+  // noleggi diversi dello stesso ausilio finirebbero sulla stessa chiave —
+  // col rischio di mostrare a un cliente il verbale firmato di un altro.
+  // Meglio nessun collegamento che un collegamento sbagliato.
   const driveUrlByNoleggio = useMemo(() => {
     const map = new Map<string, string>();
     for (const d of firmeDrive) {
-      if (d.driveUrl) map.set(`${d.codice}::${d.numeroContratto ?? ""}`, d.driveUrl);
+      if (!d.driveUrl || !d.numeroContratto) continue;
+      map.set(`${d.codice}::${d.numeroContratto}`, d.driveUrl);
     }
     return map;
   }, [firmeDrive]);
@@ -126,11 +133,13 @@ export function RegistroClient({ noleggi, devices, firmeDrive }: RegistroClientP
               <tbody>
                 {filtered.map((n, i) => {
                   const d = deviceByCodice.get(n.codice);
-                  const driveUrl = driveUrlByNoleggio.get(`${n.codice}::${n.contratto ?? ""}`);
+                  const driveUrl = n.contratto
+                    ? driveUrlByNoleggio.get(`${n.codice}::${n.contratto}`)
+                    : undefined;
                   return (
                     <tr key={`${n.contratto ?? "—"}-${n.codice}-${i}`}>
                       <td>
-                        {n.contratto ? <span className="width-tag">{n.contratto}</span> : "—"}
+                        {n.contratto ? <span className="num-badge">{n.contratto}</span> : "—"}
                       </td>
                       <td>{fmtDate(n.data)}</td>
                       <td>{n.codice}</td>

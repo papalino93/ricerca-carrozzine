@@ -67,7 +67,8 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
       {categories.length === 0 ? (
         <p className="hint">Nessuna categoria configurata.</p>
       ) : (
-        <table className="admin-table" style={{ marginBottom: 16 }}>
+        <div className="admin-table-wrap" style={{ marginBottom: 16 }}>
+        <table className="admin-table">
           <thead>
             <tr>
               <th>Nome</th>
@@ -94,6 +95,7 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
             ))}
           </tbody>
         </table>
+        </div>
       )}
 
       <form onSubmit={handleAdd}>

@@ -108,6 +108,15 @@ export function CommesseClient({ initialCommesse, puntiPerEuro }: CommesseClient
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     if (!form.cliente.trim()) return;
+    // Stesso controllo del riquadro di modifica: un importo digitato male
+    // diventerebbe altrimenti un campo vuoto, e al ritiro la scheda non
+    // genererebbe punti fedeltà senza che nessuno se ne accorga.
+    const acconto = form.acconto ? Number(form.acconto.replace(",", ".")) : null;
+    const saldo = form.saldo ? Number(form.saldo.replace(",", ".")) : null;
+    if ((acconto != null && !Number.isFinite(acconto)) || (saldo != null && !Number.isFinite(saldo))) {
+      showToast("Importo non valido in Acconto o Saldo: correggilo prima di continuare");
+      return;
+    }
     setSaving(true);
     try {
       const res = await fetch("/api/commesse", {
@@ -122,8 +131,8 @@ export function CommesseClient({ initialCommesse, puntiPerEuro }: CommesseClient
           richiesteParticolari: form.richiesteParticolari || null,
           dataOrdine: form.dataOrdine || null,
           consegnaPrevista: form.consegnaPrevista || null,
-          acconto: form.acconto ? Number(form.acconto.replace(",", ".")) : null,
-          saldo: form.saldo ? Number(form.saldo.replace(",", ".")) : null,
+          acconto,
+          saldo,
           controlloFinale: null,
           noteChiusura: null,
           prontaIl: null,
@@ -164,6 +173,12 @@ export function CommesseClient({ initialCommesse, puntiPerEuro }: CommesseClient
       const body = await readJson(res);
       if (!res.ok) throw new Error(body.error || "Salvataggio non riuscito");
       setCommesse(body.commesse);
+      // Riallinea i campi del riquadro aperto con quello che il server ha
+      // davvero salvato: "Segna ritirata" imposta da sé la data di ritiro, e
+      // senza questo il form continuerebbe a mostrarla vuota — il salvataggio
+      // successivo la rimanderebbe a null, cancellandola dalla scheda.
+      const updated = (body.commesse as CommessaRecord[]).find((x) => x.numero === numero);
+      if (updated && open === numero) setEditForm(toEditForm(updated));
       showToast(message);
     } catch (err) {
       showToast((err as Error).message);
@@ -237,22 +252,21 @@ export function CommesseClient({ initialCommesse, puntiPerEuro }: CommesseClient
 
   return (
     <div className="wrap wide">
-      <header className="page-header">
-        <h1>Commesse</h1>
-        <p className="sub">
-          {commesse.length} schede lavoro · vendite e riparazioni, stesso modulo di sempre ma digitale
-        </p>
+      <header className="page-header with-action">
+        <div className="page-header-text">
+          <h1>Commesse</h1>
+          <p className="sub">
+            {commesse.length} schede lavoro · vendite e riparazioni, stesso modulo di sempre ma digitale
+          </p>
+        </div>
+        <button className="btn primary" type="button" onClick={() => setCreating((v) => !v)}>
+          {creating ? "Annulla" : "+ Nuova scheda"}
+        </button>
       </header>
 
-      <div className="panel">
-        <div className="card-actions">
-          <button className="btn primary" type="button" onClick={() => setCreating((v) => !v)}>
-            {creating ? "Annulla" : "+ Nuova scheda"}
-          </button>
-        </div>
-
-        {creating ? (
-          <form onSubmit={handleCreate} style={{ marginTop: 16 }}>
+      {creating ? (
+        <div className="panel">
+          <form onSubmit={handleCreate}>
             <div className="field">
               <label>Cliente</label>
               <input
@@ -374,8 +388,8 @@ export function CommesseClient({ initialCommesse, puntiPerEuro }: CommesseClient
               </button>
             </div>
           </form>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
 
       <div className="panel">
         <input
@@ -449,7 +463,12 @@ export function CommesseClient({ initialCommesse, puntiPerEuro }: CommesseClient
                                     type="button"
                                     disabled={savingEdit}
                                     onClick={() =>
-                                      changeStatus(c, "pronta", {}, `Scheda n. ${c.numero} pronta per la consegna`)
+                                      changeStatus(
+                                        c,
+                                        "pronta",
+                                        { prontaIl: editForm?.prontaIl || todayIso() },
+                                        `Scheda n. ${c.numero} pronta per la consegna`
+                                      )
                                     }
                                   >
                                     Segna pronta

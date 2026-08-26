@@ -123,6 +123,17 @@ async function readClients(): Promise<ClientRecord[]> {
   return rows.slice(1).filter((row) => row.length > 0 && row[0]).map(toClient);
 }
 
+/**
+ * Forma con cui si confrontano due nomi cliente. Da usare SEMPRE su
+ * entrambi i lati del confronto: se si normalizza solo il nome in ingresso,
+ * una riga salvata con uno spazio di troppo (copiata a mano nel foglio, o
+ * arrivata da un import) non viene riconosciuta e si finisce per creare un
+ * secondo cliente con lo stesso nome — con punti e tessera separati.
+ */
+function normalizeName(nome: string): string {
+  return nome.trim().toLowerCase();
+}
+
 /** Anagrafica clienti: popolata automaticamente a ogni noleggio, più i campi
  * aggiuntivi importati da CSV o inseriti a mano (vedi importClientsCsv). */
 export async function listClients(): Promise<ClientRecord[]> {
@@ -144,7 +155,7 @@ export async function createClient(input: {
   const nome = input.nome.trim();
   if (!nome) throw new Error("Nome obbligatorio");
   const clients = await readClients();
-  if (clients.some((c) => c.nome.toLowerCase() === nome.toLowerCase())) {
+  if (clients.some((c) => normalizeName(c.nome) === normalizeName(nome))) {
     throw new Error(`"${nome}" esiste già in anagrafica`);
   }
   // Il numero di tessera è assegnato qui, mai digitato dall'operatore:
@@ -176,6 +187,31 @@ export async function createClient(input: {
 }
 
 /**
+ * Assegna un numero di tessera a un cliente GIÀ in anagrafica che ancora non
+ * ne ha uno. Serve perché l'anagrafica si popola anche da sola: chi arriva
+ * da un noleggio o dai punti di una commessa esiste già come riga, quindi
+ * createClient lo rifiuterebbe come duplicato e non ci sarebbe altro modo
+ * di iscriverlo alla fidelity card.
+ *
+ * Se la tessera c'è già viene restituita invariata, senza consumare un
+ * numero nuovo: così un doppio click non genera due tessere.
+ */
+export async function assignFidelity(
+  nome: string
+): Promise<{ client: ClientRecord; clients: ClientRecord[] }> {
+  const target = normalizeName(nome);
+  if (!target) throw new Error("Nome obbligatorio");
+  const clients = await readClients();
+  const idx = clients.findIndex((c) => normalizeName(c.nome) === target);
+  if (idx === -1) throw new Error(`"${nome}" non è in anagrafica`);
+  if (clients[idx].fidelity) return { client: clients[idx], clients };
+
+  clients[idx] = { ...clients[idx], fidelity: await nextNumeroFidelity() };
+  await writeSheet(TAB, [HEADER, ...clients.map(toRow)]);
+  return { client: clients[idx], clients };
+}
+
+/**
  * Crea o aggiorna la riga del cliente con i dati più recenti noti (stesso
  * nome, case-insensitive). Chiamata da rentDevice: aggiorna solo i campi che
  * conosce (nome/telefono/noleggio), lasciando intatta l'eventuale anagrafica
@@ -190,7 +226,7 @@ export async function upsertClient(input: {
   const nome = input.nome.trim();
   if (!nome) return;
   const clients = await readClients();
-  const idx = clients.findIndex((c) => c.nome.toLowerCase() === nome.toLowerCase());
+  const idx = clients.findIndex((c) => normalizeName(c.nome) === normalizeName(nome));
   const prev = idx >= 0 ? clients[idx] : null;
   const next: ClientRecord = {
     nome,
@@ -226,7 +262,7 @@ export async function adjustClientPunti(nome: string, delta: number): Promise<Cl
   const trimmed = nome.trim();
   if (!trimmed || !delta) return readClients();
   const clients = await readClients();
-  const idx = clients.findIndex((c) => c.nome.toLowerCase() === trimmed.toLowerCase());
+  const idx = clients.findIndex((c) => normalizeName(c.nome) === normalizeName(trimmed));
   if (idx >= 0) {
     clients[idx] = { ...clients[idx], punti: Math.max(0, clients[idx].punti + delta) };
   } else {
@@ -262,7 +298,7 @@ export async function adjustClientPunti(nome: string, delta: number): Promise<Cl
  */
 export async function deleteClient(nome: string): Promise<ClientRecord[]> {
   const clients = await readClients();
-  const remaining = clients.filter((c) => c.nome.toLowerCase() !== nome.trim().toLowerCase());
+  const remaining = clients.filter((c) => normalizeName(c.nome) !== normalizeName(nome));
   if (remaining.length === clients.length) {
     throw new Error(`Cliente "${nome}" non trovato`);
   }
@@ -352,7 +388,16 @@ export async function importClientsCsv(
   });
 
   const clients = await readClients();
-  const byName = new Map(clients.map((c) => [c.nome.toLowerCase(), c]));
+  // Indice nome → posizione nell'elenco, non una mappa che sostituisce
+  // l'elenco: se due righe già presenti hanno nomi uguali a meno di
+  // maiuscole, riscrivere il foglio a partire dalla mappa ne cancellerebbe
+  // una senza dirlo. Qui l'elenco resta quello letto e si modifica solo la
+  // riga corrispondente.
+  const indexByName = new Map<string, number>();
+  clients.forEach((c, i) => {
+    const key = normalizeName(c.nome);
+    if (!indexByName.has(key)) indexByName.set(key, i);
+  });
 
   let nuovi = 0;
   let aggiornati = 0;
@@ -378,9 +423,11 @@ export async function importClientsCsv(
       continue;
     }
 
-    const prev = byName.get(nome.toLowerCase());
+    const key = normalizeName(nome);
+    const prevIdx = indexByName.get(key);
+    const prev = prevIdx == null ? null : clients[prevIdx];
     const next: ClientRecord = {
-      nome,
+      nome: prev?.nome || nome,
       telefono: get("telefono") || prev?.telefono || null,
       ultimoContratto: prev?.ultimoContratto ?? null,
       ultimoNoleggio: prev?.ultimoNoleggio ?? null,
@@ -395,16 +442,25 @@ export async function importClientsCsv(
       email: get("email") || prev?.email || null,
       dataNascita: get("dataNascita") || prev?.dataNascita || null,
       luogoNascita: prev?.luogoNascita ?? null,
-      fidelity: get("fidelity") || prev?.fidelity || null,
+      // La tessera già assegnata vince su quella del file: se il numero è
+      // stato emesso da qui è anche già scritto sulla tessera fisica in mano
+      // al cliente, e sovrascriverlo con quello del vecchio gestionale la
+      // renderebbe irriconoscibile.
+      fidelity: prev?.fidelity || get("fidelity") || null,
       categoria: get("categoria") || prev?.categoria || null,
       punti: prev?.punti ?? 0,
     };
 
-    if (prev) aggiornati++;
-    else nuovi++;
-    byName.set(nome.toLowerCase(), next);
+    if (prevIdx != null) {
+      clients[prevIdx] = next;
+      aggiornati++;
+    } else {
+      indexByName.set(key, clients.length);
+      clients.push(next);
+      nuovi++;
+    }
   }
 
-  await writeSheet(TAB, [HEADER, ...Array.from(byName.values()).map(toRow)]);
-  return { nuovi, aggiornati, scartati, totale: byName.size };
+  await writeSheet(TAB, [HEADER, ...clients.map(toRow)]);
+  return { nuovi, aggiornati, scartati, totale: clients.length };
 }

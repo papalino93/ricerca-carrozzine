@@ -110,7 +110,8 @@ export function TariffeManager({ initialTariffe, categories }: TariffeManagerPro
       {tariffe.length === 0 ? (
         <p className="hint">Nessuna tariffa configurata.</p>
       ) : (
-        <table className="admin-table" style={{ marginBottom: 16 }}>
+        <div className="admin-table-wrap" style={{ marginBottom: 16 }}>
+        <table className="admin-table">
           <thead>
             <tr>
               <th>Categoria</th>
@@ -146,6 +147,7 @@ export function TariffeManager({ initialTariffe, categories }: TariffeManagerPro
             ))}
           </tbody>
         </table>
+        </div>
       )}
 
       <form onSubmit={handleAdd}>

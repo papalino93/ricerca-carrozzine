@@ -8,8 +8,11 @@ export default function manifest(): MetadataRoute.Manifest {
       "Ricerca disponibilità e gestione del noleggio di carrozzine e altri ausili/dispositivi.",
     start_url: "/",
     display: "standalone",
-    background_color: "#F4F6F5",
-    theme_color: "#16302E",
+    // Stessi valori dei token in globals.css (--bg e --ink): la schermata di
+    // avvio dell'app installata e la barra del browser devono essere dello
+    // stesso colore delle pagine, non di una palette precedente.
+    background_color: "#f6f5ee",
+    theme_color: "#17301b",
     icons: [
       { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
       { src: "/icon-512.png", sizes: "512x512", type: "image/png" },

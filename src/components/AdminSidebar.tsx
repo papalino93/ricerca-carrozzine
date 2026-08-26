@@ -69,17 +69,20 @@ export function AdminSidebar() {
         <Link href="/" className="admin-sidebar-link muted" onClick={() => setOpen(false)}>
           Operatore banco ↗
         </Link>
+        {/* Dentro al menu, non fuori: su telefono il menu si chiude e questo
+            resterebbe l'unica voce visibile accanto al logo. In fondo alla
+            sidebar ci va comunque su desktop, grazie a margin-top: auto. */}
+        <Link
+          href="/admin/impostazioni"
+          className={`admin-sidebar-link muted admin-sidebar-footer ${pathname === "/admin/impostazioni" ? "active" : ""}`}
+          onClick={() => setOpen(false)}
+        >
+          <span className="admin-sidebar-icon">
+            <IconImpostazioni />
+          </span>
+          Impostazioni
+        </Link>
       </div>
-      <Link
-        href="/admin/impostazioni"
-        className={`admin-sidebar-link muted admin-sidebar-footer ${pathname === "/admin/impostazioni" ? "active" : ""}`}
-        onClick={() => setOpen(false)}
-      >
-        <span className="admin-sidebar-icon">
-          <IconImpostazioni />
-        </span>
-        Impostazioni
-      </Link>
     </aside>
   );
 }

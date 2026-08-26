@@ -16,20 +16,46 @@ export function SignaturePad({ label, onChange }: SignaturePadProps) {
   const drawingRef = useRef(false);
   const [empty, setEmpty] = useState(true);
 
+  // Il canvas ha due misure: quella su schermo (CSS) e quella della sua
+  // immagine interna. Devono restare allineate, altrimenti il tratto esce
+  // spostato rispetto al dito. Cambiano quando il riquadro cambia
+  // larghezza — tipicamente ruotando il telefono mentre si firma — quindi
+  // non basta impostarle una volta all'apertura: le riallineiamo a ogni
+  // ridimensionamento.
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ratio = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * ratio;
-    canvas.height = rect.height * ratio;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.scale(ratio, ratio);
-    ctx.lineWidth = 2;
-    ctx.lineCap = "round";
-    ctx.strokeStyle = "#17301b";
-  }, []);
+
+    function setup() {
+      if (!canvas) return;
+      const ratio = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      const w = Math.round(rect.width * ratio);
+      const h = Math.round(rect.height * ratio);
+      if (w === 0 || h === 0) return;
+      if (canvas.width === w && canvas.height === h) return;
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      // setTransform e non scale: scale si somma a ogni chiamata, e alla
+      // seconda il tratto verrebbe disegnato al doppio della scala.
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      ctx.lineWidth = 2;
+      ctx.lineCap = "round";
+      ctx.strokeStyle = "#17301b";
+      // Ridimensionare il canvas ne cancella il contenuto: meglio dichiararlo
+      // vuoto che tenere in memoria una firma che sullo schermo non c'è più.
+      drawingRef.current = false;
+      setEmpty(true);
+      onChange(null);
+    }
+
+    setup();
+    const observer = new ResizeObserver(setup);
+    observer.observe(canvas);
+    return () => observer.disconnect();
+  }, [onChange]);
 
   function pos(e: React.PointerEvent<HTMLCanvasElement>) {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -82,6 +108,10 @@ export function SignaturePad({ label, onChange }: SignaturePadProps) {
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
+        /* Su iOS un secondo dito o una gesture di sistema annulla il tratto
+           in corso: senza questo il pad resterebbe convinto di star ancora
+           disegnando e il tocco successivo continuerebbe la stessa linea. */
+        onPointerCancel={handlePointerUp}
       />
       <div className="card-actions" style={{ marginTop: 6 }}>
         <button type="button" className="btn" onClick={handleClear} disabled={empty}>

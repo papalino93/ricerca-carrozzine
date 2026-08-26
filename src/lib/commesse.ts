@@ -159,6 +159,8 @@ export async function updateCommessa(
   if (idx === -1) throw new Error(`Commessa n. ${numero} non trovata`);
   let next = { ...commesse[idx], ...patch };
 
+  const prev = commesse[idx];
+
   // Al passaggio a "ritirata" (una volta sola per commessa, vedi
   // puntiAssegnati) il saldo pagato genera punti fedeltà al cliente: è il
   // momento in cui ha effettivamente pagato e ritirato, corrisponde a una
@@ -167,6 +169,21 @@ export async function updateCommessa(
     const { puntiPerEuro } = await getSettings();
     await adjustClientPunti(next.cliente, Math.floor(next.saldo * puntiPerEuro));
     next = { ...next, puntiAssegnati: true };
+  } else if (
+    // Saldo corretto DOPO che i punti erano già stati accreditati (es. una
+    // cifra digitata male al ritiro): accredita solo la differenza, così il
+    // totale del cliente resta coerente con quanto ha davvero pagato senza
+    // riassegnare due volte l'intero importo.
+    next.puntiAssegnati &&
+    next.stato === "ritirata" &&
+    prev.cliente === next.cliente &&
+    (next.saldo ?? 0) !== (prev.saldo ?? 0)
+  ) {
+    const { puntiPerEuro } = await getSettings();
+    const delta =
+      Math.floor(Math.max(0, next.saldo ?? 0) * puntiPerEuro) -
+      Math.floor(Math.max(0, prev.saldo ?? 0) * puntiPerEuro);
+    if (delta !== 0) await adjustClientPunti(next.cliente, delta);
   }
 
   commesse[idx] = next;
