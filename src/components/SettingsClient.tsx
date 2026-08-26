@@ -188,6 +188,21 @@ export function SettingsClient({
             </p>
           </div>
 
+          <div className="field">
+            <label>Informativa privacy (testo in corpo piccolo sui documenti)</label>
+            <textarea
+              rows={6}
+              value={settings.informativaPrivacy}
+              onChange={(e) => setSettings({ ...settings, informativaPrivacy: e.target.value })}
+            />
+            <p className="hint">
+              Segnaposto: fai rivedere questo testo da un legale o consulente privacy prima di
+              usarlo con i clienti — in particolare i tempi di conservazione dei dati e
+              l&apos;eventuale trattamento di categorie particolari di dati (es. informazioni
+              sanitarie che l&apos;ausilio noleggiato può far emergere indirettamente).
+            </p>
+          </div>
+
           <div className="card-actions">
             <button className="btn primary" type="submit" disabled={saving}>
               {saving ? "Salvataggio…" : "Salva impostazioni"}

@@ -206,6 +206,12 @@ const styles = StyleSheet.create({
     color: INK_SOFT,
     lineHeight: 1.4,
   },
+  privacy: {
+    marginTop: 10,
+    fontSize: 7.5,
+    color: INK_SOFT,
+    lineHeight: 1.4,
+  },
 });
 
 const TITLE: Record<DocumentoTipo, string> = {
@@ -385,6 +391,7 @@ export function VerbaleDocument({
         </View>
 
         <Text style={styles.conditions}>{settings.condizioniGenerali}</Text>
+        <Text style={styles.privacy}>{settings.informativaPrivacy}</Text>
       </Page>
     </Document>
   );

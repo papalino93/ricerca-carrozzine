@@ -9,6 +9,8 @@ export interface CompanySettings {
   logoUrl: string;
   /** Testo segnaposto delle condizioni generali, mostrato in corpo piccolo sui documenti. */
   condizioniGenerali: string;
+  /** Testo segnaposto dell'informativa privacy, mostrato in corpo piccolo sui documenti. */
+  informativaPrivacy: string;
 }
 
 const TAB = "Impostazioni";
@@ -19,12 +21,21 @@ const HEADER = [
   "Telefono",
   "LogoURL",
   "CondizioniGenerali",
+  "InformativaPrivacy",
 ];
 
 // Segnaposto: NON è una clausola legale valida, va rivista da un
 // commercialista o consulente prima di un uso reale con i clienti.
 export const DEFAULT_CONDIZIONI_GENERALI =
   "Il sottoscritto dichiara di aver ricevuto in noleggio l'ausilio sopra descritto e di averlo verificato funzionante e in buono stato. Si impegna a restituirlo nelle medesime condizioni, salvo la normale usura d'uso. [Testo segnaposto: da far verificare e integrare da un commercialista o consulente prima dell'uso reale con i clienti.]";
+
+// Segnaposto onesto, NON un'informativa legalmente valida: manca almeno la
+// conferma di un legale sui tempi di conservazione (variano per obblighi
+// fiscali/civilistici) e sull'eventuale trattamento di categorie particolari
+// di dati (l'ausilio noleggiato può indirettamente far emergere informazioni
+// sulla salute del cliente, categoria che il GDPR tutela in modo rafforzato).
+export const DEFAULT_INFORMATIVA_PRIVACY =
+  "Informativa privacy (art. 13 Regolamento UE 2016/679). Titolare del trattamento: la ragione sociale indicata in testa a questo documento. Dati raccolti: nome e cognome, telefono, ausilio noleggiato ed eventuale firma. Finalità: gestione del noleggio e adempimenti contrattuali, fiscali e amministrativi conseguenti. Base giuridica: esecuzione del contratto di noleggio e obblighi di legge. I dati non vengono ceduti a terzi, salvo obblighi di legge. Conservazione: per la durata del rapporto e per il periodo successivo richiesto dagli obblighi fiscali e civilistici. L'interessato può in ogni momento richiedere accesso, rettifica, cancellazione o opposizione al trattamento dei propri dati contattando il titolare ai recapiti indicati su questo documento. [Testo segnaposto: da far verificare e integrare da un legale o consulente privacy prima dell'uso reale con i clienti — in particolare i tempi di conservazione e l'eventuale trattamento di categorie particolari di dati.]";
 
 const EMPTY_SETTINGS: CompanySettings = {
   ragioneSociale: "",
@@ -33,6 +44,7 @@ const EMPTY_SETTINGS: CompanySettings = {
   telefono: "",
   logoUrl: "",
   condizioniGenerali: DEFAULT_CONDIZIONI_GENERALI,
+  informativaPrivacy: DEFAULT_INFORMATIVA_PRIVACY,
 };
 
 export async function getSettings(): Promise<CompanySettings> {
@@ -40,7 +52,7 @@ export async function getSettings(): Promise<CompanySettings> {
   const row = rows[1];
   if (!row) return EMPTY_SETTINGS;
 
-  const [ragioneSociale, indirizzo, partitaIva, telefono, logoUrl, condizioniGenerali] =
+  const [ragioneSociale, indirizzo, partitaIva, telefono, logoUrl, condizioniGenerali, informativaPrivacy] =
     row;
 
   return {
@@ -50,6 +62,7 @@ export async function getSettings(): Promise<CompanySettings> {
     telefono: telefono || "",
     logoUrl: logoUrl || "",
     condizioniGenerali: condizioniGenerali || DEFAULT_CONDIZIONI_GENERALI,
+    informativaPrivacy: informativaPrivacy || DEFAULT_INFORMATIVA_PRIVACY,
   };
 }
 
@@ -62,6 +75,11 @@ export async function saveSettings(settings: CompanySettings): Promise<void> {
   if (settings.condizioniGenerali.length > MAX_CONDIZIONI_LENGTH) {
     throw new Error(
       `Le condizioni generali superano i ${MAX_CONDIZIONI_LENGTH} caratteri: abbreviale prima di salvare.`
+    );
+  }
+  if (settings.informativaPrivacy.length > MAX_CONDIZIONI_LENGTH) {
+    throw new Error(
+      `L'informativa privacy supera i ${MAX_CONDIZIONI_LENGTH} caratteri: abbreviala prima di salvare.`
     );
   }
   // Il generatore PDF (@react-pdf/renderer) carica logoUrl come farebbe un
@@ -81,6 +99,7 @@ export async function saveSettings(settings: CompanySettings): Promise<void> {
       settings.telefono,
       settings.logoUrl,
       settings.condizioniGenerali,
+      settings.informativaPrivacy,
     ],
   ]);
 }
