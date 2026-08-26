@@ -1344,10 +1344,14 @@ tr.clickable-row:hover td {
   border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
 
+/* Il logo bianco include già il marchio "Medical Center": impilato sopra
+   l'etichetta invece che affiancato, altrimenti a 220px di sidebar le due
+   scritte non ci starebbero una accanto all'altra. */
 .admin-sidebar-brand {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
   padding: 0 8px 20px;
   margin-bottom: 8px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
@@ -1364,11 +1368,9 @@ tr.clickable-row:hover td {
 }
 
 .admin-sidebar-brand img {
-  height: 34px;
+  height: 30px;
   width: auto;
-  border-radius: 7px;
-  background: #fff;
-  padding: 3px;
+  max-width: 100%;
 }
 
 .admin-sidebar-brand .eyebrow {
