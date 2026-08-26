@@ -4,7 +4,7 @@ import { useState } from "react";
 import { readJson } from "@/lib/fetch-json";
 import { addDaysIso, todayIso } from "@/lib/dates";
 import type { Device } from "@/lib/device-types";
-import { findTariffa, fmtTariffa, type Tariffa } from "@/lib/tariffe-types";
+import { calcolaTotale, findTariffa, fmtEuro, giorniTra, type Tariffa } from "@/lib/tariffe-types";
 
 interface QuickRentModalProps {
   device: Device;
@@ -31,9 +31,19 @@ export function QuickRentModal({ device, tariffe, onClose, onRented }: QuickRent
   const [telefono, setTelefono] = useState("");
   const [dal, setDal] = useState(todayIso());
   const tariffa = findTariffa(tariffe, device.categoria, device.sottocategoria);
+  // Prefillato dal tariffario, ma modificabile per questo singolo noleggio
+  // (es. uno sconto concordato): l'unità (giorno/settimana) resta invece
+  // quella della categoria, non ha senso cambiarla per un solo noleggio.
+  const [prezzo, setPrezzo] = useState(tariffa ? String(tariffa.importo).replace(".", ",") : "");
   const [alPrevisto, setAlPrevisto] = useState(addDaysIso(todayIso(), 30));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const prezzoNum = Number(prezzo.replace(",", "."));
+  const totaleStimato =
+    tariffa && alPrevisto && prezzoNum > 0
+      ? calcolaTotale(prezzoNum, tariffa.unita, giorniTra(dal, alPrevisto))
+      : null;
 
   async function handleConfirm(e: React.FormEvent) {
     e.preventDefault();
@@ -53,6 +63,8 @@ export function QuickRentModal({ device, tariffe, onClose, onRented }: QuickRent
           telefono,
           dal,
           alPrevisto: alPrevisto || null,
+          tariffaApplicata: tariffa && prezzoNum > 0 ? prezzoNum : null,
+          tariffaUnita: tariffa && prezzoNum > 0 ? tariffa.unita : null,
         }),
       });
       const body = await readJson(res);
@@ -78,9 +90,19 @@ export function QuickRentModal({ device, tariffe, onClose, onRented }: QuickRent
         {error ? <div className="banner error">{error}</div> : null}
 
         {tariffa ? (
+          <div className="field-row" style={{ alignItems: "flex-end" }}>
+            <div className="field">
+              <label>Tariffa applicata (€ {tariffa.unita === "settimana" ? "a settimana" : "al giorno"})</label>
+              <input value={prezzo} onChange={(e) => setPrezzo(e.target.value)} inputMode="decimal" />
+            </div>
+            <p className="hint" style={{ margin: "0 0 10px" }}>
+              {tariffa.nota ? tariffa.nota : "Modificabile solo per questo noleggio"}
+            </p>
+          </div>
+        ) : null}
+        {totaleStimato != null ? (
           <p className="hint" style={{ margin: "0 0 14px" }}>
-            Tariffa: <b>{fmtTariffa(tariffa)}</b>
-            {tariffa.nota ? ` (${tariffa.nota})` : ""}
+            Totale stimato fino al rientro previsto: <b>{fmtEuro(totaleStimato)}</b>
           </p>
         ) : null}
 

@@ -13,7 +13,7 @@ import {
 import { DocumentPanel } from "./DocumentPanel";
 import type { DocumentoTipo } from "@/lib/pdf/VerbaleDocument";
 import type { DevicePhotoMeta } from "@/lib/photos";
-import { findTariffa, fmtTariffa, type Tariffa } from "@/lib/tariffe-types";
+import { calcolaTotale, findTariffa, fmtEuro, giorniTra, type Tariffa } from "@/lib/tariffe-types";
 import { Toast } from "./Toast";
 
 // Deve combaciare con MAX_PHOTOS_PER_DEVICE in src/lib/photos.ts (server-only,
@@ -104,6 +104,12 @@ export function DeviceDetailModal({
   const [rentTelefono, setRentTelefono] = useState("");
   const [rentDal, setRentDal] = useState(todayIso());
   const [rentAlPrevisto, setRentAlPrevisto] = useState(addDaysIso(todayIso(), 30));
+  // Prefillato dal tariffario, ma modificabile per questo singolo noleggio
+  // (es. uno sconto concordato): vedi anche QuickRentModal, stessa idea.
+  const [rentPrezzo, setRentPrezzo] = useState(() => {
+    const t = findTariffa(tariffe, current.categoria, current.sottocategoria);
+    return t ? String(t.importo).replace(".", ",") : "";
+  });
   const [showDoc, setShowDoc] = useState(false);
   const [docForcedTipo, setDocForcedTipo] = useState<DocumentoTipo | undefined>(undefined);
   const [docDevice, setDocDevice] = useState<Device>(device);
@@ -259,11 +265,19 @@ export function DeviceDetailModal({
     }
   }
 
+  const tariffa = findTariffa(tariffe, current.categoria, current.sottocategoria);
+  const rentPrezzoNum = Number(rentPrezzo.replace(",", "."));
+  const rentTotaleStimato =
+    tariffa && rentAlPrevisto && rentPrezzoNum > 0
+      ? calcolaTotale(rentPrezzoNum, tariffa.unita, giorniTra(rentDal, rentAlPrevisto))
+      : null;
+
   function resetRentForm() {
     setRentCliente("");
     setRentTelefono("");
     setRentDal(todayIso());
     setRentAlPrevisto(addDaysIso(todayIso(), 30));
+    setRentPrezzo(tariffa ? String(tariffa.importo).replace(".", ",") : "");
   }
 
   function openRent() {
@@ -289,6 +303,8 @@ export function DeviceDetailModal({
           telefono: rentTelefono,
           dal: rentDal,
           alPrevisto: rentAlPrevisto || null,
+          tariffaApplicata: tariffa && rentPrezzoNum > 0 ? rentPrezzoNum : null,
+          tariffaUnita: tariffa && rentPrezzoNum > 0 ? tariffa.unita : null,
         }),
       });
       const body = await readJson(res);
@@ -496,8 +512,6 @@ export function DeviceDetailModal({
     }
   }
 
-  const tariffa = findTariffa(tariffe, current.categoria, current.sottocategoria);
-
   // Pulsante di ciclo vita (Noleggia / Segna restituito / Segna sanificato):
   // un solo punto nel markup, riusato sia nella sidebar (schermi larghi) sia
   // in cima alla scheda (schermi stretti, dove non c'è sidebar) — non più
@@ -561,9 +575,19 @@ export function DeviceDetailModal({
         <form className="panel" onSubmit={handleConfirmRent} style={{ margin: "0 0 16px" }}>
           <h2>Assegna a un cliente</h2>
           {tariffa ? (
+            <div className="field-row" style={{ alignItems: "flex-end" }}>
+              <div className="field">
+                <label>Tariffa applicata (€ {tariffa.unita === "settimana" ? "a settimana" : "al giorno"})</label>
+                <input value={rentPrezzo} onChange={(e) => setRentPrezzo(e.target.value)} inputMode="decimal" />
+              </div>
+              <p className="hint" style={{ margin: "0 0 10px" }}>
+                {tariffa.nota ? tariffa.nota : "Modificabile solo per questo noleggio"}
+              </p>
+            </div>
+          ) : null}
+          {rentTotaleStimato != null ? (
             <p className="hint" style={{ margin: "0 0 14px" }}>
-              Tariffa: <b>{fmtTariffa(tariffa)}</b>
-              {tariffa.nota ? ` (${tariffa.nota})` : ""}
+              Totale stimato fino al rientro previsto: <b>{fmtEuro(rentTotaleStimato)}</b>
             </p>
           ) : null}
           <div className="field">

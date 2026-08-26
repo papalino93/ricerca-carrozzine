@@ -5,6 +5,7 @@ import { upsertClient } from "./clients";
 import { nextNumeroNoleggio } from "./counter";
 import { removeAllDevicePhotos } from "./photos";
 import { STATUS_OPTIONS, type ArchiveStatus, type Device, type DeviceStatus } from "./device-types";
+import type { TariffaUnita } from "./tariffe-types";
 
 export type { Device, DeviceStatus, ArchiveStatus } from "./device-types";
 export { STATUS_COLOR, STATUS_LABEL, STATUS_OPTIONS, ARCHIVE_LABEL } from "./device-types";
@@ -35,6 +36,8 @@ const HEADER = [
   "PrezzoAcquisto",
   "PrezzoVendita",
   "Archiviato",
+  "TariffaApplicata",
+  "TariffaUnita",
 ];
 
 const VALID_ARCHIVE_STATUSES = ["venduto", "rottamato"];
@@ -59,6 +62,8 @@ function toDevice(row: string[]): Device {
     prezzoAcquisto,
     prezzoVendita,
     archiviato,
+    tariffaApplicata,
+    tariffaUnita,
   ] = row;
 
   return {
@@ -82,6 +87,8 @@ function toDevice(row: string[]): Device {
     prezzoAcquisto: prezzoAcquisto ? Number(prezzoAcquisto) || null : null,
     prezzoVendita: prezzoVendita ? Number(prezzoVendita) || null : null,
     archiviato: VALID_ARCHIVE_STATUSES.includes(archiviato) ? (archiviato as ArchiveStatus) : null,
+    tariffaApplicata: tariffaApplicata ? Number(tariffaApplicata) || null : null,
+    tariffaUnita: tariffaUnita === "settimana" ? "settimana" : tariffaUnita === "giorno" ? "giorno" : null,
   };
 }
 
@@ -105,6 +112,8 @@ function toRow(d: Device): string[] {
     d.prezzoAcquisto != null ? String(d.prezzoAcquisto) : "",
     d.prezzoVendita != null ? String(d.prezzoVendita) : "",
     d.archiviato ?? "",
+    d.tariffaApplicata != null ? String(d.tariffaApplicata) : "",
+    d.tariffaUnita ?? "",
   ];
 }
 
@@ -177,6 +186,11 @@ export interface RentDeviceInput {
   dal: string | null;
   /** Data di rientro prevista, ISO yyyy-mm-dd (facoltativa). */
   alPrevisto: string | null;
+  /** Tariffa per questo specifico noleggio: prefillata dal tariffario in
+   * base a categoria/sottocategoria, ma l'operatore può cambiarla (es. uno
+   * sconto) prima di confermare. */
+  tariffaApplicata: number | null;
+  tariffaUnita: TariffaUnita | null;
 }
 
 /**
@@ -209,6 +223,8 @@ export async function rentDevice(codice: string, input: RentDeviceInput): Promis
     contratto,
     dal,
     alPrevisto: input.alPrevisto,
+    tariffaApplicata: input.tariffaApplicata,
+    tariffaUnita: input.tariffaUnita,
   };
   // Registra prima lo storico e solo dopo muta il dispositivo: se il
   // salvataggio del dispositivo falisce, resta comunque una traccia che il
@@ -261,6 +277,8 @@ export async function returnDevice(codice: string): Promise<Device[]> {
     contratto: null,
     dal: null,
     alPrevisto: null,
+    tariffaApplicata: null,
+    tariffaUnita: null,
   };
   await appendHistoryEvent({
     data: todayIso(),

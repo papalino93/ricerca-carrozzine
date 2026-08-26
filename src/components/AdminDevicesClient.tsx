@@ -31,6 +31,8 @@ const EMPTY_FORM: Device = {
   prezzoAcquisto: null,
   prezzoVendita: null,
   archiviato: null,
+  tariffaApplicata: null,
+  tariffaUnita: null,
 };
 
 type IssueFilter = "stale" | "incomplete" | "overdue" | "duesoon" | "longrental" | null;

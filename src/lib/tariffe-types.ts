@@ -41,3 +41,21 @@ export function fmtTariffa(t: Tariffa): string {
   const importo = t.importo.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return `${importo} € al ${t.unita === "settimana" ? "settimana" : "giorno"}`;
 }
+
+export function fmtEuro(importo: number): string {
+  return `${importo.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+}
+
+/** Giorni tra due date ISO yyyy-mm-dd, minimo 1 (anche un noleggio dello
+ * stesso giorno conta come un giorno, non zero). */
+export function giorniTra(dalIso: string, aIso: string): number {
+  const dal = new Date(`${dalIso}T00:00:00Z`).getTime();
+  const a = new Date(`${aIso}T00:00:00Z`).getTime();
+  return Math.max(1, Math.round((a - dal) / 86_400_000));
+}
+
+/** Totale per `giorni` di noleggio: a settimana arrotonda per eccesso alla
+ * settimana intera (pratica standard di noleggio), non frazioni. */
+export function calcolaTotale(importo: number, unita: TariffaUnita, giorni: number): number {
+  return unita === "settimana" ? Math.ceil(giorni / 7) * importo : giorni * importo;
+}

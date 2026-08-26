@@ -1,6 +1,8 @@
 // Tipi e costanti condivisi tra client e server. Nessuna dipendenza da
 // googleapis: questo file può essere importato anche dai componenti client.
 
+import type { TariffaUnita } from "./tariffe-types";
+
 export type DeviceStatus =
   | "disponibile"
   | "noleggiato"
@@ -63,6 +65,12 @@ export interface Device {
   dal: string | null;
   /** Data di rientro prevista del noleggio in corso, ISO yyyy-mm-dd (facoltativa). */
   alPrevisto: string | null;
+  /** Tariffa (importo + unità) applicata al noleggio in corso: prefillata
+   * dal tariffario alla conferma, ma l'operatore può cambiarla per quel
+   * singolo noleggio (es. uno sconto). Usata per calcolare il totale sul
+   * verbale di restituzione. */
+  tariffaApplicata: number | null;
+  tariffaUnita: TariffaUnita | null;
   /** Data ultima sanificazione, ISO yyyy-mm-dd. */
   sanificazione: string | null;
   nota: string | null;
@@ -84,5 +92,13 @@ export interface Device {
  * dall'admin.
  */
 export function toPublicDevice(d: Device): Device {
-  return { ...d, telefono: null, contratto: null, prezzoAcquisto: null, prezzoVendita: null };
+  return {
+    ...d,
+    telefono: null,
+    contratto: null,
+    prezzoAcquisto: null,
+    prezzoVendita: null,
+    tariffaApplicata: null,
+    tariffaUnita: null,
+  };
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireBasicAuth } from "@/lib/basic-auth";
 import { rentDevice, returnDevice, sanitizeDevice } from "@/lib/devices";
 import { listHistory } from "@/lib/history";
+import type { TariffaUnita } from "@/lib/tariffe-types";
 
 export const runtime = "nodejs";
 
@@ -11,6 +12,8 @@ interface EventoBody {
   telefono?: string | null;
   dal?: string | null;
   alPrevisto?: string | null;
+  tariffaApplicata?: number | null;
+  tariffaUnita?: TariffaUnita | null;
 }
 
 // Riservata all'amministrazione: storico eventi di un dispositivo.
@@ -56,6 +59,8 @@ export async function POST(
           telefono: body.telefono?.trim() || null,
           dal: body.dal || null,
           alPrevisto: body.alPrevisto || null,
+          tariffaApplicata: body.tariffaApplicata ?? null,
+          tariffaUnita: body.tariffaUnita ?? null,
         });
         break;
       case "restituzione":

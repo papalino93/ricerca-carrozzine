@@ -20,8 +20,30 @@ const EMPTY_FORM = {
 export function TariffeManager({ initialTariffe, categories }: TariffeManagerProps) {
   const [tariffe, setTariffe] = useState(initialTariffe);
   const [form, setForm] = useState(EMPTY_FORM);
+  // Non null mentre si modifica una tariffa esistente (invece di
+  // aggiungerne una nuova): categoria/sottocategoria restano bloccate,
+  // perché sono la chiave che il server usa per capire quale riga
+  // sostituire — cambiarle qui creerebbe una riga in più invece di
+  // aggiornare quella giusta.
+  const [editing, setEditing] = useState<{ categoria: string; sottocategoria: string | null } | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function startEdit(t: Tariffa) {
+    setEditing({ categoria: t.categoria, sottocategoria: t.sottocategoria });
+    setForm({
+      categoria: t.categoria,
+      sottocategoria: t.sottocategoria ?? "",
+      importo: String(t.importo).replace(".", ","),
+      unita: t.unita,
+      nota: t.nota ?? "",
+    });
+  }
+
+  function cancelEdit() {
+    setEditing(null);
+    setForm(EMPTY_FORM);
+  }
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -43,6 +65,7 @@ export function TariffeManager({ initialTariffe, categories }: TariffeManagerPro
       if (!res.ok) throw new Error(body.error || "Impossibile salvare la tariffa");
       setTariffe(body.tariffe);
       setForm(EMPTY_FORM);
+      setEditing(null);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -62,6 +85,9 @@ export function TariffeManager({ initialTariffe, categories }: TariffeManagerPro
       const body = await readJson(res);
       if (!res.ok) throw new Error(body.error || "Impossibile eliminare la tariffa");
       setTariffe(body.tariffe);
+      if (editing && editing.categoria === t.categoria && editing.sottocategoria === t.sottocategoria) {
+        cancelEdit();
+      }
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -103,6 +129,9 @@ export function TariffeManager({ initialTariffe, categories }: TariffeManagerPro
                 <td>{t.nota ?? "—"}</td>
                 <td>
                   <div className="card-actions" style={{ marginTop: 0 }}>
+                    <button className="btn" type="button" onClick={() => startEdit(t)} disabled={saving}>
+                      Modifica
+                    </button>
                     <button
                       className="btn danger"
                       type="button"
@@ -120,6 +149,7 @@ export function TariffeManager({ initialTariffe, categories }: TariffeManagerPro
       )}
 
       <form onSubmit={handleAdd}>
+        <h3 style={{ margin: "0 0 10px" }}>{editing ? "Modifica tariffa" : "Nuova tariffa"}</h3>
         <div className="field-row">
           <div className="field">
             <label>Categoria</label>
@@ -127,6 +157,7 @@ export function TariffeManager({ initialTariffe, categories }: TariffeManagerPro
               list="tariffe-categorie-list"
               value={form.categoria}
               onChange={(e) => setForm({ ...form, categoria: e.target.value })}
+              disabled={Boolean(editing)}
               required
             />
             <datalist id="tariffe-categorie-list">
@@ -141,6 +172,7 @@ export function TariffeManager({ initialTariffe, categories }: TariffeManagerPro
               value={form.sottocategoria}
               onChange={(e) => setForm({ ...form, sottocategoria: e.target.value })}
               placeholder="es. Elettrica — vuoto per l'intera categoria"
+              disabled={Boolean(editing)}
             />
           </div>
         </div>
@@ -176,8 +208,13 @@ export function TariffeManager({ initialTariffe, categories }: TariffeManagerPro
         </div>
         <div className="card-actions">
           <button className="btn primary" type="submit" disabled={saving}>
-            {saving ? "Salvataggio…" : "Salva tariffa"}
+            {saving ? "Salvataggio…" : editing ? "Salva modifiche" : "Aggiungi tariffa"}
           </button>
+          {editing ? (
+            <button className="btn" type="button" onClick={cancelEdit} disabled={saving}>
+              Annulla
+            </button>
+          ) : null}
         </div>
       </form>
     </div>

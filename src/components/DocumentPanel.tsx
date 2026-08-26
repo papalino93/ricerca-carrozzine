@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { Device } from "@/lib/devices";
 import type { DocumentoTipo } from "@/lib/pdf/VerbaleDocument";
+import { calcolaTotale, fmtEuro, giorniTra } from "@/lib/tariffe-types";
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
@@ -36,8 +37,22 @@ export function DocumentPanel({ device, onClose, forcedTipo }: DocumentPanelProp
   // qui la faceva finire stampata sul verbale che il cliente firma e porta
   // via. La nota resta consultabile qui sotto, ma va copiata a mano.
   const [note, setNote] = useState("");
+  // Il totale, quando c'è una tariffa applicata al noleggio, è solo un
+  // promemoria per l'operatore: di default NON finisce sul documento
+  // stampato, va deciso ogni volta con questo interruttore.
+  const [includiTariffa, setIncludiTariffa] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Sul verbale di restituzione, "data" è il rientro reale: il totale è
+  // quello effettivo. Su quello di consegna ha senso solo se c'è un rientro
+  // previsto (altrimenti non si sa quanti giorni contare): è una stima.
+  const dataFine = tipo === "restituzione" ? data : device.alPrevisto;
+  const totale =
+    device.tariffaApplicata != null && device.tariffaUnita && device.dal && dataFine
+      ? calcolaTotale(device.tariffaApplicata, device.tariffaUnita, giorniTra(device.dal, dataFine))
+      : null;
+  const totaleStimato = tipo === "consegna";
 
   async function handleDownload() {
     setLoading(true);
@@ -60,6 +75,15 @@ export function DocumentPanel({ device, onClose, forcedTipo }: DocumentPanelProp
           },
           cliente: { nome: clienteNome, telefono: clienteTelefono },
           alPrevisto: tipo === "consegna" ? alPrevisto || null : null,
+          tariffa:
+            includiTariffa && totale != null && device.tariffaApplicata != null && device.tariffaUnita
+              ? {
+                  importo: device.tariffaApplicata,
+                  unita: device.tariffaUnita,
+                  totale,
+                  stimato: totaleStimato,
+                }
+              : null,
         }),
       });
       if (!res.ok) {
@@ -140,6 +164,22 @@ export function DocumentPanel({ device, onClose, forcedTipo }: DocumentPanelProp
             <p className="hint" style={{ margin: "4px 0 0" }}>
               Se compilato, compare sul verbale; se lasciato vuoto non viene stampato.
             </p>
+          </div>
+        ) : null}
+
+        {totale != null ? (
+          <div className="internal-note">
+            <b>{totaleStimato ? "Totale stimato" : "Totale"}</b> ({fmtEuro(device.tariffaApplicata!)} al{" "}
+            {device.tariffaUnita === "settimana" ? "settimana" : "giorno"}
+            {totaleStimato ? ", fino al rientro previsto" : ""}): <b>{fmtEuro(totale)}</b>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
+              <input
+                type="checkbox"
+                checked={includiTariffa}
+                onChange={(e) => setIncludiTariffa(e.target.checked)}
+              />
+              Includi tariffa e totale sul documento
+            </label>
           </div>
         ) : null}
 

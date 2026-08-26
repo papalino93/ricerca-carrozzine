@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireBasicAuth } from "@/lib/basic-auth";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { getSettings, type CompanySettings } from "@/lib/settings";
-import { VerbaleDocument, type DocumentoTipo } from "@/lib/pdf/VerbaleDocument";
+import { VerbaleDocument, type DocumentoTipo, type TariffaDocumento } from "@/lib/pdf/VerbaleDocument";
 import { appendDocumentLog } from "@/lib/documentLog";
 
 export const runtime = "nodejs";
@@ -24,6 +24,7 @@ interface DocumentoRequestBody {
     telefono: string;
   };
   alPrevisto?: string | null;
+  tariffa?: TariffaDocumento | null;
 }
 
 function buildDocument(body: DocumentoRequestBody, settings: CompanySettings) {
@@ -37,6 +38,7 @@ function buildDocument(body: DocumentoRequestBody, settings: CompanySettings) {
       cliente={{ nome: body.cliente?.nome ?? "", telefono: body.cliente?.telefono ?? "" }}
       note={body.note ?? ""}
       alPrevisto={body.alPrevisto ?? null}
+      tariffa={body.tariffa ?? null}
     />
   );
 }

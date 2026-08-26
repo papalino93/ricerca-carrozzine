@@ -8,6 +8,17 @@ const LINE = "#e1e7df";
 
 export type DocumentoTipo = "consegna" | "restituzione";
 
+/** Tariffa applicata al noleggio, calcolata lato client (DocumentPanel):
+ * il PDF si limita a stamparla, se l'operatore ha scelto di includerla. */
+export interface TariffaDocumento {
+  importo: number;
+  unita: "giorno" | "settimana";
+  totale: number;
+  /** true sul verbale di consegna (si stima fino al rientro previsto),
+   * false su quello di restituzione (giorni effettivi già trascorsi). */
+  stimato: boolean;
+}
+
 export interface VerbaleDocumentProps {
   tipo: DocumentoTipo;
   numeroContratto: string;
@@ -28,6 +39,9 @@ export interface VerbaleDocumentProps {
   /** Data di rientro prevista del noleggio, ISO yyyy-mm-dd, facoltativa: se
    * assente la riga non compare affatto (nessun campo vuoto sul verbale). */
   alPrevisto?: string | null;
+  /** Assente per scelta esplicita dell'operatore (vedi DocumentPanel): niente
+   * riquadro tariffa/totale sul documento se non è stato spuntato. */
+  tariffa?: TariffaDocumento | null;
 }
 
 const styles = StyleSheet.create({
@@ -198,6 +212,10 @@ function fmtDate(iso: string): string {
   return `${d}/${m}/${y}`;
 }
 
+function fmtEuro(importo: number): string {
+  return `${importo.toFixed(2).replace(".", ",")} €`;
+}
+
 export function VerbaleDocument({
   tipo,
   numeroContratto,
@@ -207,6 +225,7 @@ export function VerbaleDocument({
   cliente,
   note,
   alPrevisto,
+  tariffa,
 }: VerbaleDocumentProps) {
   const hasLogo = Boolean(settings.logoUrl);
 
@@ -301,6 +320,24 @@ export function VerbaleDocument({
             </View>
           ) : null}
         </View>
+
+        {tariffa ? (
+          <>
+            <Text style={styles.sectionLabel}>Tariffa</Text>
+            <View style={styles.table}>
+              <View style={styles.row}>
+                <Text style={styles.cellLabel}>Tariffa applicata</Text>
+                <Text style={styles.cellValue}>
+                  {fmtEuro(tariffa.importo)} al {tariffa.unita === "settimana" ? "settimana" : "giorno"}
+                </Text>
+              </View>
+              <View style={styles.rowLast}>
+                <Text style={styles.cellLabel}>{tariffa.stimato ? "Totale stimato" : "Totale"}</Text>
+                <Text style={styles.cellValue}>{fmtEuro(tariffa.totale)}</Text>
+              </View>
+            </View>
+          </>
+        ) : null}
 
         <View style={styles.noteBox}>
           <Text style={styles.noteLabel}>Note</Text>
