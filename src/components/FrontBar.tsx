@@ -4,7 +4,7 @@ interface FrontBarProps {
   logoUrl?: string | null;
 }
 
-/** Barra sottile in cima alle pagine del fronte banco (Commesse, Fidelity,
+/** Barra sottile in cima alle pagine di Operatore banco (Commesse, Fidelity,
  * Clienti): stesso brand della home, ma pensata per stare sopra il
  * contenuto normale della pagina invece che come schermata a sé. */
 export function FrontBar({ logoUrl }: FrontBarProps) {

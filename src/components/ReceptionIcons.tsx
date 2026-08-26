@@ -1,6 +1,7 @@
-/** Icone della home fronte banco: stroke-only, stessa famiglia visiva,
- * costruite con primitive semplici (cerchi/linee/rettangoli) invece di
- * path complessi, apposta per restare nitide a qualunque dimensione. */
+/** Icone condivise tra la home Operatore banco e la sidebar di
+ * amministrazione: stroke-only, stessa famiglia visiva, costruite con
+ * primitive semplici (cerchi/linee/rettangoli) invece di path complessi,
+ * apposta per restare nitide a qualunque dimensione. */
 
 const SHARED = {
   fill: "none",
@@ -46,6 +47,27 @@ export function IconClienti() {
     <svg viewBox="0 0 24 24" {...SHARED}>
       <circle cx="12" cy="8" r="3.2" />
       <path d="M6 19c0-3.5 2.7-6 6-6s6 2.5 6 6" />
+    </svg>
+  );
+}
+
+export function IconMagazzino() {
+  return (
+    <svg viewBox="0 0 24 24" {...SHARED}>
+      <rect x="4" y="5" width="16" height="14" rx="1.5" />
+      <line x1="4" y1="11" x2="20" y2="11" />
+      <line x1="4" y1="16" x2="20" y2="16" />
+    </svg>
+  );
+}
+
+export function IconImpostazioni() {
+  return (
+    <svg viewBox="0 0 24 24" {...SHARED}>
+      <line x1="5" y1="8" x2="19" y2="8" />
+      <circle cx="14" cy="8" r="1.8" />
+      <line x1="5" y1="16" x2="19" y2="16" />
+      <circle cx="10" cy="16" r="1.8" />
     </svg>
   );
 }

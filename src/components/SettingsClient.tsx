@@ -184,8 +184,8 @@ export function SettingsClient({
               onChange={(e) => setSettings({ ...settings, condizioniGenerali: e.target.value })}
             />
             <p className="hint">
-              Segnaposto: fai rivedere questo testo da un commercialista o consulente prima di
-              usarlo con i clienti — non è una clausola legale già verificata.
+              Fai rivedere questo testo da un commercialista o consulente prima di
+              usarlo con i clienti — non è ancora una clausola legale verificata.
             </p>
           </div>
 
@@ -197,7 +197,7 @@ export function SettingsClient({
               onChange={(e) => setSettings({ ...settings, informativaPrivacy: e.target.value })}
             />
             <p className="hint">
-              Segnaposto: fai rivedere questo testo da un legale o consulente privacy prima di
+              Fai rivedere questo testo da un legale o consulente privacy prima di
               usarlo con i clienti — in particolare i tempi di conservazione dei dati e
               l&apos;eventuale trattamento di categorie particolari di dati (es. informazioni
               sanitarie che l&apos;ausilio noleggiato può far emergere indirettamente).
@@ -273,7 +273,7 @@ export function SettingsClient({
               onChange={(e) => setSettings({ ...settings, regolamentoFedelta: e.target.value })}
             />
             <p className="hint">
-              Segnaposto: fai rivedere questo testo da un consulente prima di usarlo con i clienti.
+              Fai rivedere questo testo da un consulente prima di usarlo con i clienti.
             </p>
           </div>
 
@@ -285,7 +285,7 @@ export function SettingsClient({
               onChange={(e) => setSettings({ ...settings, informativaPrivacyFedelta: e.target.value })}
             />
             <p className="hint">
-              Segnaposto ispirato al modulo di adesione già in uso: fai rivedere questo testo da un
+              Ispirato al modulo di adesione già in uso: fai rivedere questo testo da un
               legale prima di usarlo con i clienti — è diverso dall&apos;informativa privacy del
               noleggio (Azienda) perché parla di dati e finalità della carta fedeltà, non
               dell&apos;ausilio noleggiato.

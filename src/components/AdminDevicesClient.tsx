@@ -425,10 +425,23 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
         ) : (
           <div className="attention-list">
             {alerts.map((a, i) => (
-              <div key={i} className="attention-item" style={{ background: "var(--accent-bg)" }}>
+              <div
+                key={i}
+                className="attention-item clickable"
+                style={{ background: "var(--accent-bg)" }}
+                onClick={a.onClick}
+              >
                 <span className="attention-dot" style={{ background: a.color }} />
                 <span className="attention-text">{a.text}</span>
-                <button className="attention-link" style={{ color: a.color }} type="button" onClick={a.onClick}>
+                <button
+                  className="attention-link"
+                  style={{ color: a.color }}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    a.onClick();
+                  }}
+                >
                   Vedi →
                 </button>
               </div>

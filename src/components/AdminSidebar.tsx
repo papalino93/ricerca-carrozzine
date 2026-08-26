@@ -3,21 +3,29 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+  IconClienti,
+  IconCommessa,
+  IconFidelity,
+  IconImpostazioni,
+  IconMagazzino,
+  IconNoleggio,
+} from "./ReceptionIcons";
 
 interface AdminSidebarProps {
   logoUrl?: string | null;
 }
 
 // Gestione e configurazione (il "dietro le quinte"): il lavoro di ogni
-// giorno al banco vive altrove, vedi il link "Vai al fronte banco" più
-// sotto — qui restano le stesse aree ma con il dettaglio in più che serve
-// per la configurazione (tariffe, controllo qualità sulle commesse, ecc.).
+// giorno al banco vive altrove, vedi il link "Operatore banco" più sotto —
+// qui restano le stesse aree ma con il dettaglio in più che serve per la
+// configurazione (tariffe, controllo qualità sulle commesse, ecc.).
 const NAV_ITEMS = [
-  { href: "/admin", label: "Magazzino" },
-  { href: "/admin/registro", label: "Registro noleggi" },
-  { href: "/admin/commesse", label: "Commesse" },
-  { href: "/admin/clienti", label: "Clienti" },
-  { href: "/admin/fidelity", label: "Fidelity" },
+  { href: "/admin", label: "Magazzino", icon: <IconMagazzino /> },
+  { href: "/admin/registro", label: "Registro noleggi", icon: <IconNoleggio /> },
+  { href: "/admin/commesse", label: "Commesse", icon: <IconCommessa /> },
+  { href: "/admin/clienti", label: "Clienti", icon: <IconClienti /> },
+  { href: "/admin/fidelity", label: "Fidelity", icon: <IconFidelity /> },
 ];
 
 export function AdminSidebar({ logoUrl }: AdminSidebarProps) {
@@ -32,10 +40,7 @@ export function AdminSidebar({ logoUrl }: AdminSidebarProps) {
         <Link href="/admin" className="admin-sidebar-brand" onClick={() => setOpen(false)}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={logoUrl || "/logo.png"} alt="" />
-          <div>
-            <div className="name">Ricerca Ausili</div>
-            <p className="eyebrow">Amministrazione</p>
-          </div>
+          <p className="eyebrow">Amministrazione</p>
         </Link>
         <button
           type="button"
@@ -56,22 +61,26 @@ export function AdminSidebar({ logoUrl }: AdminSidebarProps) {
               className={`admin-sidebar-link ${pathname === item.href ? "active" : ""}`}
               onClick={() => setOpen(false)}
             >
+              <span className="admin-sidebar-icon">{item.icon}</span>
               {item.label}
             </Link>
           ))}
         </nav>
         <div className="admin-sidebar-divider" />
-        <Link
-          href="/admin/impostazioni"
-          className={`admin-sidebar-link muted ${pathname === "/admin/impostazioni" ? "active" : ""}`}
-          onClick={() => setOpen(false)}
-        >
-          ⚙ Impostazioni
-        </Link>
         <Link href="/" className="admin-sidebar-link muted" onClick={() => setOpen(false)}>
-          Vai al fronte banco ↗
+          Operatore banco ↗
         </Link>
       </div>
+      <Link
+        href="/admin/impostazioni"
+        className={`admin-sidebar-link muted admin-sidebar-footer ${pathname === "/admin/impostazioni" ? "active" : ""}`}
+        onClick={() => setOpen(false)}
+      >
+        <span className="admin-sidebar-icon">
+          <IconImpostazioni />
+        </span>
+        Impostazioni
+      </Link>
     </aside>
   );
 }

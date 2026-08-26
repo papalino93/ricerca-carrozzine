@@ -6,7 +6,7 @@ interface FidelityViewProps {
   clients: ClientRecord[];
   settings: CompanySettings;
   /** Le due sezioni operative collegate cambiano indirizzo a seconda di dove
-   * si vede questa vista (fronte banco vs amministrazione), Impostazioni
+   * si vede questa vista (Operatore banco vs amministrazione), Impostazioni
    * invece vive sempre e solo in amministrazione. */
   commesseHref: string;
   clientiHref: string;
