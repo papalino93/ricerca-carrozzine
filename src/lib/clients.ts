@@ -129,6 +129,49 @@ export async function listClients(): Promise<ClientRecord[]> {
 }
 
 /**
+ * Crea un nuovo cliente da zero (iscrizione manuale al banco o alla
+ * fidelity card): a differenza di upsertClient, qui un nome già esistente è
+ * un errore, non un aggiornamento — evita di creare per sbaglio un
+ * duplicato quando si intendeva invece cercare il cliente già in anagrafica.
+ */
+export async function createClient(input: {
+  nome: string;
+  cellulare: string | null;
+  email: string | null;
+  fidelity: string | null;
+  indirizzo: string | null;
+}): Promise<ClientRecord[]> {
+  const nome = input.nome.trim();
+  if (!nome) throw new Error("Nome obbligatorio");
+  const clients = await readClients();
+  if (clients.some((c) => c.nome.toLowerCase() === nome.toLowerCase())) {
+    throw new Error(`"${nome}" esiste già in anagrafica`);
+  }
+  clients.push({
+    nome,
+    telefono: null,
+    ultimoContratto: null,
+    ultimoNoleggio: null,
+    cognome: null,
+    nomeProprio: null,
+    sesso: null,
+    indirizzo: input.indirizzo || null,
+    cap: null,
+    localita: null,
+    provincia: null,
+    cellulare: input.cellulare || null,
+    email: input.email || null,
+    dataNascita: null,
+    luogoNascita: null,
+    fidelity: input.fidelity || null,
+    categoria: null,
+    punti: 0,
+  });
+  await writeSheet(TAB, [HEADER, ...clients.map(toRow)]);
+  return clients;
+}
+
+/**
  * Crea o aggiorna la riga del cliente con i dati più recenti noti (stesso
  * nome, case-insensitive). Chiamata da rentDevice: aggiorna solo i campi che
  * conosce (nome/telefono/noleggio), lasciando intatta l'eventuale anagrafica

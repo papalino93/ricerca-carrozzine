@@ -26,6 +26,10 @@ function fmtDate(iso: string): string {
   return `${d}/${m}/${y}`;
 }
 
+function emptyNewClientForm() {
+  return { nome: "", cellulare: "", email: "", fidelity: "", indirizzo: "" };
+}
+
 export function ClientsClient({ clients: initialClients, history, devices }: ClientsClientProps) {
   const [clients, setClients] = useState(initialClients);
   const [query, setQuery] = useState("");
@@ -34,6 +38,9 @@ export function ClientsClient({ clients: initialClients, history, devices }: Cli
   const [importing, setImporting] = useState(false);
   const [puntiDelta, setPuntiDelta] = useState("");
   const [adjustingPunti, setAdjustingPunti] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [newClientForm, setNewClientForm] = useState(emptyNewClientForm);
+  const [savingNewClient, setSavingNewClient] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -61,6 +68,35 @@ export function ClientsClient({ clients: initialClients, history, devices }: Cli
     } finally {
       setImporting(false);
       if (importInputRef.current) importInputRef.current.value = "";
+    }
+  }
+
+  async function handleCreateClient(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newClientForm.nome.trim()) return;
+    setSavingNewClient(true);
+    try {
+      const res = await fetch("/api/clienti", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nome: newClientForm.nome,
+          cellulare: newClientForm.cellulare || null,
+          email: newClientForm.email || null,
+          fidelity: newClientForm.fidelity || null,
+          indirizzo: newClientForm.indirizzo || null,
+        }),
+      });
+      const body = await readJson(res);
+      if (!res.ok) throw new Error(body.error || "Creazione non riuscita");
+      setClients(body.clients);
+      showToast(`"${newClientForm.nome}" aggiunto in anagrafica`);
+      setNewClientForm(emptyNewClientForm());
+      setCreating(false);
+    } catch (err) {
+      showToast((err as Error).message);
+    } finally {
+      setSavingNewClient(false);
     }
   }
 
@@ -152,6 +188,13 @@ export function ClientsClient({ clients: initialClients, history, devices }: Cli
         />
         <div className="card-actions">
           <button
+            className="btn primary"
+            type="button"
+            onClick={() => setCreating((v) => !v)}
+          >
+            {creating ? "Annulla" : "+ Nuovo cliente"}
+          </button>
+          <button
             className="btn"
             type="button"
             onClick={() => importInputRef.current?.click()}
@@ -171,6 +214,59 @@ export function ClientsClient({ clients: initialClients, history, devices }: Cli
           Formato export fedelta.store: abbina i clienti già presenti per nome e cognome, senza
           duplicarli — aggiunge indirizzo, email, data di nascita e numero fidelity.
         </p>
+
+        {creating ? (
+          <form onSubmit={handleCreateClient} style={{ marginTop: 16 }}>
+            <div className="field">
+              <label>Nome e cognome</label>
+              <input
+                value={newClientForm.nome}
+                onChange={(e) => setNewClientForm({ ...newClientForm, nome: e.target.value })}
+                required
+                autoFocus
+              />
+            </div>
+            <div className="field-row">
+              <div className="field">
+                <label>Cellulare</label>
+                <input
+                  value={newClientForm.cellulare}
+                  onChange={(e) => setNewClientForm({ ...newClientForm, cellulare: e.target.value })}
+                />
+              </div>
+              <div className="field">
+                <label>Email</label>
+                <input
+                  type="email"
+                  value={newClientForm.email}
+                  onChange={(e) => setNewClientForm({ ...newClientForm, email: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="field-row">
+              <div className="field">
+                <label>Numero tessera fedeltà</label>
+                <input
+                  value={newClientForm.fidelity}
+                  onChange={(e) => setNewClientForm({ ...newClientForm, fidelity: e.target.value })}
+                  placeholder="lascia vuoto se non richiesta"
+                />
+              </div>
+              <div className="field">
+                <label>Indirizzo</label>
+                <input
+                  value={newClientForm.indirizzo}
+                  onChange={(e) => setNewClientForm({ ...newClientForm, indirizzo: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="card-actions">
+              <button className="btn primary" type="submit" disabled={savingNewClient}>
+                {savingNewClient ? "Creazione…" : "Crea cliente"}
+              </button>
+            </div>
+          </form>
+        ) : null}
       </div>
 
       {filtered.length === 0 ? (

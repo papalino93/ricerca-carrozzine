@@ -1,8 +1,41 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireBasicAuth } from "@/lib/basic-auth";
-import { adjustClientPunti, deleteClient } from "@/lib/clients";
+import { adjustClientPunti, createClient, deleteClient } from "@/lib/clients";
 
 export const runtime = "nodejs";
+
+// Crea un nuovo cliente in anagrafica (es. nuova iscrizione fidelity senza
+// che sia già passato da un noleggio o una commessa).
+export async function POST(req: NextRequest) {
+  const unauthorized = await requireBasicAuth(req);
+  if (unauthorized) return unauthorized;
+
+  try {
+    const body = (await req.json()) as {
+      nome?: string;
+      cellulare?: string | null;
+      email?: string | null;
+      fidelity?: string | null;
+      indirizzo?: string | null;
+    };
+    if (!body.nome || !body.nome.trim()) {
+      return NextResponse.json({ error: "Nome obbligatorio" }, { status: 400 });
+    }
+    const clients = await createClient({
+      nome: body.nome,
+      cellulare: body.cellulare || null,
+      email: body.email || null,
+      fidelity: body.fidelity || null,
+      indirizzo: body.indirizzo || null,
+    });
+    return NextResponse.json({ clients });
+  } catch (err) {
+    return NextResponse.json(
+      { error: (err as Error).message },
+      { status: 400 }
+    );
+  }
+}
 
 // Rettifica manuale dei punti fedeltà (es. una vendita non passata da
 // Commesse, o una correzione): {nome, delta}. L'accredito automatico da una
