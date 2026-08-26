@@ -9,13 +9,24 @@ export interface DocumentLogEntry {
   numeroContratto: string | null;
   cliente: string | null;
   telefono: string | null;
+  /** Link Drive al PDF firmato, solo se generato con firma digitale (vedi
+   * drive.ts) — assente per i documenti scaricati "di carta" come sempre. */
+  driveUrl?: string | null;
 }
 
 const TAB = "Documenti";
-const HEADER = ["Data", "Tipo", "Codice", "NumeroContratto", "Cliente", "Telefono"];
+const HEADER = ["Data", "Tipo", "Codice", "NumeroContratto", "Cliente", "Telefono", "DriveUrl"];
 
 function toRow(e: DocumentLogEntry): string[] {
-  return [e.data, e.tipo, e.codice, e.numeroContratto ?? "", e.cliente ?? "", e.telefono ?? ""];
+  return [
+    e.data,
+    e.tipo,
+    e.codice,
+    e.numeroContratto ?? "",
+    e.cliente ?? "",
+    e.telefono ?? "",
+    e.driveUrl ?? "",
+  ];
 }
 
 /**

@@ -45,6 +45,11 @@ export interface VerbaleDocumentProps {
   /** Assente per scelta esplicita dell'operatore (vedi DocumentPanel): niente
    * riquadro tariffa/totale sul documento se non è stato spuntato. */
   tariffa?: TariffaDocumento | null;
+  /** Firme come PNG data URI (vedi SignaturePad): assenti finché il Drive di
+   * archiviazione non è configurato, o se non si è firmato su schermo — in
+   * quel caso restano le righe vuote da firmare a penna, come sempre. */
+  firmaClienteUrl?: string | null;
+  firmaOperatoreUrl?: string | null;
 }
 
 const styles = StyleSheet.create({
@@ -185,6 +190,11 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     height: 34,
   },
+  signatureImage: {
+    height: 34,
+    marginBottom: 6,
+    objectFit: "contain",
+  },
   signatureLabel: {
     fontSize: 9,
     color: INK_SOFT,
@@ -229,6 +239,8 @@ export function VerbaleDocument({
   note,
   alPrevisto,
   tariffa,
+  firmaClienteUrl,
+  firmaOperatoreUrl,
 }: VerbaleDocumentProps) {
   const hasLogo = Boolean(settings.logoUrl);
 
@@ -353,11 +365,21 @@ export function VerbaleDocument({
 
         <View style={styles.signatureRow}>
           <View style={styles.signatureBlock}>
-            <View style={styles.signatureLine} />
+            {firmaClienteUrl ? (
+              // eslint-disable-next-line jsx-a11y/alt-text
+              <Image style={styles.signatureImage} src={firmaClienteUrl} />
+            ) : (
+              <View style={styles.signatureLine} />
+            )}
             <Text style={styles.signatureLabel}>Firma cliente</Text>
           </View>
           <View style={styles.signatureBlock}>
-            <View style={styles.signatureLine} />
+            {firmaOperatoreUrl ? (
+              // eslint-disable-next-line jsx-a11y/alt-text
+              <Image style={styles.signatureImage} src={firmaOperatoreUrl} />
+            ) : (
+              <View style={styles.signatureLine} />
+            )}
             <Text style={styles.signatureLabel}>Firma operatore</Text>
           </View>
         </View>

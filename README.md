@@ -140,6 +140,19 @@ Vedi `.env.example`. In sintesi:
 - `ADMIN_USER` / `ADMIN_PASSWORD` — credenziali "principali" della Basic
   Auth per `/admin`. Sono le uniche che funzionano anche se il foglio
   Google non è raggiungibile (utili come accesso di emergenza).
+- `GOOGLE_SHEETS_BACKUP_SPREADSHEET_ID` — facoltativa. ID di un SECONDO
+  foglio Google Sheets, separato da quello principale (idealmente in un
+  account Google diverso), condiviso con lo stesso `client_email` e usato
+  solo come destinazione di backup (vedi Impostazioni → Backup). Senza,
+  il backup continua a scrivere solo nel foglio principale, come sempre.
+- `GOOGLE_DRIVE_FOLDER_ID` — facoltativa. ID di una cartella Google Drive
+  (dall'URL: `https://drive.google.com/drive/folders/{QUESTO_È_L_ID}`),
+  condivisa con lo stesso `client_email` come **Editor**, dove archiviare i
+  verbali firmati digitalmente (vedi "Genera documento" → Firma digitale).
+  Serve anche abilitare la **Google Drive API** sullo stesso progetto
+  Google Cloud usato per Sheets. Senza questa variabile, la sezione di
+  firma digitale resta nascosta e tutto funziona come prima (verbale da
+  scaricare e stampare).
 
 ## Autorizzare altri utenti
 

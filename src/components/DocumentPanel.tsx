@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Device } from "@/lib/devices";
 import type { DocumentoTipo } from "@/lib/pdf/VerbaleDocument";
 import { calcolaTotale, fmtEuro, giorniTra } from "@/lib/tariffe-types";
+import { SignaturePad } from "./SignaturePad";
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
@@ -41,8 +42,23 @@ export function DocumentPanel({ device, onClose, forcedTipo }: DocumentPanelProp
   // promemoria per l'operatore: di default NON finisce sul documento
   // stampato, va deciso ogni volta con questo interruttore.
   const [includiTariffa, setIncludiTariffa] = useState(false);
+  // Sezione firma digitale nascosta finché non sappiamo se c'è una cartella
+  // Drive dove archiviare il PDF firmato (vedi drive.ts): senza, mostrare i
+  // riquadri di firma sarebbe una funzione che sembra esserci ma non salva
+  // da nessuna parte oltre al download del momento.
+  const [driveConfigured, setDriveConfigured] = useState(false);
+  const [firmaCliente, setFirmaCliente] = useState<string | null>(null);
+  const [firmaOperatore, setFirmaOperatore] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [driveUrl, setDriveUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/drive-status")
+      .then((res) => res.json())
+      .then((body) => setDriveConfigured(Boolean(body.configurato)))
+      .catch(() => setDriveConfigured(false));
+  }, []);
 
   const hasTariffa = device.tariffaApplicata != null && device.tariffaUnita != null;
   // Sul verbale di restituzione, "data" è il rientro reale: il totale è
@@ -60,6 +76,7 @@ export function DocumentPanel({ device, onClose, forcedTipo }: DocumentPanelProp
   async function handleDownload() {
     setLoading(true);
     setError(null);
+    setDriveUrl(null);
     try {
       const res = await fetch("/api/documento", {
         method: "POST",
@@ -87,12 +104,16 @@ export function DocumentPanel({ device, onClose, forcedTipo }: DocumentPanelProp
                   stimato: totaleStimato,
                 }
               : null,
+          firmaCliente: driveConfigured ? firmaCliente : null,
+          firmaOperatore: driveConfigured ? firmaOperatore : null,
         }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || "Generazione del PDF non riuscita");
       }
+      const uploadedUrl = res.headers.get("X-Drive-Url");
+      if (uploadedUrl) setDriveUrl(uploadedUrl);
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -225,6 +246,27 @@ export function DocumentPanel({ device, onClose, forcedTipo }: DocumentPanelProp
           />
         </div>
 
+        {driveConfigured ? (
+          <div className="panel" style={{ margin: "0 0 16px" }}>
+            <h2>Firma digitale (facoltativa)</h2>
+            <p className="hint" style={{ marginBottom: 10 }}>
+              Se firmate qui sotto, il verbale viene generato con le firme incluse e salvato
+              automaticamente su Drive. Senza firme, funziona come sempre: un PDF da stampare.
+            </p>
+            <SignaturePad label="Firma cliente" onChange={setFirmaCliente} />
+            <SignaturePad label="Firma operatore" onChange={setFirmaOperatore} />
+          </div>
+        ) : null}
+
+        {driveUrl ? (
+          <div className="banner" style={{ borderColor: "var(--ok-line)", color: "var(--ok-fg)" }}>
+            Verbale firmato salvato su Drive.{" "}
+            <a href={driveUrl} target="_blank" rel="noreferrer">
+              Apri il documento ↗
+            </a>
+          </div>
+        ) : null}
+
         <div className="doc-preview">
           <div>
             <b>{device.marca} {device.modello}</b> · {device.categoria}
@@ -238,7 +280,11 @@ export function DocumentPanel({ device, onClose, forcedTipo }: DocumentPanelProp
             Annulla
           </button>
           <button className="btn primary" onClick={handleDownload} disabled={loading} type="button">
-            {loading ? "Generazione…" : "Scarica PDF"}
+            {loading
+              ? "Generazione…"
+              : driveConfigured && (firmaCliente || firmaOperatore)
+                ? "Genera, firma e salva"
+                : "Scarica PDF"}
           </button>
         </div>
       </div>
