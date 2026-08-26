@@ -78,7 +78,7 @@ export default async function ReceptionPage() {
 
         <div className="reception-grid">
           {CARDS.map((c) => (
-            <Link key={c.href} href={c.href} className="reception-card">
+            <Link key={c.href} href={c.href} className={`reception-card reception-card-${c.color}`}>
               <span className={`reception-icon reception-icon-${c.color}`}>{c.icon}</span>
               <span className="reception-label">{c.label}</span>
               <span className="reception-sub">{c.sub}</span>
