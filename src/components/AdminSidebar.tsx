@@ -8,12 +8,16 @@ interface AdminSidebarProps {
   logoUrl?: string | null;
 }
 
+// L'operatività di ogni giorno: separata da Impostazioni (configurazione
+// tecnica), che vive a parte più sotto — vedi la home (/admin) per il
+// perché di questa distinzione.
 const NAV_ITEMS = [
-  { href: "/admin", label: "Magazzino" },
+  { href: "/admin", label: "Home" },
+  { href: "/admin/magazzino", label: "Magazzino" },
   { href: "/admin/registro", label: "Registro noleggi" },
   { href: "/admin/commesse", label: "Commesse" },
   { href: "/admin/clienti", label: "Clienti" },
-  { href: "/admin/impostazioni", label: "Impostazioni" },
+  { href: "/admin/fidelity", label: "Fidelity" },
 ];
 
 export function AdminSidebar({ logoUrl }: AdminSidebarProps) {
@@ -25,14 +29,14 @@ export function AdminSidebar({ logoUrl }: AdminSidebarProps) {
   return (
     <aside className="admin-sidebar">
       <div className="admin-sidebar-top">
-        <div className="admin-sidebar-brand">
+        <Link href="/admin" className="admin-sidebar-brand" onClick={() => setOpen(false)}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={logoUrl || "/logo.png"} alt="" />
           <div>
             <div className="name">Ricerca Ausili</div>
             <p className="eyebrow">Amministrazione</p>
           </div>
-        </div>
+        </Link>
         <button
           type="button"
           className="admin-sidebar-toggle"
@@ -57,6 +61,13 @@ export function AdminSidebar({ logoUrl }: AdminSidebarProps) {
           ))}
         </nav>
         <div className="admin-sidebar-divider" />
+        <Link
+          href="/admin/impostazioni"
+          className={`admin-sidebar-link muted ${pathname === "/admin/impostazioni" ? "active" : ""}`}
+          onClick={() => setOpen(false)}
+        >
+          ⚙ Impostazioni
+        </Link>
         <Link href="/" className="admin-sidebar-link muted" onClick={() => setOpen(false)}>
           Vai alla ricerca ↗
         </Link>

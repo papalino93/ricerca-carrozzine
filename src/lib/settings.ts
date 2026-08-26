@@ -22,6 +22,10 @@ export interface CompanySettings {
   /** Regolamento del programma fedeltà, stampato sul modulo di adesione da
    * far firmare a un nuovo iscritto (vedi FidelityModule.tsx). */
   regolamentoFedelta: string;
+  /** Informativa privacy specifica per l'adesione alla carta fedeltà (art.
+   * 13 GDPR): distinta da informativaPrivacy perché parla di dati raccolti
+   * e finalità della tessera fedeltà, non del noleggio di un ausilio. */
+  informativaPrivacyFedelta: string;
 }
 
 const TAB = "Impostazioni";
@@ -37,6 +41,7 @@ const HEADER = [
   "SogliaPremioPunti",
   "SogliaPremioEuro",
   "RegolamentoFedelta",
+  "InformativaPrivacyFedelta",
 ];
 
 // Segnaposto: NON è una clausola legale valida, va rivista da un
@@ -62,6 +67,13 @@ const DEFAULT_SOGLIA_PREMIO_EURO = 25;
 export const DEFAULT_REGOLAMENTO_FEDELTA =
   "Regolamento Carta Fedeltà. L'adesione al programma fedeltà è gratuita e riservata ai clienti maggiorenni. Per ogni euro speso in negozio (vendite e riparazioni) viene accreditato 1 punto sulla tessera del cliente. I punti sono personali, non cedibili e non convertibili in denaro. Raggiunta la soglia indicata sul retro/in negozio, i punti possono essere utilizzati come sconto sui prodotti o servizi disponibili, a discrezione del negozio. La tessera e i punti non hanno scadenza salvo comunicazione contraria esposta in negozio. Il negozio si riserva il diritto di modificare il regolamento dandone comunicazione ai clienti iscritti. [Testo segnaposto: da far verificare da un consulente prima dell'uso reale con i clienti.]";
 
+// Segnaposto ispirato al modulo di adesione fedeltà realmente già in uso
+// (stessa struttura art. 13 GDPR, incluso il periodo di conservazione di 24
+// mesi): da far verificare da un legale prima dell'uso reale, in
+// particolare l'eventuale trattamento di categorie particolari di dati.
+export const DEFAULT_INFORMATIVA_PRIVACY_FEDELTA =
+  "Informativa privacy (art. 13 Regolamento UE 2016/679) — Adesione alla Carta Fedeltà. Titolare del trattamento: la ragione sociale indicata in testa a questo documento, contattabile ai recapiti indicati. 1) Dati raccolti: nome, cognome, sesso, data e luogo di nascita, indirizzo, telefono, email, acquisti effettuati. 2) Modalità: il trattamento avviene con strumenti informatici e/o cartacei, con misure adeguate a tutelarne sicurezza e riservatezza. 3) Finalità: a) rilascio della Carta Fedeltà e gestione delle attività necessarie a consentire la fruizione di sconti, promozioni, premi e la partecipazione alla raccolta punti; b) solo previo consenso specifico, attività di marketing diretto (es. invio di comunicazioni promozionali via email, SMS); c) solo previo consenso specifico, attività di profilazione (es. analisi delle abitudini d'acquisto). 4) Natura del conferimento: per la finalità a) il conferimento è necessario al rilascio della tessera; per le finalità b) e c) è facoltativo e il rifiuto non pregiudica il rilascio della tessera né l'accesso ai suoi benefici. 5) Ambito di diffusione: i dati sono trattati da personale autorizzato e da eventuali fornitori di servizi informatici di cui il titolare si avvale, e non sono diffusi a terzi salvo obblighi di legge. 6) Periodo di conservazione: per la durata del programma fedeltà e comunque non oltre 24 mesi dall'ultimo movimento, salvo termini più lunghi imposti da obblighi di legge. 7) Diritti dell'interessato: accesso, rettifica, cancellazione, limitazione, portabilità e opposizione al trattamento, esercitabili in ogni momento contattando il titolare. [Testo segnaposto: da far verificare e integrare da un legale o consulente privacy prima dell'uso reale con i clienti.]";
+
 const EMPTY_SETTINGS: CompanySettings = {
   ragioneSociale: "",
   indirizzo: "",
@@ -74,6 +86,7 @@ const EMPTY_SETTINGS: CompanySettings = {
   sogliaPremioPunti: DEFAULT_SOGLIA_PREMIO_PUNTI,
   sogliaPremioEuro: DEFAULT_SOGLIA_PREMIO_EURO,
   regolamentoFedelta: DEFAULT_REGOLAMENTO_FEDELTA,
+  informativaPrivacyFedelta: DEFAULT_INFORMATIVA_PRIVACY_FEDELTA,
 };
 
 // `Number(v) || fallback` tratterebbe un valore salvato apposta come 0 (es.
@@ -101,6 +114,7 @@ export async function getSettings(): Promise<CompanySettings> {
     sogliaPremioPunti,
     sogliaPremioEuro,
     regolamentoFedelta,
+    informativaPrivacyFedelta,
   ] = row;
 
   return {
@@ -115,6 +129,7 @@ export async function getSettings(): Promise<CompanySettings> {
     sogliaPremioPunti: numOrDefault(sogliaPremioPunti, DEFAULT_SOGLIA_PREMIO_PUNTI),
     sogliaPremioEuro: numOrDefault(sogliaPremioEuro, DEFAULT_SOGLIA_PREMIO_EURO),
     regolamentoFedelta: regolamentoFedelta || DEFAULT_REGOLAMENTO_FEDELTA,
+    informativaPrivacyFedelta: informativaPrivacyFedelta || DEFAULT_INFORMATIVA_PRIVACY_FEDELTA,
   };
 }
 
@@ -137,6 +152,11 @@ export async function saveSettings(settings: CompanySettings): Promise<void> {
   if (settings.regolamentoFedelta.length > MAX_CONDIZIONI_LENGTH) {
     throw new Error(
       `Il regolamento fedeltà supera i ${MAX_CONDIZIONI_LENGTH} caratteri: abbrevialo prima di salvare.`
+    );
+  }
+  if (settings.informativaPrivacyFedelta.length > MAX_CONDIZIONI_LENGTH) {
+    throw new Error(
+      `L'informativa privacy fedeltà supera i ${MAX_CONDIZIONI_LENGTH} caratteri: abbreviala prima di salvare.`
     );
   }
   if (!(settings.puntiPerEuro >= 0) || !(settings.sogliaPremioPunti >= 0) || !(settings.sogliaPremioEuro >= 0)) {
@@ -164,6 +184,7 @@ export async function saveSettings(settings: CompanySettings): Promise<void> {
       String(settings.sogliaPremioPunti),
       String(settings.sogliaPremioEuro),
       settings.regolamentoFedelta,
+      settings.informativaPrivacyFedelta,
     ],
   ]);
 }

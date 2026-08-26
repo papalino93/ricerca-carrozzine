@@ -200,7 +200,7 @@ export function FidelityModule({ settings }: FidelityModuleProps) {
         <Text style={styles.bodyText}>{settings.regolamentoFedelta}</Text>
 
         <Text style={styles.sectionLabel}>Informativa privacy</Text>
-        <Text style={styles.bodyText}>{settings.informativaPrivacy}</Text>
+        <Text style={styles.bodyText}>{settings.informativaPrivacyFedelta}</Text>
 
         <View style={styles.consentRow}>
           <Text style={styles.consentText}>

@@ -153,6 +153,150 @@ h1 {
   flex-wrap: wrap;
 }
 
+/* ---------- Home (dashboard admin) ---------- */
+.hub-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.hub-top h1 {
+  margin: 0 0 4px;
+}
+
+.hub-settings-link {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  text-decoration: none;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.hub-settings-link:hover {
+  background: var(--surface-2, #f2f5f0);
+  color: var(--ink);
+}
+
+.hub-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 640px) {
+  .hub-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.hub-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: 22px;
+  text-decoration: none;
+  color: var(--ink);
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.hub-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px -16px rgba(23, 48, 27, 0.35);
+}
+
+.hub-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.hub-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 19px;
+  flex: none;
+}
+
+.hub-icon-info {
+  background: var(--rent-bg);
+  color: var(--rent-fg);
+}
+
+.hub-icon-warn {
+  background: var(--clean-bg);
+  color: var(--clean-fg);
+}
+
+.hub-icon-accent {
+  background: var(--accent-bg);
+  color: var(--accent-ink);
+}
+
+.hub-icon-purple {
+  background: var(--check-bg);
+  color: var(--check-fg);
+}
+
+.hub-flag {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.hub-flag-danger {
+  background: var(--broken-bg);
+  color: var(--broken-fg);
+}
+
+.hub-flag-warn {
+  background: var(--clean-bg);
+  color: var(--clean-fg);
+}
+
+.hub-flag-purple {
+  background: var(--check-bg);
+  color: var(--check-fg);
+}
+
+.hub-num {
+  font-family: var(--heading);
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1;
+  margin-top: 4px;
+}
+
+.hub-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.hub-cta {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-top: 2px;
+}
+
 .stepper {
   display: flex;
   align-items: center;
@@ -1088,6 +1232,7 @@ tr.clickable-row:hover td {
   padding: 0 8px 20px;
   margin-bottom: 8px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  text-decoration: none;
 }
 
 .admin-sidebar-top {

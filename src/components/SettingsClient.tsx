@@ -277,6 +277,21 @@ export function SettingsClient({
             </p>
           </div>
 
+          <div className="field">
+            <label>Informativa privacy fedeltà (stampata sul modulo di adesione)</label>
+            <textarea
+              rows={6}
+              value={settings.informativaPrivacyFedelta}
+              onChange={(e) => setSettings({ ...settings, informativaPrivacyFedelta: e.target.value })}
+            />
+            <p className="hint">
+              Segnaposto ispirato al modulo di adesione già in uso: fai rivedere questo testo da un
+              legale prima di usarlo con i clienti — è diverso dall&apos;informativa privacy del
+              noleggio (Azienda) perché parla di dati e finalità della carta fedeltà, non
+              dell&apos;ausilio noleggiato.
+            </p>
+          </div>
+
           <div className="card-actions">
             <button className="btn primary" type="submit" disabled={saving}>
               {saving ? "Salvataggio…" : "Salva impostazioni"}

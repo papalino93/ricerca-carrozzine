@@ -17,25 +17,35 @@ const STATUS_PILL: Record<CommessaRecord["stato"], string> = {
   ritirata: "archiviato",
 };
 
-const EMPTY_FORM = {
-  cliente: "",
-  indirizzo: "",
-  telefono: "",
-  cellulare: "",
-  vendita: false,
-  riparazione: false,
-  operatore: "",
-  richiesteParticolari: "",
-  dataOrdine: "",
-  dataRicezione: "",
-  consegnaPrevista: "",
-  acconto: "",
-  saldo: "",
-  richiestaMedica: false,
-  documentazione: false,
-  documentazioneDiagnostica: false,
-  altro: false,
-};
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+// Data ordine e data ricezione coincidono nella maggior parte dei casi (un
+// prodotto venduto o ritirato lì per lì): precompilarle a oggi invece di
+// lasciarle vuote toglie due click nel caso comune, restando comunque
+// modificabili per gli ordini che arrivano in un secondo momento.
+function emptyForm() {
+  return {
+    cliente: "",
+    indirizzo: "",
+    telefono: "",
+    cellulare: "",
+    vendita: false,
+    riparazione: false,
+    operatore: "",
+    richiesteParticolari: "",
+    dataOrdine: todayIso(),
+    dataRicezione: todayIso(),
+    consegnaPrevista: "",
+    acconto: "",
+    saldo: "",
+    richiestaMedica: false,
+    documentazione: false,
+    documentazioneDiagnostica: false,
+    altro: false,
+  };
+}
 
 type EditForm = {
   controlloFinale: "" | "ok" | "problema";
@@ -73,11 +83,12 @@ export function CommesseClient({ initialCommesse, puntiPerEuro }: CommesseClient
   const [commesse, setCommesse] = useState(initialCommesse);
   const [query, setQuery] = useState("");
   const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState(EMPTY_FORM);
+  const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<EditForm | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -124,7 +135,7 @@ export function CommesseClient({ initialCommesse, puntiPerEuro }: CommesseClient
       const body = await readJson(res);
       if (!res.ok) throw new Error(body.error || "Creazione non riuscita");
       setCommesse(body.commesse);
-      setForm(EMPTY_FORM);
+      setForm(emptyForm());
       setCreating(false);
       showToast(`Scheda n. ${body.commessa.numero} creata`);
     } catch (err) {
@@ -160,6 +171,26 @@ export function CommesseClient({ initialCommesse, puntiPerEuro }: CommesseClient
       showToast((err as Error).message);
     } finally {
       setSavingEdit(false);
+    }
+  }
+
+  async function handleDelete(c: CommessaRecord) {
+    if (!confirm(`Eliminare la scheda n. ${c.numero} (${c.cliente})? L'operazione non si può annullare.`)) return;
+    setDeleting(c.numero);
+    try {
+      const res = await fetch(`/api/commesse?numero=${encodeURIComponent(c.numero)}`, { method: "DELETE" });
+      const body = await readJson(res);
+      if (!res.ok) throw new Error(body.error || "Eliminazione non riuscita");
+      setCommesse(body.commesse);
+      if (open === c.numero) {
+        setOpen(null);
+        setEditForm(null);
+      }
+      showToast(`Scheda n. ${c.numero} eliminata`);
+    } catch (err) {
+      showToast((err as Error).message);
+    } finally {
+      setDeleting(null);
     }
   }
 
@@ -415,7 +446,7 @@ export function CommesseClient({ initialCommesse, puntiPerEuro }: CommesseClient
                                     onClick={() =>
                                       patchCommessa(
                                         c.numero,
-                                        { stato: "ritirata", ritirataIl: editForm.ritirataIl || new Date().toISOString().slice(0, 10) },
+                                        { stato: "ritirata", ritirataIl: editForm.ritirataIl || todayIso() },
                                         `Scheda n. ${c.numero} ritirata`
                                       )
                                     }
@@ -514,6 +545,22 @@ export function CommesseClient({ initialCommesse, puntiPerEuro }: CommesseClient
                                   onClick={() => handleSaveEdit(c)}
                                 >
                                   {savingEdit ? "Salvataggio…" : "Salva modifiche"}
+                                </button>
+                                <a
+                                  className="btn"
+                                  href={`/api/documento-commessa?numero=${encodeURIComponent(c.numero)}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                >
+                                  Scarica PDF
+                                </a>
+                                <button
+                                  className="btn danger"
+                                  type="button"
+                                  disabled={deleting === c.numero}
+                                  onClick={() => handleDelete(c)}
+                                >
+                                  {deleting === c.numero ? "…" : "Elimina"}
                                 </button>
                               </div>
                             </div>
