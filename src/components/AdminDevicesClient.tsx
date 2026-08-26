@@ -48,6 +48,13 @@ function daysSince(iso: string | null): number | null {
   return Math.round((Date.now() - new Date(iso).getTime()) / 86_400_000);
 }
 
+function fmtDate(iso: string | null): string {
+  if (!iso) return "—";
+  const [y, m, d] = iso.split("-");
+  if (!y || !m || !d) return iso;
+  return `${d}/${m}/${y}`;
+}
+
 /** Giorni da oggi a una data futura (negativo se già passata). */
 function daysUntil(iso: string | null): number | null {
   if (!iso) return null;
@@ -508,6 +515,7 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
               <th>Largh.</th>
               <th>Stato</th>
               <th>Cliente</th>
+              <th>Dal</th>
               <th className="sticky-col sticky-right">Azione</th>
             </tr>
           </thead>
@@ -540,6 +548,27 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
                   )}
                 </td>
                 <td>{d.cliente ?? "—"}</td>
+                <td>
+                  {d.stato === "noleggiato" && d.dal ? (
+                    <>
+                      {fmtDate(d.dal)}
+                      {(daysSince(d.dal) ?? 0) > LONG_RENTAL_DAYS ? (
+                        <span
+                          style={{
+                            display: "block",
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: STATUS_COLOR.guasto,
+                          }}
+                        >
+                          {daysSince(d.dal)} giorni
+                        </span>
+                      ) : null}
+                    </>
+                  ) : (
+                    "—"
+                  )}
+                </td>
                 <td className="action-cell sticky-col sticky-right">
                   {!d.archiviato && d.stato === "disponibile" ? (
                     <button

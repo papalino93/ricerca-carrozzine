@@ -166,6 +166,7 @@ export function ClientsClient({ clients: initialClients, history, devices }: Cli
                   <th></th>
                   <th>Nome</th>
                   <th>Telefono</th>
+                  <th>Fidelity</th>
                   <th>Ultimo noleggio</th>
                   <th>Ultimo n. noleggio</th>
                   <th>In corso</th>
@@ -184,7 +185,8 @@ export function ClientsClient({ clients: initialClients, history, devices }: Cli
                       >
                         <td>{isOpen ? "▾" : "▸"}</td>
                         <td>{c.nome}</td>
-                        <td>{c.telefono ?? "—"}</td>
+                        <td>{c.telefono ?? c.cellulare ?? "—"}</td>
+                        <td>{c.fidelity ?? "—"}</td>
                         <td>{c.ultimoNoleggio ? fmtDate(c.ultimoNoleggio) : "—"}</td>
                         <td>{c.ultimoContratto ?? "—"}</td>
                         <td>
@@ -207,7 +209,7 @@ export function ClientsClient({ clients: initialClients, history, devices }: Cli
                       </tr>
                       {isOpen ? (
                         <tr key={`${c.nome}-detail`}>
-                          <td colSpan={7}>
+                          <td colSpan={8}>
                             <div className="client-history">
                               {c.indirizzo || c.email || c.fidelity || c.dataNascita || c.cellulare ? (
                                 <div className="meta" style={{ marginBottom: 10 }}>
