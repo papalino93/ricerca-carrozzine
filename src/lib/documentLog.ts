@@ -1,6 +1,8 @@
 import "server-only";
-import { appendRow } from "./sheets";
+import { appendRow, readSheet } from "./sheets";
 import type { DocumentoTipo } from "./pdf/VerbaleDocument";
+
+const VALID_TIPI: DocumentoTipo[] = ["consegna", "restituzione"];
 
 export interface DocumentLogEntry {
   data: string; // ISO yyyy-mm-dd
@@ -27,6 +29,29 @@ function toRow(e: DocumentLogEntry): string[] {
     e.telefono ?? "",
     e.driveUrl ?? "",
   ];
+}
+
+function toEntry(row: string[]): DocumentLogEntry {
+  const [data, tipo, codice, numeroContratto, cliente, telefono, driveUrl] = row;
+  return {
+    data: data ?? "",
+    tipo: (VALID_TIPI as string[]).includes(tipo) ? (tipo as DocumentoTipo) : "consegna",
+    codice: codice ?? "",
+    numeroContratto: numeroContratto || null,
+    cliente: cliente || null,
+    telefono: telefono || null,
+    driveUrl: driveUrl || null,
+  };
+}
+
+/** Registro completo, più recenti prima — usato per ritrovare i verbali firmati (vedi Registro noleggi). */
+export async function listDocumentLog(): Promise<DocumentLogEntry[]> {
+  const rows = await readSheet(TAB);
+  return rows
+    .slice(1)
+    .filter((row) => row.length > 0 && row[0])
+    .map(toEntry)
+    .reverse();
 }
 
 /**

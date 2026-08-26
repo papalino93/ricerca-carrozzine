@@ -3,11 +3,16 @@
 import { useMemo, useState } from "react";
 import type { HistoryEvent } from "@/lib/history";
 import type { Device } from "@/lib/device-types";
+import type { DocumentLogEntry } from "@/lib/documentLog";
 import { matchesQuery } from "@/lib/search-match";
 
 interface RegistroClientProps {
   noleggi: HistoryEvent[];
   devices: Device[];
+  /** Solo i verbali generati con firma digitale (vedi DocumentPanel): la
+   * maggior parte dei noleggi non ne ha uno, e va bene così — il verbale
+   * "di carta" di sempre non viene mai archiviato da nessuna parte. */
+  firmeDrive: DocumentLogEntry[];
 }
 
 function fmtDate(iso: string): string {
@@ -16,7 +21,7 @@ function fmtDate(iso: string): string {
   return `${d}/${m}/${y}`;
 }
 
-export function RegistroClient({ noleggi, devices }: RegistroClientProps) {
+export function RegistroClient({ noleggi, devices, firmeDrive }: RegistroClientProps) {
   const [query, setQuery] = useState("");
   const [dal, setDal] = useState("");
   const [al, setAl] = useState("");
@@ -29,6 +34,18 @@ export function RegistroClient({ noleggi, devices }: RegistroClientProps) {
     for (const d of devices) map.set(d.codice, d);
     return map;
   }, [devices]);
+
+  // Chiave codice+numero noleggio: è la coppia che identifica un noleggio
+  // specifico (il numero da solo già basterebbe, essendo progressivo e
+  // unico, ma il codice in più costa nulla ed evita ambiguità sui pochi
+  // noleggi più vecchi con numeri di contratto manuali non garantiti unici).
+  const driveUrlByNoleggio = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const d of firmeDrive) {
+      if (d.driveUrl) map.set(`${d.codice}::${d.numeroContratto ?? ""}`, d.driveUrl);
+    }
+    return map;
+  }, [firmeDrive]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -97,11 +114,13 @@ export function RegistroClient({ noleggi, devices }: RegistroClientProps) {
                   <th>Marca / modello</th>
                   <th>Cliente</th>
                   <th>Telefono</th>
+                  <th>Verbale firmato</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((n, i) => {
                   const d = deviceByCodice.get(n.codice);
+                  const driveUrl = driveUrlByNoleggio.get(`${n.codice}::${n.contratto ?? ""}`);
                   return (
                     <tr key={`${n.contratto ?? "—"}-${n.codice}-${i}`}>
                       <td>{n.contratto ?? "—"}</td>
@@ -111,6 +130,15 @@ export function RegistroClient({ noleggi, devices }: RegistroClientProps) {
                       <td>{d ? `${d.marca} ${d.modello}` : "—"}</td>
                       <td>{n.cliente ?? "—"}</td>
                       <td>{n.telefono ?? "—"}</td>
+                      <td>
+                        {driveUrl ? (
+                          <a href={driveUrl} target="_blank" rel="noreferrer">
+                            Apri ↗
+                          </a>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
                     </tr>
                   );
                 })}
