@@ -10,6 +10,7 @@ interface AdminSidebarProps {
 
 const NAV_ITEMS = [
   { href: "/admin", label: "Magazzino" },
+  { href: "/admin/registro", label: "Registro noleggi" },
   { href: "/admin/clienti", label: "Clienti" },
   { href: "/admin/impostazioni", label: "Impostazioni" },
 ];
