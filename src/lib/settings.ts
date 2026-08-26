@@ -76,6 +76,14 @@ const EMPTY_SETTINGS: CompanySettings = {
   regolamentoFedelta: DEFAULT_REGOLAMENTO_FEDELTA,
 };
 
+// `Number(v) || fallback` tratterebbe un valore salvato apposta come 0 (es.
+// programma fedeltà messo in pausa con "punti per euro" a zero) come cella
+// vuota, ripristinando il default a ogni lettura — qui invece 0 resta 0.
+function numOrDefault(v: string | undefined, fallback: number): number {
+  const n = Number(v);
+  return v != null && v.trim() !== "" && Number.isFinite(n) ? n : fallback;
+}
+
 export async function getSettings(): Promise<CompanySettings> {
   const rows = await readSheet(TAB);
   const row = rows[1];
@@ -103,9 +111,9 @@ export async function getSettings(): Promise<CompanySettings> {
     logoUrl: logoUrl || "",
     condizioniGenerali: condizioniGenerali || DEFAULT_CONDIZIONI_GENERALI,
     informativaPrivacy: informativaPrivacy || DEFAULT_INFORMATIVA_PRIVACY,
-    puntiPerEuro: Number(puntiPerEuro) || DEFAULT_PUNTI_PER_EURO,
-    sogliaPremioPunti: Number(sogliaPremioPunti) || DEFAULT_SOGLIA_PREMIO_PUNTI,
-    sogliaPremioEuro: Number(sogliaPremioEuro) || DEFAULT_SOGLIA_PREMIO_EURO,
+    puntiPerEuro: numOrDefault(puntiPerEuro, DEFAULT_PUNTI_PER_EURO),
+    sogliaPremioPunti: numOrDefault(sogliaPremioPunti, DEFAULT_SOGLIA_PREMIO_PUNTI),
+    sogliaPremioEuro: numOrDefault(sogliaPremioEuro, DEFAULT_SOGLIA_PREMIO_EURO),
     regolamentoFedelta: regolamentoFedelta || DEFAULT_REGOLAMENTO_FEDELTA,
   };
 }

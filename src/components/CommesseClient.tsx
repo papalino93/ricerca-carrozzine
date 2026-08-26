@@ -8,6 +8,7 @@ import { Toast } from "./Toast";
 
 interface CommesseClientProps {
   initialCommesse: CommessaRecord[];
+  puntiPerEuro: number;
 }
 
 const STATUS_PILL: Record<CommessaRecord["stato"], string> = {
@@ -68,7 +69,7 @@ function fmtEuro(n: number | null): string {
   return `${n.toFixed(2).replace(".", ",")} €`;
 }
 
-export function CommesseClient({ initialCommesse }: CommesseClientProps) {
+export function CommesseClient({ initialCommesse, puntiPerEuro }: CommesseClientProps) {
   const [commesse, setCommesse] = useState(initialCommesse);
   const [query, setQuery] = useState("");
   const [creating, setCreating] = useState(false);
@@ -296,7 +297,8 @@ export function CommesseClient({ initialCommesse }: CommesseClientProps) {
               </div>
             </div>
             <p className="hint" style={{ marginTop: -8, marginBottom: 14 }}>
-              Il saldo pagato, al ritiro, genera punti fedeltà per il cliente (1 punto per euro).
+              Il saldo pagato, al ritiro, genera punti fedeltà per il cliente ({puntiPerEuro} punt
+              {puntiPerEuro === 1 ? "o" : "i"} per euro).
             </p>
             <div className="field">
               <label>Serve altro</label>
