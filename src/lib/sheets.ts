@@ -2,8 +2,11 @@ import "server-only";
 import { google, sheets_v4 } from "googleapis";
 
 let cachedAuth: InstanceType<typeof google.auth.JWT> | null = null;
-// Nomi di tab già verificati/creati in questa istanza (evita una chiamata
-// spreadsheets.get extra ad ogni scrittura mentre l'istanza serverless resta calda).
+// Tab già verificate/create in questa istanza (evita una chiamata
+// spreadsheets.get extra ad ogni scrittura mentre l'istanza serverless resta
+// calda). Chiave "spreadsheetId::tab": con due fogli diversi (principale e
+// backup, vedi getBackupSpreadsheetId) lo stesso nome tab esiste in entrambi
+// ma è una tab diversa in ognuno — una cache per solo nome li confonderebbe.
 const knownTabs = new Set<string>();
 
 function getAuth() {
@@ -36,6 +39,18 @@ function getSpreadsheetId() {
   return id;
 }
 
+/**
+ * ID di un secondo foglio Google, separato da quello principale, usato solo
+ * come destinazione di backup (vedi snapshot.ts): se il file principale si
+ * danneggia o viene eliminato, un backup nella STESSA cartella/file non
+ * serve a nulla. Facoltativo (a differenza di GOOGLE_SHEETS_SPREADSHEET_ID):
+ * ritorna null invece di lanciare un errore se non è ancora configurato, così
+ * il backup "vecchio" (stessa cartella) continua a funzionare comunque.
+ */
+export function getBackupSpreadsheetId(): string | null {
+  return process.env.GOOGLE_SHEETS_BACKUP_SPREADSHEET_ID || null;
+}
+
 function getSheetsApi() {
   return google.sheets({ version: "v4", auth: getAuth() });
 }
@@ -63,7 +78,8 @@ function friendlyError(err: unknown): Error {
 
 /** Crea la tab se non esiste ancora (idempotente, con cache in memoria). */
 async function ensureTab(sheets: sheets_v4.Sheets, spreadsheetId: string, tab: string): Promise<void> {
-  if (knownTabs.has(tab)) return;
+  const cacheKey = `${spreadsheetId}::${tab}`;
+  if (knownTabs.has(cacheKey)) return;
 
   const meta = await sheets.spreadsheets.get({ spreadsheetId });
   const existingTitles = (meta.data.sheets ?? []).map((s) => s.properties?.title);
@@ -73,7 +89,7 @@ async function ensureTab(sheets: sheets_v4.Sheets, spreadsheetId: string, tab: s
       requestBody: { requests: [{ addSheet: { properties: { title: tab } } }] },
     });
   }
-  knownTabs.add(tab);
+  knownTabs.add(cacheKey);
 }
 
 /**
@@ -116,11 +132,11 @@ async function getTabId(
  * galleria non deve comportare la rilettura e riscrittura di tutte le
  * immagini di tutti i dispositivi.
  */
-export async function deleteRows(tab: string, rowNumbers: number[]): Promise<void> {
+export async function deleteRows(tab: string, rowNumbers: number[], spreadsheetIdOverride?: string): Promise<void> {
   if (rowNumbers.length === 0) return;
   try {
     const sheets = getSheetsApi();
-    const spreadsheetId = getSpreadsheetId();
+    const spreadsheetId = spreadsheetIdOverride ?? getSpreadsheetId();
     const tabId = await getTabId(sheets, spreadsheetId, tab);
     if (tabId == null) return;
 
@@ -151,11 +167,11 @@ export async function deleteRows(tab: string, rowNumbers: number[]): Promise<voi
  * Legge tutte le righe popolate di una tab, intestazione inclusa.
  * Se la tab non esiste ancora restituisce un elenco vuoto invece di errore.
  */
-export async function readSheet(tab: string): Promise<string[][]> {
+export async function readSheet(tab: string, spreadsheetIdOverride?: string): Promise<string[][]> {
   const sheets = getSheetsApi();
   try {
     const res = await sheets.spreadsheets.values.get({
-      spreadsheetId: getSpreadsheetId(),
+      spreadsheetId: spreadsheetIdOverride ?? getSpreadsheetId(),
       range: tab,
     });
     return (res.data.values as string[][] | undefined) ?? [];
@@ -177,10 +193,10 @@ export async function readSheet(tab: string): Promise<string[][]> {
  * falito. Scrivendo prima, un errore lascia semplicemente il contenuto
  * precedente intatto.
  */
-export async function writeSheet(tab: string, rows: string[][]): Promise<void> {
+export async function writeSheet(tab: string, rows: string[][], spreadsheetIdOverride?: string): Promise<void> {
   try {
     const sheets = getSheetsApi();
-    const spreadsheetId = getSpreadsheetId();
+    const spreadsheetId = spreadsheetIdOverride ?? getSpreadsheetId();
     await ensureTab(sheets, spreadsheetId, tab);
 
     if (rows.length === 0) {
@@ -212,15 +228,20 @@ export async function writeSheet(tab: string, rows: string[][]): Promise<void> {
  * Accoda una riga in fondo a una tab (creandola con l'intestazione se manca),
  * senza dover rileggere/riscrivere tutto il contenuto esistente.
  */
-export async function appendRow(tab: string, row: string[], header?: string[]): Promise<void> {
+export async function appendRow(
+  tab: string,
+  row: string[],
+  header?: string[],
+  spreadsheetIdOverride?: string
+): Promise<void> {
   try {
     const sheets = getSheetsApi();
-    const spreadsheetId = getSpreadsheetId();
-    const isNewTab = !knownTabs.has(tab);
+    const spreadsheetId = spreadsheetIdOverride ?? getSpreadsheetId();
+    const isNewTab = !knownTabs.has(`${spreadsheetId}::${tab}`);
     await ensureTab(sheets, spreadsheetId, tab);
 
     if (isNewTab && header) {
-      const existing = await readSheet(tab);
+      const existing = await readSheet(tab, spreadsheetIdOverride);
       if (existing.length === 0) {
         await sheets.spreadsheets.values.update({
           spreadsheetId,

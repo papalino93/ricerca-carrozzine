@@ -5,9 +5,11 @@ import { useRef, useState } from "react";
 import type { CompanySettings } from "@/lib/settings";
 import type { AdminUser } from "@/lib/users";
 import type { Tariffa } from "@/lib/tariffe-types";
+import type { SnapshotStatus } from "@/lib/snapshot";
 import { UsersManager } from "./UsersManager";
 import { CategoriesManager } from "./CategoriesManager";
 import { TariffeManager } from "./TariffeManager";
+import { BackupManager } from "./BackupManager";
 import { Toast } from "./Toast";
 
 interface SettingsClientProps {
@@ -15,14 +17,16 @@ interface SettingsClientProps {
   initialUsers: AdminUser[];
   initialCategories: string[];
   initialTariffe: Tariffa[];
+  initialBackupStatus: SnapshotStatus;
 }
 
-type SettingsTab = "azienda" | "categorie" | "tariffe" | "utenti";
+type SettingsTab = "azienda" | "categorie" | "tariffe" | "backup" | "utenti";
 
 const TABS: { key: SettingsTab; label: string }[] = [
   { key: "azienda", label: "Azienda" },
   { key: "categorie", label: "Categorie" },
   { key: "tariffe", label: "Tariffe" },
+  { key: "backup", label: "Backup" },
   { key: "utenti", label: "Utenti" },
 ];
 
@@ -31,6 +35,7 @@ export function SettingsClient({
   initialUsers,
   initialCategories,
   initialTariffe,
+  initialBackupStatus,
 }: SettingsClientProps) {
   const [tab, setTab] = useState<SettingsTab>("azienda");
   const [settings, setSettings] = useState(initialSettings);
@@ -197,6 +202,10 @@ export function SettingsClient({
 
       <div style={{ display: tab === "tariffe" ? "block" : "none" }}>
         <TariffeManager initialTariffe={initialTariffe} categories={initialCategories} />
+      </div>
+
+      <div style={{ display: tab === "backup" ? "block" : "none" }}>
+        <BackupManager initialStatus={initialBackupStatus} />
       </div>
 
       <div style={{ display: tab === "utenti" ? "block" : "none" }}>

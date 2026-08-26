@@ -2,6 +2,7 @@ import { getSettings } from "@/lib/settings";
 import { listUsers } from "@/lib/users";
 import { listCategories } from "@/lib/categories";
 import { listTariffe } from "@/lib/tariffe";
+import { getSnapshotStatus } from "@/lib/snapshot";
 import { SettingsClient } from "@/components/SettingsClient";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +26,10 @@ export default async function ImpostazioniPage() {
   const users = await listUsers().catch(() => []);
   const categories = await listCategories().catch(() => []);
   const tariffe = await listTariffe().catch(() => []);
+  const backupStatus = await getSnapshotStatus().catch(() => ({
+    primario: { ultimo: null, totale: 0 },
+    secondario: { configurato: false, ultimo: null, totale: 0 },
+  }));
 
   return (
     <SettingsClient
@@ -32,6 +37,7 @@ export default async function ImpostazioniPage() {
       initialUsers={users}
       initialCategories={categories}
       initialTariffe={tariffe}
+      initialBackupStatus={backupStatus}
     />
   );
 }
