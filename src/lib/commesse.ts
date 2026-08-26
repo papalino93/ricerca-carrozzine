@@ -2,6 +2,7 @@ import "server-only";
 import { readSheet, writeSheet } from "./sheets";
 import { nextNumeroCommessa } from "./counter";
 import { adjustClientPunti } from "./clients";
+import { getSettings } from "./settings";
 import type { CommessaRecord } from "./commesse-types";
 
 export type { CommessaRecord } from "./commesse-types";
@@ -17,7 +18,8 @@ const HEADER = [
   "Riparazione",
   "Operatore",
   "RichiesteParticolari",
-  "RicevutoIl",
+  "DataOrdine",
+  "DataRicezione",
   "ConsegnaPrevista",
   "Acconto",
   "Saldo",
@@ -48,7 +50,8 @@ function toCommessa(row: string[]): CommessaRecord {
     riparazione,
     operatore,
     richiesteParticolari,
-    ricevutoIl,
+    dataOrdine,
+    dataRicezione,
     consegnaPrevista,
     acconto,
     saldo,
@@ -74,7 +77,8 @@ function toCommessa(row: string[]): CommessaRecord {
     riparazione: bool(riparazione ?? ""),
     operatore: operatore || null,
     richiesteParticolari: richiesteParticolari || null,
-    ricevutoIl: ricevutoIl || null,
+    dataOrdine: dataOrdine || null,
+    dataRicezione: dataRicezione || null,
     consegnaPrevista: consegnaPrevista || null,
     acconto: num(acconto ?? ""),
     saldo: num(saldo ?? ""),
@@ -103,7 +107,8 @@ function toRow(c: CommessaRecord): string[] {
     c.riparazione ? "1" : "",
     c.operatore ?? "",
     c.richiesteParticolari ?? "",
-    c.ricevutoIl ?? "",
+    c.dataOrdine ?? "",
+    c.dataRicezione ?? "",
     c.consegnaPrevista ?? "",
     c.acconto != null ? String(c.acconto) : "",
     c.saldo != null ? String(c.saldo) : "",
@@ -149,10 +154,6 @@ export async function createCommessa(
   return commessa;
 }
 
-// 1 punto fedeltà per ogni euro di saldo, stesso rapporto osservato nel
-// sistema attuale (fedelta.store): vedi ClientRecord.punti in clients.ts.
-const PUNTI_PER_EURO = 1;
-
 export async function updateCommessa(
   numero: string,
   patch: Partial<Omit<CommessaRecord, "numero" | "creata">>
@@ -167,7 +168,8 @@ export async function updateCommessa(
   // momento in cui ha effettivamente pagato e ritirato, corrisponde a una
   // "vendita" nel sistema fedeltà attuale.
   if (next.stato === "ritirata" && !next.puntiAssegnati && next.saldo && next.saldo > 0) {
-    await adjustClientPunti(next.cliente, Math.floor(next.saldo * PUNTI_PER_EURO));
+    const { puntiPerEuro } = await getSettings();
+    await adjustClientPunti(next.cliente, Math.floor(next.saldo * puntiPerEuro));
     next = { ...next, puntiAssegnati: true };
   }
 

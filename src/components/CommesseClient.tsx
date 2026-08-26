@@ -25,7 +25,8 @@ const EMPTY_FORM = {
   riparazione: false,
   operatore: "",
   richiesteParticolari: "",
-  ricevutoIl: "",
+  dataOrdine: "",
+  dataRicezione: "",
   consegnaPrevista: "",
   acconto: "",
   saldo: "",
@@ -108,7 +109,8 @@ export function CommesseClient({ initialCommesse }: CommesseClientProps) {
           cellulare: form.cellulare || null,
           operatore: form.operatore || null,
           richiesteParticolari: form.richiesteParticolari || null,
-          ricevutoIl: form.ricevutoIl || null,
+          dataOrdine: form.dataOrdine || null,
+          dataRicezione: form.dataRicezione || null,
           consegnaPrevista: form.consegnaPrevista || null,
           acconto: form.acconto ? Number(form.acconto.replace(",", ".")) : null,
           saldo: form.saldo ? Number(form.saldo.replace(",", ".")) : null,
@@ -236,7 +238,7 @@ export function CommesseClient({ initialCommesse }: CommesseClientProps) {
               </div>
             </div>
             <div className="field">
-              <label>Chi se ne occupa</label>
+              <label>Operatore</label>
               <input value={form.operatore} onChange={(e) => setForm({ ...form, operatore: e.target.value })} />
             </div>
             <div className="field">
@@ -249,13 +251,23 @@ export function CommesseClient({ initialCommesse }: CommesseClientProps) {
             </div>
             <div className="field-row">
               <div className="field">
-                <label>Ricevuto il</label>
+                <label>Data ordine</label>
                 <input
                   type="date"
-                  value={form.ricevutoIl}
-                  onChange={(e) => setForm({ ...form, ricevutoIl: e.target.value })}
+                  value={form.dataOrdine}
+                  onChange={(e) => setForm({ ...form, dataOrdine: e.target.value })}
                 />
               </div>
+              <div className="field">
+                <label>Data ricezione</label>
+                <input
+                  type="date"
+                  value={form.dataRicezione}
+                  onChange={(e) => setForm({ ...form, dataRicezione: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="field-row">
               <div className="field">
                 <label>Consegna prevista il</label>
                 <input
@@ -368,7 +380,8 @@ export function CommesseClient({ initialCommesse }: CommesseClientProps) {
                                 {c.telefono ? `Tel. ${c.telefono} · ` : ""}
                                 {c.cellulare ? `Cell. ${c.cellulare} · ` : ""}
                                 {c.operatore ? `A cura di: ${c.operatore} · ` : ""}
-                                Ricevuto il {fmtDate(c.ricevutoIl)}
+                                {c.dataOrdine ? `Ordinato il ${fmtDate(c.dataOrdine)} · ` : ""}
+                                Ricevuto il {fmtDate(c.dataRicezione)}
                                 {c.richiesteParticolari ? ` · Richieste: ${c.richiesteParticolari}` : ""}
                                 {[
                                   c.richiestaMedica && "Prescrizione medica",

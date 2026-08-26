@@ -20,12 +20,13 @@ interface SettingsClientProps {
   initialBackupStatus: SnapshotStatus;
 }
 
-type SettingsTab = "azienda" | "categorie" | "tariffe" | "backup" | "utenti";
+type SettingsTab = "azienda" | "categorie" | "tariffe" | "fidelity" | "backup" | "utenti";
 
 const TABS: { key: SettingsTab; label: string }[] = [
   { key: "azienda", label: "Azienda" },
   { key: "categorie", label: "Categorie" },
   { key: "tariffe", label: "Tariffe" },
+  { key: "fidelity", label: "Fidelity" },
   { key: "backup", label: "Backup" },
   { key: "utenti", label: "Utenti" },
 ];
@@ -217,6 +218,74 @@ export function SettingsClient({
 
       <div style={{ display: tab === "tariffe" ? "block" : "none" }}>
         <TariffeManager initialTariffe={initialTariffe} categories={initialCategories} />
+      </div>
+
+      <div style={{ display: tab === "fidelity" ? "block" : "none" }}>
+        <form className="panel" onSubmit={handleSubmit}>
+          <h2>Programma fedeltà</h2>
+          <p className="hint" style={{ marginBottom: 14 }}>
+            Regole di accredito punti (usate quando una scheda commessa passa a &quot;ritirata&quot;,
+            vedi Commesse) e testo del modulo di adesione da far firmare ai nuovi iscritti.
+          </p>
+          <div className="field-row">
+            <div className="field">
+              <label>Punti per ogni euro speso</label>
+              <input
+                type="number"
+                min={0}
+                step="0.1"
+                value={settings.puntiPerEuro}
+                onChange={(e) => setSettings({ ...settings, puntiPerEuro: Number(e.target.value) })}
+              />
+            </div>
+          </div>
+          <div className="field-row">
+            <div className="field">
+              <label>Soglia punti premio</label>
+              <input
+                type="number"
+                min={0}
+                value={settings.sogliaPremioPunti}
+                onChange={(e) => setSettings({ ...settings, sogliaPremioPunti: Number(e.target.value) })}
+              />
+            </div>
+            <div className="field">
+              <label>Valore premio (€)</label>
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                value={settings.sogliaPremioEuro}
+                onChange={(e) => setSettings({ ...settings, sogliaPremioEuro: Number(e.target.value) })}
+              />
+            </div>
+          </div>
+          <p className="hint" style={{ marginTop: -8 }}>
+            Es. 500 punti → 25 €: solo un promemoria per l&apos;operatore, lo sconto va applicato a
+            mano — non è (ancora) automatico sul documento.
+          </p>
+
+          <div className="field">
+            <label>Regolamento fedeltà (stampato sul modulo di adesione)</label>
+            <textarea
+              rows={6}
+              value={settings.regolamentoFedelta}
+              onChange={(e) => setSettings({ ...settings, regolamentoFedelta: e.target.value })}
+            />
+            <p className="hint">
+              Segnaposto: fai rivedere questo testo da un consulente prima di usarlo con i clienti.
+            </p>
+          </div>
+
+          <div className="card-actions">
+            <button className="btn primary" type="submit" disabled={saving}>
+              {saving ? "Salvataggio…" : "Salva impostazioni"}
+            </button>
+            <a className="btn" href="/api/documento-fidelity" target="_blank" rel="noreferrer">
+              Scarica modulo di adesione (PDF)
+            </a>
+          </div>
+        </form>
       </div>
 
       <div style={{ display: tab === "backup" ? "block" : "none" }}>

@@ -12,7 +12,11 @@ export interface CommessaRecord {
   riparazione: boolean;
   operatore: string | null;
   richiesteParticolari: string | null;
-  ricevutoIl: string | null;
+  /** Quando è stato ordinato (es. materiale da fornitore) e quando è
+   * effettivamente arrivato/preso in carico — due momenti distinti, non
+   * sempre lo stesso giorno. */
+  dataOrdine: string | null;
+  dataRicezione: string | null;
   consegnaPrevista: string | null;
   acconto: number | null;
   saldo: number | null;
