@@ -59,8 +59,11 @@ export function SearchClient({ initialDevices, logoUrl, categories, tariffe }: S
   const [widthTolerance, setWidthTolerance] = useState(2);
   const [category, setCategory] = useState("Tutte");
   const [subcategory, setSubcategory] = useState("Tutte");
+  // "da_verificare" incluso di default: ora si può risolvere direttamente
+  // da qui (vedi DevicePublicViewModal), quindi deve essere visibile senza
+  // dover prima toccare il filtro stato.
   const [statuses, setStatuses] = useState<Set<string>>(
-    new Set(["disponibile", "da_pulire"])
+    new Set(["disponibile", "da_pulire", "da_verificare"])
   );
   const [query, setQuery] = useState("");
   const [sortBy, setSortBy] = useState<SortKey>("larghezza");
@@ -508,6 +511,7 @@ export function SearchClient({ initialDevices, logoUrl, categories, tariffe }: S
             onReturn={() => handleReturn(d)}
             onSanitize={() => handleSanitize(d)}
             busy={busyCodice === d.codice}
+            onUpdated={setDevices}
           />
         ))
       )}

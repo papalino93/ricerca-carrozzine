@@ -33,6 +33,9 @@ interface DeviceCardProps {
   /** Disabilita le azioni di stato mentre una richiesta è in corso, per
    * evitare doppi click che duplicherebbero l'operazione. */
   busy?: boolean;
+  /** Passato alla vista di dettaglio: risolvere un dispositivo "da
+   * verificare" anche dalla ricerca pubblica, vedi DevicePublicViewModal. */
+  onUpdated?: (devices: Device[]) => void;
 }
 
 // Riga compatta: l'intera riga apre "Visualizza" (stessa modale di prima,
@@ -47,6 +50,7 @@ export function DeviceCard({
   onReturn,
   onSanitize,
   busy,
+  onUpdated,
 }: DeviceCardProps) {
   const [showDoc, setShowDoc] = useState(false);
   const [showView, setShowView] = useState(false);
@@ -138,7 +142,9 @@ export function DeviceCard({
         </button>
       </div>
       {showDoc ? <DocumentPanel device={d} onClose={() => setShowDoc(false)} /> : null}
-      {showView ? <DevicePublicViewModal device={d} onClose={() => setShowView(false)} /> : null}
+      {showView ? (
+        <DevicePublicViewModal device={d} onClose={() => setShowView(false)} onUpdated={onUpdated} />
+      ) : null}
     </div>
   );
 }
