@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getSettings } from "@/lib/settings";
 import { IconClienti, IconCommessa, IconFidelity, IconNoleggio } from "@/components/ReceptionIcons";
+import { LiveClock } from "@/components/LiveClock";
 
 export const dynamic = "force-dynamic";
 
@@ -60,8 +61,7 @@ export default async function ReceptionPage() {
       <div className="reception-top">
         <div className="reception-brand">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={logoUrl || "/logo.png"} alt="" />
-          <b>Ricerca Ausili</b>
+          <img src={logoUrl || "/logo.png"} alt="Ricerca Ausili" />
         </div>
         <Link href="/admin" className="reception-admin-link">
           Amministrazione ↗
@@ -71,7 +71,9 @@ export default async function ReceptionPage() {
       <div className="reception-hero">
         <div className="reception-greet">
           <h1>{greeting()}</h1>
-          <p>{todayLabel()}</p>
+          <p>
+            {todayLabel()} · <LiveClock />
+          </p>
         </div>
 
         <div className="reception-grid">

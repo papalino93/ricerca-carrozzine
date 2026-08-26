@@ -12,11 +12,12 @@ export function FrontBar({ logoUrl }: FrontBarProps) {
     <div className="front-bar">
       <Link href="/" className="front-bar-brand">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={logoUrl || "/logo.png"} alt="" />
-        <b>Ricerca Ausili</b>
+        <img src={logoUrl || "/logo.png"} alt="Ricerca Ausili" />
       </Link>
       <div className="front-bar-links">
-        <Link href="/">← Home</Link>
+        <Link href="/" className="btn front-bar-home">
+          ← Home
+        </Link>
         <Link href="/admin">Amministrazione ↗</Link>
       </div>
     </div>

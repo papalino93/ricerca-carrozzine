@@ -89,7 +89,13 @@ export function SearchClient({ initialDevices, logoUrl, categories, tariffe }: S
     toastTimer.current = setTimeout(() => setToast(null), 2400);
   }
 
-  const categoryOptions = useMemo(() => ["Tutte", ...categories], [categories]);
+  // In ordine alfabetico (tranne "Tutte", sempre prima): con più di una
+  // manciata di categorie, cercarne una a colpo d'occhio nell'ordine
+  // "storico" del foglio diventava difficile.
+  const categoryOptions = useMemo(
+    () => ["Tutte", ...[...categories].sort((a, b) => a.localeCompare(b, "it"))],
+    [categories]
+  );
 
   const subcategoryOptions = useMemo(() => {
     const pool = category === "Tutte" ? devices : devices.filter((d) => d.categoria === category);

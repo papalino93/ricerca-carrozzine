@@ -180,18 +180,11 @@ h1 {
 }
 
 .reception-brand img {
-  height: 30px;
+  height: 44px;
   width: auto;
-  border-radius: 8px;
+  border-radius: 10px;
   background: #fff;
   padding: 3px;
-}
-
-.reception-brand b {
-  font-family: var(--heading);
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--ink);
 }
 
 .reception-admin-link {
@@ -349,18 +342,11 @@ h1 {
 }
 
 .front-bar-brand img {
-  height: 26px;
+  height: 40px;
   width: auto;
-  border-radius: 7px;
+  border-radius: 8px;
   background: #fff;
   padding: 2px;
-}
-
-.front-bar-brand b {
-  font-family: var(--heading);
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--ink);
 }
 
 .front-bar-links {
@@ -369,14 +355,14 @@ h1 {
   gap: 18px;
 }
 
-.front-bar-links a {
+.front-bar-links a:not(.btn) {
   font-size: 12.5px;
   font-weight: 600;
   color: var(--ink-soft);
   text-decoration: none;
 }
 
-.front-bar-links a:hover {
+.front-bar-links a:not(.btn):hover {
   color: var(--accent);
 }
 
