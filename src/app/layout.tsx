@@ -21,6 +21,10 @@ export const metadata: Metadata = {
     apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
   },
   manifest: "/manifest.webmanifest",
+  // Gestionale a uso interno, già protetto da Basic Auth: non deve comparire
+  // nei motori di ricerca (vedi anche robots.ts e il noindex nella pagina di
+  // anteprima per i crawler social in proxy.ts).
+  robots: { index: false, follow: false },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

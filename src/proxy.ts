@@ -21,6 +21,7 @@ function previewHtml(): string {
 <html lang="it">
 <head>
 <meta charset="utf-8" />
+<meta name="robots" content="noindex, nofollow" />
 <title>${TITLE}</title>
 <meta name="description" content="${DESCRIPTION}" />
 <meta property="og:title" content="${TITLE}" />
@@ -78,6 +79,6 @@ export default async function proxy(req: NextRequest) {
 // https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|favicon-32.png|apple-icon.png|icon-192.png|icon-512.png|logo.png|og-image.png|manifest.webmanifest).*)",
+    "/((?!_next/static|_next/image|favicon.ico|favicon-32.png|apple-icon.png|icon-192.png|icon-512.png|logo.png|og-image.png|manifest.webmanifest|robots.txt).*)",
   ],
 };

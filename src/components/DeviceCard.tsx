@@ -87,7 +87,7 @@ export function DeviceCard({
           <span className={`pill ${d.stato}`}>{STATUS_LABEL[d.stato]}</span>
         </div>
         <div className="meta">
-          {d.categoria}
+          <strong className="meta-categoria">{d.categoria}</strong>
           {d.cliente ? ` · dal ${fmtDate(d.dal)} — ${d.cliente}` : ""}
           {d.stato === "disponibile" && d.sanificazione
             ? ` · sanificata il ${fmtDate(d.sanificazione)}`

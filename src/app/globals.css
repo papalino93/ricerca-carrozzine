@@ -703,6 +703,11 @@ h1 {
   color: var(--ink-soft);
 }
 
+.meta-categoria {
+  color: var(--accent-ink);
+  font-weight: 700;
+}
+
 .note {
   margin-top: 6px;
   font-size: 12px;
