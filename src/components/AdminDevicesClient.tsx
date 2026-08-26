@@ -79,6 +79,15 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
   const [docPrompt, setDocPrompt] = useState<{ device: Device; tipo: DocumentoTipo } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // "Vedi →" in Attenzione cambia i filtri ma l'elenco filtrato è sotto,
+  // fuori dallo schermo: senza scroll sembrava che il pulsante non facesse
+  // nulla (l'utente lo cliccava e non vedeva cambiare niente in vista). Un
+  // id invece di un ref: un ref catturato dentro l'array memoizzato di
+  // "alerts" viene segnalato dal linter come lettura potenziale durante il
+  // render, anche se qui scatta solo dentro un onClick.
+  function goToList() {
+    document.getElementById("device-list")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   function showToast(message: string) {
     setToast(message);
@@ -164,6 +173,7 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
           setStatusFilter(new Set(["noleggiato"]));
           setCategoryFilter("Tutte");
           setIssueFilter("longrental");
+          goToList();
         },
       },
       overdueCount > 0 && {
@@ -173,6 +183,7 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
           setStatusFilter(new Set(["noleggiato"]));
           setCategoryFilter("Tutte");
           setIssueFilter("overdue");
+          goToList();
         },
       },
       dueSoonCount > 0 && {
@@ -182,6 +193,7 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
           setStatusFilter(new Set(["noleggiato"]));
           setCategoryFilter("Tutte");
           setIssueFilter("duesoon");
+          goToList();
         },
       },
       stats.da_pulire > 0 && {
@@ -191,6 +203,7 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
           setStatusFilter(new Set(["da_pulire"]));
           setCategoryFilter("Tutte");
           setIssueFilter(null);
+          goToList();
         },
       },
       stats.guasto > 0 && {
@@ -200,6 +213,7 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
           setStatusFilter(new Set(["guasto"]));
           setCategoryFilter("Tutte");
           setIssueFilter(null);
+          goToList();
         },
       },
       stats.da_verificare > 0 && {
@@ -209,6 +223,7 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
           setStatusFilter(new Set(["da_verificare"]));
           setCategoryFilter("Tutte");
           setIssueFilter(null);
+          goToList();
         },
       },
       staleCount > 0 && {
@@ -218,6 +233,7 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
           setStatusFilter(new Set(["disponibile"]));
           setCategoryFilter("Tutte");
           setIssueFilter("stale");
+          goToList();
         },
       },
       incompleteCount > 0 && {
@@ -227,6 +243,7 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
           setStatusFilter(new Set(STATUS_OPTIONS.map((o) => o.key)));
           setCategoryFilter("Tutte");
           setIssueFilter("incomplete");
+          goToList();
         },
       },
     ].filter(Boolean) as { text: string; color: string; onClick: () => void }[];
@@ -413,7 +430,7 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
         )}
       </div>
 
-      <div className="panel">
+      <div className="panel" id="device-list">
         <input
           className="searchbox"
           style={{ marginBottom: 14 }}

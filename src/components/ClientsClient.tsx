@@ -31,13 +31,35 @@ export function ClientsClient({ clients: initialClients, history, devices }: Cli
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   function showToast(message: string) {
     setToast(message);
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(null), 2400);
+  }
+
+  async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/clienti/import", { method: "POST", body: form });
+      const body = await readJson(res);
+      if (!res.ok) throw new Error(body.error || "Import non riuscito");
+      setClients(body.clients);
+      showToast(`Import completato: ${body.nuovi} nuovi, ${body.aggiornati} aggiornati${body.scartati ? `, ${body.scartati} scartati` : ""}`);
+    } catch (err) {
+      showToast((err as Error).message);
+    } finally {
+      setImporting(false);
+      if (importInputRef.current) importInputRef.current.value = "";
+    }
   }
 
   const sorted = useMemo(
@@ -48,7 +70,12 @@ export function ClientsClient({ clients: initialClients, history, devices }: Cli
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return sorted;
-    return sorted.filter((c) => matchesQuery([c.nome, c.telefono].filter(Boolean).join(" ").toLowerCase(), q));
+    return sorted.filter((c) =>
+      matchesQuery(
+        [c.nome, c.telefono, c.cellulare, c.email, c.fidelity].filter(Boolean).join(" ").toLowerCase(),
+        q
+      )
+    );
   }, [sorted, query]);
 
   function historyFor(nome: string): HistoryEvent[] {
@@ -86,17 +113,40 @@ export function ClientsClient({ clients: initialClients, history, devices }: Cli
       <header className="page-header">
         <h1>Clienti</h1>
         <p className="sub">
-          {clients.length} clienti in anagrafica · si aggiorna da sola a ogni noleggio
+          {clients.length} clienti in anagrafica · si aggiorna da sola a ogni noleggio, più i dati
+          importati da CSV
         </p>
       </header>
 
       <div className="panel">
         <input
           className="searchbox"
-          placeholder="Cerca per nome o telefono…"
+          style={{ marginBottom: 14 }}
+          placeholder="Cerca per nome, telefono, email…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
+        <div className="card-actions">
+          <button
+            className="btn"
+            type="button"
+            onClick={() => importInputRef.current?.click()}
+            disabled={importing}
+          >
+            {importing ? "Import in corso…" : "Importa CSV anagrafica"}
+          </button>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            style={{ display: "none" }}
+            onChange={handleImport}
+          />
+        </div>
+        <p className="hint" style={{ marginTop: 8, marginBottom: 0 }}>
+          Formato export fedelta.store: abbina i clienti già presenti per nome e cognome, senza
+          duplicarli — aggiunge indirizzo, email, data di nascita e numero fidelity.
+        </p>
       </div>
 
       {filtered.length === 0 ? (
@@ -159,6 +209,17 @@ export function ClientsClient({ clients: initialClients, history, devices }: Cli
                         <tr key={`${c.nome}-detail`}>
                           <td colSpan={7}>
                             <div className="client-history">
+                              {c.indirizzo || c.email || c.fidelity || c.dataNascita || c.cellulare ? (
+                                <div className="meta" style={{ marginBottom: 10 }}>
+                                  {c.indirizzo
+                                    ? `${c.indirizzo}${c.localita ? `, ${c.cap ? `${c.cap} ` : ""}${c.localita}${c.provincia ? ` (${c.provincia})` : ""}` : ""} · `
+                                    : ""}
+                                  {c.cellulare ? `Cell. ${c.cellulare} · ` : ""}
+                                  {c.email ? `${c.email} · ` : ""}
+                                  {c.dataNascita ? `nato/a il ${c.dataNascita} · ` : ""}
+                                  {c.fidelity ? `Tessera fedeltà n. ${c.fidelity}` : ""}
+                                </div>
+                              ) : null}
                               <b>Storico di {c.nome}</b>
                               {historyFor(c.nome).length === 0 ? (
                                 <p className="hint" style={{ margin: "6px 0 0" }}>

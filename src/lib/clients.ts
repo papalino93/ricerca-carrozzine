@@ -6,23 +6,107 @@ export interface ClientRecord {
   telefono: string | null;
   ultimoContratto: string | null;
   ultimoNoleggio: string | null;
+  /** Campi anagrafica: valorizzati solo da import CSV o inserimento manuale,
+   * mai dai noleggi (che conoscono solo nome e telefono). */
+  cognome: string | null;
+  nomeProprio: string | null;
+  sesso: string | null;
+  indirizzo: string | null;
+  cap: string | null;
+  localita: string | null;
+  provincia: string | null;
+  cellulare: string | null;
+  email: string | null;
+  dataNascita: string | null;
+  luogoNascita: string | null;
+  /** Numero della tessera fedeltà nel programma punti (gestito ancora fuori
+   * da questo sito, vedi fedelta.store): qui solo tracciato come riferimento. */
+  fidelity: string | null;
+  categoria: string | null;
 }
 
 const TAB = "Clienti";
-const HEADER = ["Nome", "Telefono", "UltimoContratto", "UltimoNoleggio"];
+const HEADER = [
+  "Nome",
+  "Telefono",
+  "UltimoContratto",
+  "UltimoNoleggio",
+  "Cognome",
+  "NomeProprio",
+  "Sesso",
+  "Indirizzo",
+  "Cap",
+  "Localita",
+  "Provincia",
+  "Cellulare",
+  "Email",
+  "DataNascita",
+  "LuogoNascita",
+  "Fidelity",
+  "Categoria",
+];
 
 function toClient(row: string[]): ClientRecord {
-  const [nome, telefono, ultimoContratto, ultimoNoleggio] = row;
+  const [
+    nome,
+    telefono,
+    ultimoContratto,
+    ultimoNoleggio,
+    cognome,
+    nomeProprio,
+    sesso,
+    indirizzo,
+    cap,
+    localita,
+    provincia,
+    cellulare,
+    email,
+    dataNascita,
+    luogoNascita,
+    fidelity,
+    categoria,
+  ] = row;
   return {
     nome: nome ?? "",
     telefono: telefono || null,
     ultimoContratto: ultimoContratto || null,
     ultimoNoleggio: ultimoNoleggio || null,
+    cognome: cognome || null,
+    nomeProprio: nomeProprio || null,
+    sesso: sesso || null,
+    indirizzo: indirizzo || null,
+    cap: cap || null,
+    localita: localita || null,
+    provincia: provincia || null,
+    cellulare: cellulare || null,
+    email: email || null,
+    dataNascita: dataNascita || null,
+    luogoNascita: luogoNascita || null,
+    fidelity: fidelity || null,
+    categoria: categoria || null,
   };
 }
 
 function toRow(c: ClientRecord): string[] {
-  return [c.nome, c.telefono ?? "", c.ultimoContratto ?? "", c.ultimoNoleggio ?? ""];
+  return [
+    c.nome,
+    c.telefono ?? "",
+    c.ultimoContratto ?? "",
+    c.ultimoNoleggio ?? "",
+    c.cognome ?? "",
+    c.nomeProprio ?? "",
+    c.sesso ?? "",
+    c.indirizzo ?? "",
+    c.cap ?? "",
+    c.localita ?? "",
+    c.provincia ?? "",
+    c.cellulare ?? "",
+    c.email ?? "",
+    c.dataNascita ?? "",
+    c.luogoNascita ?? "",
+    c.fidelity ?? "",
+    c.categoria ?? "",
+  ];
 }
 
 async function readClients(): Promise<ClientRecord[]> {
@@ -30,15 +114,17 @@ async function readClients(): Promise<ClientRecord[]> {
   return rows.slice(1).filter((row) => row.length > 0 && row[0]).map(toClient);
 }
 
-/** Anagrafica clienti: sola consultazione, popolata automaticamente a ogni noleggio. */
+/** Anagrafica clienti: popolata automaticamente a ogni noleggio, più i campi
+ * aggiuntivi importati da CSV o inseriti a mano (vedi importClientsCsv). */
 export async function listClients(): Promise<ClientRecord[]> {
   return readClients();
 }
 
 /**
  * Crea o aggiorna la riga del cliente con i dati più recenti noti (stesso
- * nome, case-insensitive). Chiamata da rentDevice: nessun'altra scrittura
- * manuale prevista, l'anagrafica riflette solo i noleggi reali registrati.
+ * nome, case-insensitive). Chiamata da rentDevice: aggiorna solo i campi che
+ * conosce (nome/telefono/noleggio), lasciando intatta l'eventuale anagrafica
+ * più ricca già presente (importata da CSV o inserita a mano).
  */
 export async function upsertClient(input: {
   nome: string;
@@ -50,11 +136,25 @@ export async function upsertClient(input: {
   if (!nome) return;
   const clients = await readClients();
   const idx = clients.findIndex((c) => c.nome.toLowerCase() === nome.toLowerCase());
+  const prev = idx >= 0 ? clients[idx] : null;
   const next: ClientRecord = {
     nome,
-    telefono: input.telefono || (idx >= 0 ? clients[idx].telefono : null),
-    ultimoContratto: input.contratto || (idx >= 0 ? clients[idx].ultimoContratto : null),
-    ultimoNoleggio: input.dal || (idx >= 0 ? clients[idx].ultimoNoleggio : null),
+    telefono: input.telefono || prev?.telefono || null,
+    ultimoContratto: input.contratto || prev?.ultimoContratto || null,
+    ultimoNoleggio: input.dal || prev?.ultimoNoleggio || null,
+    cognome: prev?.cognome ?? null,
+    nomeProprio: prev?.nomeProprio ?? null,
+    sesso: prev?.sesso ?? null,
+    indirizzo: prev?.indirizzo ?? null,
+    cap: prev?.cap ?? null,
+    localita: prev?.localita ?? null,
+    provincia: prev?.provincia ?? null,
+    cellulare: prev?.cellulare ?? null,
+    email: prev?.email ?? null,
+    dataNascita: prev?.dataNascita ?? null,
+    luogoNascita: prev?.luogoNascita ?? null,
+    fidelity: prev?.fidelity ?? null,
+    categoria: prev?.categoria ?? null,
   };
   if (idx >= 0) clients[idx] = next;
   else clients.push(next);
@@ -74,4 +174,138 @@ export async function deleteClient(nome: string): Promise<ClientRecord[]> {
   }
   await writeSheet(TAB, [HEADER, ...remaining.map(toRow)]);
   return remaining;
+}
+
+/** Righe minime di un CSV, gestendo campi tra virgolette con virgole,
+ * virgolette doppie escaped (""), e newline interne. Basta per il formato
+ * esportato da fedelta.store, senza aggiungere una dipendenza per questo. */
+function parseCsv(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = "";
+  let inQuotes = false;
+  const src = text.replace(/^﻿/, "");
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (src[i + 1] === '"') {
+          field += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        field += ch;
+      }
+    } else if (ch === '"') {
+      inQuotes = true;
+    } else if (ch === ",") {
+      row.push(field);
+      field = "";
+    } else if (ch === "\r") {
+      // ignorato, gestito da \n
+    } else if (ch === "\n") {
+      row.push(field);
+      rows.push(row);
+      row = [];
+      field = "";
+    } else {
+      field += ch;
+    }
+  }
+  if (field !== "" || row.length > 0) {
+    row.push(field);
+    rows.push(row);
+  }
+  return rows.filter((r) => r.some((f) => f.trim() !== ""));
+}
+
+const CSV_COLUMNS: Record<string, keyof ClientRecord | "cognomeENome"> = {
+  "cognome e nome": "cognomeENome",
+  categoria: "categoria",
+  cognome: "cognome",
+  nome: "nomeProprio",
+  fidelity: "fidelity",
+  email: "email",
+  indirizzo: "indirizzo",
+  cap: "cap",
+  "località": "localita",
+  provincia: "provincia",
+  telefono: "telefono",
+  cellulare: "cellulare",
+  "data di nascita": "dataNascita",
+};
+
+/**
+ * Importa/aggiorna l'anagrafica da un export CSV (formato fedelta.store:
+ * intestazioni it, virgolette doppie, UTF-8 con BOM). Abbina i clienti
+ * esistenti per nome completo (case-insensitive, stesso criterio usato dai
+ * noleggi): un cliente già noto viene arricchito con i campi anagrafica,
+ * mai duplicato. Righe senza un nome utilizzabile vengono scartate.
+ */
+export async function importClientsCsv(
+  csvText: string
+): Promise<{ nuovi: number; aggiornati: number; scartati: number; totale: number }> {
+  const rows = parseCsv(csvText);
+  if (rows.length === 0) return { nuovi: 0, aggiornati: 0, scartati: 0, totale: 0 };
+
+  const headerRow = rows[0].map((h) => h.trim().toLowerCase());
+  const colIndex: Partial<Record<keyof ClientRecord | "cognomeENome", number>> = {};
+  headerRow.forEach((h, i) => {
+    const key = CSV_COLUMNS[h];
+    if (key) colIndex[key] = i;
+  });
+
+  const clients = await readClients();
+  const byName = new Map(clients.map((c) => [c.nome.toLowerCase(), c]));
+
+  let nuovi = 0;
+  let aggiornati = 0;
+  let scartati = 0;
+
+  for (const row of rows.slice(1)) {
+    const get = (key: keyof ClientRecord | "cognomeENome") => {
+      const idx = colIndex[key];
+      return idx == null ? "" : (row[idx] ?? "").trim();
+    };
+    const cognome = get("cognome");
+    const nomeProprio = get("nomeProprio");
+    const cognomeENome = get("cognomeENome");
+    const nome = cognomeENome || [cognome, nomeProprio].filter(Boolean).join(" ");
+    // Riga modello/placeholder senza dati veri (es. "A A" con nome e
+    // cognome di una sola lettera ciascuno, presente in ogni export).
+    if (!nome.trim() || (cognome.length <= 1 && nomeProprio.length <= 1)) {
+      scartati++;
+      continue;
+    }
+
+    const prev = byName.get(nome.toLowerCase());
+    const next: ClientRecord = {
+      nome,
+      telefono: get("telefono") || prev?.telefono || null,
+      ultimoContratto: prev?.ultimoContratto ?? null,
+      ultimoNoleggio: prev?.ultimoNoleggio ?? null,
+      cognome: cognome || prev?.cognome || null,
+      nomeProprio: nomeProprio || prev?.nomeProprio || null,
+      sesso: prev?.sesso ?? null,
+      indirizzo: get("indirizzo") || prev?.indirizzo || null,
+      cap: get("cap") || prev?.cap || null,
+      localita: get("localita") || prev?.localita || null,
+      provincia: get("provincia") || prev?.provincia || null,
+      cellulare: get("cellulare") || prev?.cellulare || null,
+      email: get("email") || prev?.email || null,
+      dataNascita: get("dataNascita") || prev?.dataNascita || null,
+      luogoNascita: prev?.luogoNascita ?? null,
+      fidelity: get("fidelity") || prev?.fidelity || null,
+      categoria: get("categoria") || prev?.categoria || null,
+    };
+
+    if (prev) aggiornati++;
+    else nuovi++;
+    byName.set(nome.toLowerCase(), next);
+  }
+
+  await writeSheet(TAB, [HEADER, ...Array.from(byName.values()).map(toRow)]);
+  return { nuovi, aggiornati, scartati, totale: byName.size };
 }
