@@ -42,6 +42,14 @@ const HEADER = [
 
 const VALID_ARCHIVE_STATUSES = ["venduto", "rottamato"];
 
+// Distingue una cella vuota (null) da uno zero legittimo (es. un accessorio
+// omaggio a prezzo 0): `Number(v) || null` confonderebbe i due casi.
+function numOrNull(v: string): number | null {
+  if (!v) return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
 function toDevice(row: string[]): Device {
   const [
     codice,
@@ -71,7 +79,7 @@ function toDevice(row: string[]): Device {
     categoria: categoria ?? "",
     marca: marca ?? "",
     modello: modello ?? "",
-    larghezza: larghezza ? Number(larghezza) || null : null,
+    larghezza: numOrNull(larghezza),
     stato: (VALID_STATUSES as string[]).includes(stato)
       ? (stato as DeviceStatus)
       : "da_verificare",
@@ -84,10 +92,10 @@ function toDevice(row: string[]): Device {
     foto: foto || null,
     sottocategoria: sottocategoria || null,
     alPrevisto: alPrevisto || null,
-    prezzoAcquisto: prezzoAcquisto ? Number(prezzoAcquisto) || null : null,
-    prezzoVendita: prezzoVendita ? Number(prezzoVendita) || null : null,
+    prezzoAcquisto: numOrNull(prezzoAcquisto),
+    prezzoVendita: numOrNull(prezzoVendita),
     archiviato: VALID_ARCHIVE_STATUSES.includes(archiviato) ? (archiviato as ArchiveStatus) : null,
-    tariffaApplicata: tariffaApplicata ? Number(tariffaApplicata) || null : null,
+    tariffaApplicata: numOrNull(tariffaApplicata),
     tariffaUnita: tariffaUnita === "settimana" ? "settimana" : tariffaUnita === "giorno" ? "giorno" : null,
   };
 }

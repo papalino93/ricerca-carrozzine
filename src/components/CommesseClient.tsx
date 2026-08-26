@@ -192,20 +192,47 @@ export function CommesseClient({ initialCommesse, puntiPerEuro }: CommesseClient
     }
   }
 
+  // Converte i campi modificabili nel riquadro dettaglio nel formato del
+  // PATCH. Usata sia dal salvataggio esplicito che dai cambi di stato: se
+  // l'operatore ha digitato acconto/saldo o le note prima di premere "Segna
+  // pronta"/"Segna ritirata" (invece di premere prima "Salva modifiche"),
+  // quei valori non vanno persi né saltare l'accredito punti fedeltà.
+  // Restituisce null (mostrando un avviso) se acconto/saldo non sono numeri
+  // validi, invece di farli sparire silenziosamente come null.
+  function editFormPatch(): Partial<CommessaRecord> | null {
+    if (!editForm) return {};
+    const acconto = editForm.acconto ? Number(editForm.acconto.replace(",", ".")) : null;
+    const saldo = editForm.saldo ? Number(editForm.saldo.replace(",", ".")) : null;
+    if ((acconto != null && !Number.isFinite(acconto)) || (saldo != null && !Number.isFinite(saldo))) {
+      showToast("Importo non valido in Acconto o Saldo: correggilo prima di continuare");
+      return null;
+    }
+    return {
+      controlloFinale: editForm.controlloFinale || null,
+      noteChiusura: editForm.noteChiusura || null,
+      prontaIl: editForm.prontaIl || null,
+      ritirataIl: editForm.ritirataIl || null,
+      acconto,
+      saldo,
+    };
+  }
+
   async function handleSaveEdit(c: CommessaRecord) {
     if (!editForm) return;
-    await patchCommessa(
-      c.numero,
-      {
-        controlloFinale: editForm.controlloFinale || null,
-        noteChiusura: editForm.noteChiusura || null,
-        prontaIl: editForm.prontaIl || null,
-        ritirataIl: editForm.ritirataIl || null,
-        acconto: editForm.acconto ? Number(editForm.acconto.replace(",", ".")) : null,
-        saldo: editForm.saldo ? Number(editForm.saldo.replace(",", ".")) : null,
-      },
-      `Scheda n. ${c.numero} aggiornata`
-    );
+    const patch = editFormPatch();
+    if (!patch) return;
+    await patchCommessa(c.numero, patch, `Scheda n. ${c.numero} aggiornata`);
+  }
+
+  async function changeStatus(
+    c: CommessaRecord,
+    stato: CommessaRecord["stato"],
+    extra: Partial<CommessaRecord>,
+    message: string
+  ) {
+    const patch = editFormPatch();
+    if (!patch) return;
+    await patchCommessa(c.numero, { ...patch, ...extra, stato }, message);
   }
 
   return (
@@ -421,7 +448,9 @@ export function CommesseClient({ initialCommesse, puntiPerEuro }: CommesseClient
                                     className="btn"
                                     type="button"
                                     disabled={savingEdit}
-                                    onClick={() => patchCommessa(c.numero, { stato: "pronta" }, `Scheda n. ${c.numero} pronta per la consegna`)}
+                                    onClick={() =>
+                                      changeStatus(c, "pronta", {}, `Scheda n. ${c.numero} pronta per la consegna`)
+                                    }
                                   >
                                     Segna pronta
                                   </button>
@@ -432,9 +461,10 @@ export function CommesseClient({ initialCommesse, puntiPerEuro }: CommesseClient
                                     type="button"
                                     disabled={savingEdit}
                                     onClick={() =>
-                                      patchCommessa(
-                                        c.numero,
-                                        { stato: "ritirata", ritirataIl: editForm.ritirataIl || todayIso() },
+                                      changeStatus(
+                                        c,
+                                        "ritirata",
+                                        { ritirataIl: editForm?.ritirataIl || todayIso() },
                                         `Scheda n. ${c.numero} ritirata`
                                       )
                                     }
@@ -447,7 +477,9 @@ export function CommesseClient({ initialCommesse, puntiPerEuro }: CommesseClient
                                     className="btn"
                                     type="button"
                                     disabled={savingEdit}
-                                    onClick={() => patchCommessa(c.numero, { stato: "in_lavorazione" }, `Scheda n. ${c.numero} riportata in lavorazione`)}
+                                    onClick={() =>
+                                      changeStatus(c, "in_lavorazione", {}, `Scheda n. ${c.numero} riportata in lavorazione`)
+                                    }
                                   >
                                     Riporta in lavorazione
                                   </button>

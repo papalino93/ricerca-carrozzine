@@ -363,9 +363,13 @@ export async function importClientsCsv(
     const nomeProprio = get("nomeProprio");
     const cognomeENome = get("cognomeENome");
     const nome = cognomeENome || [cognome, nomeProprio].filter(Boolean).join(" ");
-    // Riga modello/placeholder senza dati veri (es. "A A" con nome e
-    // cognome di una sola lettera ciascuno, presente in ogni export).
-    if (!nome.trim() || (cognome.length <= 1 && nomeProprio.length <= 1)) {
+    // Riga modello/placeholder senza dati veri (es. "A A", ogni parola di
+    // una sola lettera): controllato sulle parole del nome effettivo, non
+    // solo su cognome/nomeProprio separati, così funziona anche con
+    // l'export a colonna unica "Cognome e Nome".
+    const nameWords = nome.trim().split(/\s+/).filter(Boolean);
+    const isPlaceholder = nameWords.length > 0 && nameWords.every((w) => w.length <= 1);
+    if (!nome.trim() || isPlaceholder) {
       scartati++;
       continue;
     }
