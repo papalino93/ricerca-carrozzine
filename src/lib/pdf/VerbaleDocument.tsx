@@ -13,7 +13,10 @@ export type DocumentoTipo = "consegna" | "restituzione";
 export interface TariffaDocumento {
   importo: number;
   unita: "giorno" | "settimana";
-  totale: number;
+  /** Assente quando manca una data di riferimento per calcolarlo (es.
+   * consegna senza rientro previsto): resta solo la tariffa giornaliera,
+   * nessuna riga "Totale" sul documento. */
+  totale?: number;
   /** true sul verbale di consegna (si stima fino al rientro previsto),
    * false su quello di restituzione (giorni effettivi già trascorsi). */
   stimato: boolean;
@@ -325,16 +328,20 @@ export function VerbaleDocument({
           <>
             <Text style={styles.sectionLabel}>Tariffa</Text>
             <View style={styles.table}>
-              <View style={styles.row}>
+              <View style={tariffa.totale != null ? styles.row : styles.rowLast}>
                 <Text style={styles.cellLabel}>Tariffa applicata</Text>
                 <Text style={styles.cellValue}>
                   {fmtEuro(tariffa.importo)} al {tariffa.unita === "settimana" ? "settimana" : "giorno"}
                 </Text>
               </View>
-              <View style={styles.rowLast}>
-                <Text style={styles.cellLabel}>{tariffa.stimato ? "Totale stimato" : "Totale"}</Text>
-                <Text style={styles.cellValue}>{fmtEuro(tariffa.totale)}</Text>
-              </View>
+              {/* Assente senza una data di riferimento per calcolarlo (es.
+                  consegna senza rientro previsto): niente riga vuota. */}
+              {tariffa.totale != null ? (
+                <View style={styles.rowLast}>
+                  <Text style={styles.cellLabel}>{tariffa.stimato ? "Totale stimato" : "Totale"}</Text>
+                  <Text style={styles.cellValue}>{fmtEuro(tariffa.totale)}</Text>
+                </View>
+              ) : null}
             </View>
           </>
         ) : null}

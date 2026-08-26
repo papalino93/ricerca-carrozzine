@@ -44,13 +44,16 @@ export function DocumentPanel({ device, onClose, forcedTipo }: DocumentPanelProp
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const hasTariffa = device.tariffaApplicata != null && device.tariffaUnita != null;
   // Sul verbale di restituzione, "data" è il rientro reale: il totale è
-  // quello effettivo. Su quello di consegna ha senso solo se c'è un rientro
-  // previsto (altrimenti non si sa quanti giorni contare): è una stima.
-  const dataFine = tipo === "restituzione" ? data : device.alPrevisto;
+  // quello effettivo. Su quello di consegna serve un rientro previsto
+  // (quello nel form qui sotto, non quello — eventualmente diverso — già
+  // salvato sul dispositivo) per sapere quanti giorni contare: è una stima,
+  // e senza resta solo la tariffa giornaliera, senza nessun totale.
+  const dataFine = tipo === "restituzione" ? data : alPrevisto || null;
   const totale =
-    device.tariffaApplicata != null && device.tariffaUnita && device.dal && dataFine
-      ? calcolaTotale(device.tariffaApplicata, device.tariffaUnita, giorniTra(device.dal, dataFine))
+    hasTariffa && device.dal && dataFine
+      ? calcolaTotale(device.tariffaApplicata!, device.tariffaUnita!, giorniTra(device.dal, dataFine))
       : null;
   const totaleStimato = tipo === "consegna";
 
@@ -76,11 +79,11 @@ export function DocumentPanel({ device, onClose, forcedTipo }: DocumentPanelProp
           cliente: { nome: clienteNome, telefono: clienteTelefono },
           alPrevisto: tipo === "consegna" ? alPrevisto || null : null,
           tariffa:
-            includiTariffa && totale != null && device.tariffaApplicata != null && device.tariffaUnita
+            includiTariffa && hasTariffa
               ? {
                   importo: device.tariffaApplicata,
                   unita: device.tariffaUnita,
-                  totale,
+                  totale: totale ?? undefined,
                   stimato: totaleStimato,
                 }
               : null,
@@ -167,18 +170,33 @@ export function DocumentPanel({ device, onClose, forcedTipo }: DocumentPanelProp
           </div>
         ) : null}
 
-        {totale != null ? (
+        {hasTariffa ? (
           <div className="internal-note">
-            <b>{totaleStimato ? "Totale stimato" : "Totale"}</b> ({fmtEuro(device.tariffaApplicata!)} al{" "}
+            <b>Tariffa applicata</b>: {fmtEuro(device.tariffaApplicata!)} al{" "}
             {device.tariffaUnita === "settimana" ? "settimana" : "giorno"}
-            {totaleStimato ? ", fino al rientro previsto" : ""}): <b>{fmtEuro(totale)}</b>
+            {totale != null ? (
+              <>
+                <br />
+                <b>{totaleStimato ? "Totale stimato" : "Totale"}</b>
+                {totaleStimato ? " (fino al rientro previsto)" : ""}: <b>{fmtEuro(totale)}</b>
+              </>
+            ) : (
+              <>
+                <br />
+                <span className="hint">
+                  {totaleStimato
+                    ? "Imposta un rientro previsto qui sopra per vedere anche una stima del totale."
+                    : ""}
+                </span>
+              </>
+            )}
             <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
               <input
                 type="checkbox"
                 checked={includiTariffa}
                 onChange={(e) => setIncludiTariffa(e.target.checked)}
               />
-              Includi tariffa e totale sul documento
+              Includi {totale != null ? "tariffa e totale" : "la tariffa"} sul documento
             </label>
           </div>
         ) : null}
