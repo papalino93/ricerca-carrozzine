@@ -142,10 +142,6 @@ export function CommessaDocument({ settings, commessa: c }: CommessaDocumentProp
             <Text style={styles.cellLabel}>Data ordine</Text>
             <Text style={styles.cellValue}>{fmtDate(c.dataOrdine)}</Text>
           </View>
-          <View style={styles.row}>
-            <Text style={styles.cellLabel}>Data ricezione</Text>
-            <Text style={styles.cellValue}>{fmtDate(c.dataRicezione)}</Text>
-          </View>
           <View style={c.prontaIl || c.ritirataIl ? styles.row : styles.rowLast}>
             <Text style={styles.cellLabel}>Consegna prevista</Text>
             <Text style={styles.cellValue}>{fmtDate(c.consegnaPrevista)}</Text>

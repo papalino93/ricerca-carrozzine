@@ -36,7 +36,6 @@ function emptyForm() {
     operatore: "",
     richiesteParticolari: "",
     dataOrdine: todayIso(),
-    dataRicezione: todayIso(),
     consegnaPrevista: "",
     acconto: "",
     saldo: "",
@@ -122,7 +121,6 @@ export function CommesseClient({ initialCommesse, puntiPerEuro }: CommesseClient
           operatore: form.operatore || null,
           richiesteParticolari: form.richiesteParticolari || null,
           dataOrdine: form.dataOrdine || null,
-          dataRicezione: form.dataRicezione || null,
           consegnaPrevista: form.consegnaPrevista || null,
           acconto: form.acconto ? Number(form.acconto.replace(",", ".")) : null,
           saldo: form.saldo ? Number(form.saldo.replace(",", ".")) : null,
@@ -291,16 +289,6 @@ export function CommesseClient({ initialCommesse, puntiPerEuro }: CommesseClient
                 />
               </div>
               <div className="field">
-                <label>Data ricezione</label>
-                <input
-                  type="date"
-                  value={form.dataRicezione}
-                  onChange={(e) => setForm({ ...form, dataRicezione: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="field-row">
-              <div className="field">
                 <label>Consegna prevista il</label>
                 <input
                   type="date"
@@ -413,8 +401,8 @@ export function CommesseClient({ initialCommesse, puntiPerEuro }: CommesseClient
                                 {c.telefono ? `Tel. ${c.telefono} · ` : ""}
                                 {c.cellulare ? `Cell. ${c.cellulare} · ` : ""}
                                 {c.operatore ? `A cura di: ${c.operatore} · ` : ""}
-                                {c.dataOrdine ? `Ordinato il ${fmtDate(c.dataOrdine)} · ` : ""}
-                                Ricevuto il {fmtDate(c.dataRicezione)}
+                                Ordinato il {fmtDate(c.dataOrdine)}
+                                {c.consegnaPrevista ? ` · Consegna prevista il ${fmtDate(c.consegnaPrevista)}` : ""}
                                 {c.richiesteParticolari ? ` · Richieste: ${c.richiesteParticolari}` : ""}
                                 {[
                                   c.richiestaMedica && "Prescrizione medica",
