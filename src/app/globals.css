@@ -531,35 +531,23 @@ h1 {
   align-items: flex-start;
 }
 
-.card .w-badge {
+.card .id-badge {
   font-family: var(--heading);
-  font-weight: 600;
-  font-size: 20px;
+  font-weight: 700;
+  font-size: 16px;
   color: var(--accent-ink);
   background: var(--accent-bg);
-  /* Bordo trasparente, non "none": DeviceCard colora questo bordo quando la
-     larghezza combacia esattamente con quella cercata. Con "border: none"
-     il colore non produceva alcun effetto e l'evidenziazione della misura
-     esatta era di fatto invisibile. */
   border: 2px solid transparent;
   border-radius: 14px;
-  width: 58px;
+  min-width: 58px;
   height: 58px;
+  padding: 0 8px;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   line-height: 1;
-}
-
-.w-badge small {
-  font-family: var(--sans);
-  font-size: 9px;
-  font-weight: 600;
-  color: var(--ink-soft);
-  margin-top: 3px;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
 }
 
 .card-body {
@@ -643,6 +631,21 @@ h1 {
   font-family: var(--heading);
   font-weight: 600;
   font-size: 16px;
+}
+
+/* Solo dove ha senso (larghezza != null, tipicamente le carrozzine): la
+   larghezza non è più il badge principale della card, ma resta comunque a
+   colpo d'occhio accanto al modello. Bordo trasparente per lo stesso motivo
+   del vecchio badge: colorato da DeviceCard quando combacia esattamente
+   con la larghezza cercata. */
+.width-tag {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent-ink);
+  background: var(--accent-bg);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 2px 9px;
 }
 
 .pill {
@@ -1336,6 +1339,16 @@ tr.clickable-row:hover td {
   border-top: 1px dashed var(--line);
 }
 
+/* Secondo passo della doppia conferma di eliminazione: un riquadro che
+   spicca (bordo/sfondo dello stesso rosso del pulsante "danger") finché
+   l'operatore non ha scritto il codice o annullato. */
+.delete-confirm {
+  background: var(--broken-bg);
+  border: 1px solid var(--broken-line);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
 /* Safari su iPhone ingrandisce la pagina a ogni tocco su un campo con
    testo sotto i 16px, costringendo a rimettere lo zoom a mano dopo ogni
    campo compilato. Su schermi touch stretti i campi vanno a 16px. */
@@ -1382,15 +1395,12 @@ tr.clickable-row:hover td {
   background: #fbfaf5;
 }
 
-.card.compact .w-badge {
-  width: 40px;
+.card.compact .id-badge {
+  min-width: 46px;
   height: 40px;
-  font-size: 14px;
+  padding: 0 6px;
+  font-size: 12px;
   border-radius: 11px;
-}
-
-.card.compact .w-badge small {
-  display: none;
 }
 
 .card.compact .card-top {

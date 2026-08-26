@@ -24,13 +24,30 @@ interface DeviceCardProps {
    * anche il verbale di consegna che dovrebbe apparire subito dopo.
    */
   onRent?: () => void;
+  /** Come onRent: "Segna restituito" sulle card noleggiate, azione gestita
+   * dal chiamante per lo stesso motivo (il verbale di restituzione non deve
+   * sparire insieme alla card appena questa cambia stato). */
+  onReturn?: () => void;
+  /** Come onRent/onReturn: "Segna sanificato" sulle card da pulire. */
+  onSanitize?: () => void;
+  /** Disabilita le azioni di stato mentre una richiesta è in corso, per
+   * evitare doppi click che duplicherebbero l'operazione. */
+  busy?: boolean;
 }
 
 // Riga compatta: l'intera riga apre "Visualizza" (stessa modale di prima,
-// nessun pulsante di testo dedicato), mentre "Noleggia" e "Genera
-// documento" restano pulsanti a icona da 44px per non essere confusi col
-// tocco sulla riga e restare comodi da telefono in magazzino.
-export function DeviceCard({ device: d, exactWidth, statusColor, onRent }: DeviceCardProps) {
+// nessun pulsante di testo dedicato), mentre le azioni restano pulsanti a
+// icona da 44px per non essere confusi col tocco sulla riga e restare
+// comodi da telefono in magazzino.
+export function DeviceCard({
+  device: d,
+  exactWidth,
+  statusColor,
+  onRent,
+  onReturn,
+  onSanitize,
+  busy,
+}: DeviceCardProps) {
   const [showDoc, setShowDoc] = useState(false);
   const [showView, setShowView] = useState(false);
 
@@ -40,19 +57,29 @@ export function DeviceCard({ device: d, exactWidth, statusColor, onRent }: Devic
       id={`device-${d.codice}`}
       onClick={() => setShowView(true)}
     >
-      <div className="w-badge" style={exactWidth ? { borderColor: statusColor } : undefined}>
-        {d.larghezza ?? "—"}
-        <small>{d.larghezza != null ? "CM SEDUTA" : "N/D"}</small>
+      {/* Identifica sempre il dispositivo per codice, non per larghezza: con
+          categorie diverse dalle carrozzine la larghezza non ha senso per
+          tutti gli articoli. La larghezza, quando c'è, resta visibile come
+          tag accanto al modello (vedi width-tag qui sotto). */}
+      <div className="id-badge">
+        {d.codice}
       </div>
       <div className="card-body">
         <div className="card-top">
           {d.foto ? (
             <img className="card-photo" src={d.foto} alt={`${d.marca} ${d.modello}`} />
           ) : null}
-          <span className="code">{d.codice}</span>
           <span className="model">
             {d.marca} {d.modello}
           </span>
+          {d.larghezza != null ? (
+            <span
+              className="width-tag"
+              style={exactWidth ? { borderColor: statusColor } : undefined}
+            >
+              {d.larghezza} cm
+            </span>
+          ) : null}
           <span className={`pill ${d.stato}`}>{STATUS_LABEL[d.stato]}</span>
         </div>
         <div className="meta">
@@ -74,6 +101,30 @@ export function DeviceCard({ device: d, exactWidth, statusColor, onRent }: Devic
             onClick={onRent}
           >
             ＋
+          </button>
+        ) : null}
+        {onReturn && d.stato === "noleggiato" ? (
+          <button
+            className="btn primary icon-only"
+            type="button"
+            title="Segna restituito"
+            aria-label="Segna restituito"
+            onClick={onReturn}
+            disabled={busy}
+          >
+            ↩
+          </button>
+        ) : null}
+        {onSanitize && d.stato === "da_pulire" ? (
+          <button
+            className="btn primary icon-only"
+            type="button"
+            title="Segna sanificato"
+            aria-label="Segna sanificato"
+            onClick={onSanitize}
+            disabled={busy}
+          >
+            ✓
           </button>
         ) : null}
         <button

@@ -29,7 +29,13 @@ const EMPTY_FORM: Device = {
   sottocategoria: null,
 };
 
-type IssueFilter = "stale" | "incomplete" | "overdue" | "duesoon" | null;
+type IssueFilter = "stale" | "incomplete" | "overdue" | "duesoon" | "longrental" | null;
+
+// Soglia oltre la quale un noleggio va ricontrollato anche senza una data
+// di rientro prevista scaduta (es. rientro previsto mai impostato): a
+// differenza di overdueCount/dueSoonCount, guarda solo da quanto è iniziato
+// il noleggio, non se una scadenza è stata superata.
+const LONG_RENTAL_DAYS = 30;
 
 function daysSince(iso: string | null): number | null {
   if (!iso) return null;
@@ -131,7 +137,19 @@ export function AdminDevicesClient({ initialDevices, categories }: AdminDevicesC
       const days = daysUntil(d.alPrevisto);
       return days != null && days >= 0 && days <= 7;
     }).length;
+    const longRentalCount = devices.filter(
+      (d) => d.stato === "noleggiato" && (daysSince(d.dal) ?? 0) > LONG_RENTAL_DAYS
+    ).length;
     return [
+      longRentalCount > 0 && {
+        text: `${longRentalCount} noleggi attivi da oltre ${LONG_RENTAL_DAYS} giorni: da verificare`,
+        color: STATUS_COLOR.guasto,
+        onClick: () => {
+          setStatusFilter(new Set(["noleggiato"]));
+          setCategoryFilter("Tutte");
+          setIssueFilter("longrental");
+        },
+      },
       overdueCount > 0 && {
         text: `${overdueCount} noleggi scaduti`,
         color: STATUS_COLOR.guasto,
@@ -212,6 +230,8 @@ export function AdminDevicesClient({ initialDevices, categories }: AdminDevicesC
         const days = d.stato === "noleggiato" ? daysUntil(d.alPrevisto) : null;
         if (days == null || days < 0 || days > 7) return false;
       }
+      if (issueFilter === "longrental" && !(d.stato === "noleggiato" && (daysSince(d.dal) ?? 0) > LONG_RENTAL_DAYS))
+        return false;
       if (q) {
         const hay = [d.codice, d.marca, d.modello, d.cliente, d.telefono, d.contratto, d.larghezza, d.sottocategoria]
           .filter((v) => v != null && v !== "")

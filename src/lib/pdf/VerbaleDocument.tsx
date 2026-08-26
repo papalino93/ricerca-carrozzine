@@ -25,6 +25,9 @@ export interface VerbaleDocumentProps {
     telefono: string;
   };
   note: string;
+  /** Data di rientro prevista del noleggio, ISO yyyy-mm-dd, facoltativa: se
+   * assente la riga non compare affatto (nessun campo vuoto sul verbale). */
+  alPrevisto?: string | null;
 }
 
 const styles = StyleSheet.create({
@@ -203,6 +206,7 @@ export function VerbaleDocument({
   dispositivo,
   cliente,
   note,
+  alPrevisto,
 }: VerbaleDocumentProps) {
   const hasLogo = Boolean(settings.logoUrl);
 
@@ -283,10 +287,19 @@ export function VerbaleDocument({
               <Text style={styles.cellValue}>{dispositivo.larghezza} cm</Text>
             </View>
           ) : null}
-          <View style={styles.rowLast}>
+          <View style={tipo === "consegna" && alPrevisto ? styles.row : styles.rowLast}>
             <Text style={styles.cellLabel}>{DATE_LABEL[tipo]}</Text>
             <Text style={styles.cellValue}>{fmtDate(data)}</Text>
           </View>
+          {/* Solo sulla consegna, e solo se impostata: sulla restituzione il
+              rientro è già avvenuto, e un campo vuoto sul verbale firmato
+              dal cliente è peggio che ometterlo del tutto. */}
+          {tipo === "consegna" && alPrevisto ? (
+            <View style={styles.rowLast}>
+              <Text style={styles.cellLabel}>Rientro previsto</Text>
+              <Text style={styles.cellValue}>{fmtDate(alPrevisto)}</Text>
+            </View>
+          ) : null}
         </View>
 
         <View style={styles.noteBox}>

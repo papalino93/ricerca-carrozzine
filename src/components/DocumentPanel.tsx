@@ -30,6 +30,7 @@ export function DocumentPanel({ device, onClose, forcedTipo }: DocumentPanelProp
   );
   const [clienteNome, setClienteNome] = useState(device.cliente ?? "");
   const [clienteTelefono, setClienteTelefono] = useState(device.telefono ?? "");
+  const [alPrevisto, setAlPrevisto] = useState(device.alPrevisto ?? "");
   // Parte VUOTO di proposito. La nota della scheda è un'annotazione interna
   // di magazzino ("ruota da sostituire", "cliente moroso"): pre-riempirla
   // qui la faceva finire stampata sul verbale che il cliente firma e porta
@@ -58,6 +59,7 @@ export function DocumentPanel({ device, onClose, forcedTipo }: DocumentPanelProp
             larghezza: device.larghezza,
           },
           cliente: { nome: clienteNome, telefono: clienteTelefono },
+          alPrevisto: tipo === "consegna" ? alPrevisto || null : null,
         }),
       });
       if (!res.ok) {
@@ -130,6 +132,16 @@ export function DocumentPanel({ device, onClose, forcedTipo }: DocumentPanelProp
             <input value={clienteTelefono} onChange={(e) => setClienteTelefono(e.target.value)} placeholder="Telefono" />
           </div>
         </div>
+
+        {tipo === "consegna" ? (
+          <div className="field">
+            <label>Rientro previsto (facoltativo)</label>
+            <input type="date" value={alPrevisto} onChange={(e) => setAlPrevisto(e.target.value)} />
+            <p className="hint" style={{ margin: "4px 0 0" }}>
+              Se compilato, compare sul verbale; se lasciato vuoto non viene stampato.
+            </p>
+          </div>
+        ) : null}
 
         {device.nota ? (
           <div className="internal-note">

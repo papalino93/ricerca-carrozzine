@@ -111,6 +111,12 @@ export function DeviceDetailModal({
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [tab, setTab] = useState<ModalTab>("dati");
+  // Doppia conferma per "Elimina dispositivo": un solo click (con o senza
+  // finestra nativa) è troppo facile da premere per sbaglio su un'azione
+  // irreversibile. Il secondo passo è digitare il codice esatto, non un
+  // semplice "OK" su cui si clicca per abitudine.
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [alPrevistoDraft, setAlPrevistoDraft] = useState(device.alPrevisto ?? "");
   const [savingAlPrevisto, setSavingAlPrevisto] = useState(false);
   // Sincronizzato con `current` (non con `form`, che può contenere una bozza
@@ -234,7 +240,6 @@ export function DeviceDetailModal({
   }
 
   async function handleDelete() {
-    if (!confirm(`Eliminare definitivamente ${form.codice}?`)) return;
     setSaving(true);
     setError(null);
     try {
@@ -922,9 +927,51 @@ export function DeviceDetailModal({
         // Isolata dalle azioni non distruttive (ora nella sidebar): un click
         // qui non si annulla, resta a un dito di distanza dal resto.
         <div className="danger-zone">
-          <button className="btn danger" type="button" onClick={handleDelete} disabled={saving}>
-            Elimina dispositivo
-          </button>
+          {!confirmingDelete ? (
+            <button
+              className="btn danger"
+              type="button"
+              onClick={() => {
+                setDeleteConfirmText("");
+                setConfirmingDelete(true);
+              }}
+              disabled={saving}
+            >
+              Elimina dispositivo
+            </button>
+          ) : (
+            <div className="delete-confirm">
+              <p className="hint" style={{ margin: "0 0 8px" }}>
+                Azione irreversibile. Per confermare, scrivi il codice{" "}
+                <b>{form.codice}</b> qui sotto.
+              </p>
+              <div className="card-actions">
+                <input
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  placeholder={form.codice}
+                  autoFocus
+                  style={{ maxWidth: 200 }}
+                />
+                <button
+                  className="btn"
+                  type="button"
+                  onClick={() => setConfirmingDelete(false)}
+                  disabled={saving}
+                >
+                  Annulla
+                </button>
+                <button
+                  className="btn danger"
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={saving || deleteConfirmText.trim() !== form.codice}
+                >
+                  {saving ? "Eliminazione…" : "Conferma eliminazione definitiva"}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       ) : null}
     </div>

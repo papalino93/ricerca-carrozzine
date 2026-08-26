@@ -1,12 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { STATUS_COLOR, STATUS_OPTIONS, type Device, type DeviceStatus } from "@/lib/device-types";
 import { DeviceCard } from "./DeviceCard";
 import { BrandHeader } from "./BrandHeader";
 import { StatTiles } from "./StatTiles";
 import { DocumentPanel } from "./DocumentPanel";
 import { QuickRentModal } from "./QuickRentModal";
+import { Toast } from "./Toast";
+import type { DocumentoTipo } from "@/lib/pdf/VerbaleDocument";
 import { readJson } from "@/lib/fetch-json";
 import { useAutoRefresh } from "@/lib/use-auto-refresh";
 import { matchesQuery } from "@/lib/search-match";
@@ -66,7 +68,20 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
   // verbale di consegna fosse dentro la card, sparirebbe con lei prima che
   // l'operatore lo veda.
   const [rentingDevice, setRentingDevice] = useState<Device | null>(null);
-  const [docPrompt, setDocPrompt] = useState<Device | null>(null);
+  const [docPrompt, setDocPrompt] = useState<{ device: Device; tipo: DocumentoTipo } | null>(null);
+  // Come rentingDevice/docPrompt: azioni rapide di "Segna restituito" /
+  // "Segna sanificato" ora possibili anche dalla ricerca pubblica, non solo
+  // dall'area amministratore (prima l'operatore doveva sempre passare da
+  // /admin anche solo per chiudere un noleggio).
+  const [busyCodice, setBusyCodice] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function showToast(message: string) {
+    setToast(message);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 2400);
+  }
 
   const categoryOptions = useMemo(() => ["Tutte", ...categories], [categories]);
 
@@ -102,6 +117,49 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
   }
 
   useAutoRefresh(refreshDevices);
+
+  async function handleReturn(d: Device) {
+    if (!confirm(`Segnare ${d.codice} come restituito? Andrà in "da pulire".`)) return;
+    setBusyCodice(d.codice);
+    try {
+      const res = await fetch(`/api/dispositivi/${encodeURIComponent(d.codice)}/eventi`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tipo: "restituzione" }),
+      });
+      const body = await readJson(res);
+      if (!res.ok) throw new Error(body.error || "Operazione non riuscita");
+      setDevices(body.devices);
+      showToast(`${d.codice} segnato come restituito`);
+      // Il ritorno svuota cliente/telefono/contratto sul dispositivo: usiamo
+      // "d" (lo stato di prima) per il verbale di restituzione, non la
+      // versione aggiornata appena arrivata dall'API.
+      setDocPrompt({ device: d, tipo: "restituzione" });
+    } catch (err) {
+      showToast((err as Error).message);
+    } finally {
+      setBusyCodice(null);
+    }
+  }
+
+  async function handleSanitize(d: Device) {
+    setBusyCodice(d.codice);
+    try {
+      const res = await fetch(`/api/dispositivi/${encodeURIComponent(d.codice)}/eventi`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tipo: "sanificazione" }),
+      });
+      const body = await readJson(res);
+      if (!res.ok) throw new Error(body.error || "Operazione non riuscita");
+      setDevices(body.devices);
+      showToast(`${d.codice} segnato come sanificato`);
+    } catch (err) {
+      showToast((err as Error).message);
+    } finally {
+      setBusyCodice(null);
+    }
+  }
 
   const isSearching = query.trim().length > 0;
 
@@ -234,11 +292,11 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
                   onClick={() => {
                     setCategory(c);
                     setSubcategory("Tutte");
-                    // Il filtro larghezza non ha senso fuori da "Tutte"/
-                    // Carrozzine: il pannello sparisce, ma senza questo il
-                    // filtro restava comunque attivo e nascosto, escludendo
-                    // in silenzio tutti gli ausili dell'altra categoria.
-                    if (c !== "Tutte" && c !== WIDTH_RELEVANT_CATEGORY) setWidth(null);
+                    // La larghezza ha senso solo dentro "Carrozzine": il
+                    // pannello sparisce anche per "Tutte" (categorie miste),
+                    // ma senza questo il filtro restava comunque attivo e
+                    // nascosto, escludendo in silenzio tutti gli altri ausili.
+                    if (c !== WIDTH_RELEVANT_CATEGORY) setWidth(null);
                   }}
                 >
                   {c}
@@ -270,7 +328,7 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
             ) : null}
           </div>
 
-          {category === "Tutte" || category === WIDTH_RELEVANT_CATEGORY ? (
+          {category === WIDTH_RELEVANT_CATEGORY ? (
           <div className="panel">
             <h2>Larghezza seduta</h2>
             <div className="width-row">
@@ -401,6 +459,12 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
           <span className="legend-swatch">＋</span> Noleggia
         </span>
         <span className="legend-item">
+          <span className="legend-swatch">↩</span> Segna restituito
+        </span>
+        <span className="legend-item">
+          <span className="legend-swatch">✓</span> Segna sanificato
+        </span>
+        <span className="legend-item">
           <span className="legend-swatch">📄</span> Genera documento
         </span>
       </div>
@@ -439,6 +503,9 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
             exactWidth={Boolean(width && d.larghezza === width)}
             statusColor={STATUS_COLOR[d.stato]}
             onRent={() => setRentingDevice(d)}
+            onReturn={() => handleReturn(d)}
+            onSanitize={() => handleSanitize(d)}
+            busy={busyCodice === d.codice}
           />
         ))
       )}
@@ -450,13 +517,21 @@ export function SearchClient({ initialDevices, logoUrl, categories }: SearchClie
           onRented={(updated) => {
             setDevices(updated);
             setRentingDevice(null);
-            setDocPrompt(updated.find((d) => d.codice === rentingDevice.codice) ?? rentingDevice);
+            setDocPrompt({
+              device: updated.find((d) => d.codice === rentingDevice.codice) ?? rentingDevice,
+              tipo: "consegna",
+            });
           }}
         />
       ) : null}
       {docPrompt ? (
-        <DocumentPanel device={docPrompt} forcedTipo="consegna" onClose={() => setDocPrompt(null)} />
+        <DocumentPanel
+          device={docPrompt.device}
+          forcedTipo={docPrompt.tipo}
+          onClose={() => setDocPrompt(null)}
+        />
       ) : null}
+      <Toast message={toast} />
     </div>
   );
 }

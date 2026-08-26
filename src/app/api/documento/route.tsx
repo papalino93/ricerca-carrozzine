@@ -23,6 +23,7 @@ interface DocumentoRequestBody {
     nome: string;
     telefono: string;
   };
+  alPrevisto?: string | null;
 }
 
 function buildDocument(body: DocumentoRequestBody, settings: CompanySettings) {
@@ -35,6 +36,7 @@ function buildDocument(body: DocumentoRequestBody, settings: CompanySettings) {
       dispositivo={body.dispositivo}
       cliente={{ nome: body.cliente?.nome ?? "", telefono: body.cliente?.telefono ?? "" }}
       note={body.note ?? ""}
+      alPrevisto={body.alPrevisto ?? null}
     />
   );
 }
