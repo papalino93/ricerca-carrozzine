@@ -32,6 +32,8 @@ export function ClientsClient({ clients: initialClients, history, devices }: Cli
   const [open, setOpen] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
+  const [puntiDelta, setPuntiDelta] = useState("");
+  const [adjustingPunti, setAdjustingPunti] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -84,6 +86,28 @@ export function ClientsClient({ clients: initialClients, history, devices }: Cli
 
   function currentDeviceFor(nome: string): Device | null {
     return devices.find((d) => d.stato === "noleggiato" && (d.cliente ?? "").toLowerCase() === nome.toLowerCase()) ?? null;
+  }
+
+  async function handleAdjustPunti(nome: string, sign: 1 | -1) {
+    const n = Number(puntiDelta.replace(",", "."));
+    if (!Number.isFinite(n) || n <= 0) return;
+    setAdjustingPunti(true);
+    try {
+      const res = await fetch("/api/clienti", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nome, delta: Math.trunc(n) * sign }),
+      });
+      const body = await readJson(res);
+      if (!res.ok) throw new Error(body.error || "Aggiornamento non riuscito");
+      setClients(body.clients);
+      setPuntiDelta("");
+      showToast(`Punti aggiornati per "${nome}"`);
+    } catch (err) {
+      showToast((err as Error).message);
+    } finally {
+      setAdjustingPunti(false);
+    }
   }
 
   async function handleDelete(e: React.MouseEvent, nome: string) {
@@ -167,6 +191,7 @@ export function ClientsClient({ clients: initialClients, history, devices }: Cli
                   <th>Nome</th>
                   <th>Telefono</th>
                   <th>Fidelity</th>
+                  <th>Punti</th>
                   <th>Ultimo noleggio</th>
                   <th>Ultimo n. noleggio</th>
                   <th>In corso</th>
@@ -181,12 +206,16 @@ export function ClientsClient({ clients: initialClients, history, devices }: Cli
                     <Fragment key={c.nome}>
                       <tr
                         className="clickable-row"
-                        onClick={() => setOpen(isOpen ? null : c.nome)}
+                        onClick={() => {
+                          setOpen(isOpen ? null : c.nome);
+                          setPuntiDelta("");
+                        }}
                       >
                         <td>{isOpen ? "▾" : "▸"}</td>
                         <td>{c.nome}</td>
                         <td>{c.telefono ?? c.cellulare ?? "—"}</td>
                         <td>{c.fidelity ?? "—"}</td>
+                        <td>{c.punti}</td>
                         <td>{c.ultimoNoleggio ? fmtDate(c.ultimoNoleggio) : "—"}</td>
                         <td>{c.ultimoContratto ?? "—"}</td>
                         <td>
@@ -209,7 +238,7 @@ export function ClientsClient({ clients: initialClients, history, devices }: Cli
                       </tr>
                       {isOpen ? (
                         <tr key={`${c.nome}-detail`}>
-                          <td colSpan={8}>
+                          <td colSpan={9}>
                             <div className="client-history">
                               {c.indirizzo || c.email || c.fidelity || c.dataNascita || c.cellulare ? (
                                 <div className="meta" style={{ marginBottom: 10 }}>
@@ -222,6 +251,35 @@ export function ClientsClient({ clients: initialClients, history, devices }: Cli
                                   {c.fidelity ? `Tessera fedeltà n. ${c.fidelity}` : ""}
                                 </div>
                               ) : null}
+
+                              <div className="card-actions" style={{ marginBottom: 14, alignItems: "center" }}>
+                                <b>{c.punti} punti fedeltà</b>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  placeholder="Quanti punti?"
+                                  style={{ width: 130 }}
+                                  value={puntiDelta}
+                                  onChange={(e) => setPuntiDelta(e.target.value)}
+                                />
+                                <button
+                                  className="btn"
+                                  type="button"
+                                  disabled={adjustingPunti}
+                                  onClick={() => handleAdjustPunti(c.nome, 1)}
+                                >
+                                  + Aggiungi
+                                </button>
+                                <button
+                                  className="btn"
+                                  type="button"
+                                  disabled={adjustingPunti}
+                                  onClick={() => handleAdjustPunti(c.nome, -1)}
+                                >
+                                  − Togli
+                                </button>
+                              </div>
+
                               <b>Storico di {c.nome}</b>
                               {historyFor(c.nome).length === 0 ? (
                                 <p className="hint" style={{ margin: "6px 0 0" }}>

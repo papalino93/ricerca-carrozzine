@@ -23,6 +23,10 @@ export interface ClientRecord {
    * da questo sito, vedi fedelta.store): qui solo tracciato come riferimento. */
   fidelity: string | null;
   categoria: string | null;
+  /** Punti fedeltà accumulati qui (non sincronizzati con fedelta.store):
+   * 1 punto per ogni euro di saldo su una commessa ritirata, stesso rapporto
+   * osservato nel sistema attuale, più eventuali rettifiche manuali. */
+  punti: number;
 }
 
 const TAB = "Clienti";
@@ -44,6 +48,7 @@ const HEADER = [
   "LuogoNascita",
   "Fidelity",
   "Categoria",
+  "Punti",
 ];
 
 function toClient(row: string[]): ClientRecord {
@@ -65,6 +70,7 @@ function toClient(row: string[]): ClientRecord {
     luogoNascita,
     fidelity,
     categoria,
+    punti,
   ] = row;
   return {
     nome: nome ?? "",
@@ -84,6 +90,7 @@ function toClient(row: string[]): ClientRecord {
     luogoNascita: luogoNascita || null,
     fidelity: fidelity || null,
     categoria: categoria || null,
+    punti: Number(punti) || 0,
   };
 }
 
@@ -106,6 +113,7 @@ function toRow(c: ClientRecord): string[] {
     c.luogoNascita ?? "",
     c.fidelity ?? "",
     c.categoria ?? "",
+    String(c.punti),
   ];
 }
 
@@ -155,10 +163,49 @@ export async function upsertClient(input: {
     luogoNascita: prev?.luogoNascita ?? null,
     fidelity: prev?.fidelity ?? null,
     categoria: prev?.categoria ?? null,
+    punti: prev?.punti ?? 0,
   };
   if (idx >= 0) clients[idx] = next;
   else clients.push(next);
   await writeSheet(TAB, [HEADER, ...clients.map(toRow)]);
+}
+
+/**
+ * Aggiunge (o toglie, con delta negativo) punti fedeltà al saldo di un
+ * cliente, creandolo se non esiste ancora in anagrafica (es. committente di
+ * una commessa mai noleggiante prima). Il saldo non scende mai sotto zero.
+ */
+export async function adjustClientPunti(nome: string, delta: number): Promise<ClientRecord[]> {
+  const trimmed = nome.trim();
+  if (!trimmed || !delta) return readClients();
+  const clients = await readClients();
+  const idx = clients.findIndex((c) => c.nome.toLowerCase() === trimmed.toLowerCase());
+  if (idx >= 0) {
+    clients[idx] = { ...clients[idx], punti: Math.max(0, clients[idx].punti + delta) };
+  } else {
+    clients.push({
+      nome: trimmed,
+      telefono: null,
+      ultimoContratto: null,
+      ultimoNoleggio: null,
+      cognome: null,
+      nomeProprio: null,
+      sesso: null,
+      indirizzo: null,
+      cap: null,
+      localita: null,
+      provincia: null,
+      cellulare: null,
+      email: null,
+      dataNascita: null,
+      luogoNascita: null,
+      fidelity: null,
+      categoria: null,
+      punti: Math.max(0, delta),
+    });
+  }
+  await writeSheet(TAB, [HEADER, ...clients.map(toRow)]);
+  return clients;
 }
 
 /**
@@ -299,6 +346,7 @@ export async function importClientsCsv(
       luogoNascita: prev?.luogoNascita ?? null,
       fidelity: get("fidelity") || prev?.fidelity || null,
       categoria: get("categoria") || prev?.categoria || null,
+      punti: prev?.punti ?? 0,
     };
 
     if (prev) aggiornati++;

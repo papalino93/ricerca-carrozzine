@@ -17,16 +17,16 @@ const STATUS_PILL: Record<CommessaRecord["stato"], string> = {
 };
 
 const EMPTY_FORM = {
-  committente: "",
+  cliente: "",
   indirizzo: "",
   telefono: "",
   cellulare: "",
-  tipoMateriale: false,
-  tipoRiparazione: false,
-  operatori: "",
+  vendita: false,
+  riparazione: false,
+  operatore: "",
   richiesteParticolari: "",
-  dataInizio: "",
-  dataConsegnaPrevista: "",
+  ricevutoIl: "",
+  consegnaPrevista: "",
   acconto: "",
   saldo: "",
   richiestaMedica: false,
@@ -36,22 +36,20 @@ const EMPTY_FORM = {
 };
 
 type EditForm = {
-  verifica: "" | "ok" | "c" | "nc";
-  nonConformitaNumero: string;
-  esito: string;
-  dataProntaConsegna: string;
-  dataRitiro: string;
+  controlloFinale: "" | "ok" | "problema";
+  noteChiusura: string;
+  prontaIl: string;
+  ritirataIl: string;
   acconto: string;
   saldo: string;
 };
 
 function toEditForm(c: CommessaRecord): EditForm {
   return {
-    verifica: c.verifica ?? "",
-    nonConformitaNumero: c.nonConformitaNumero ?? "",
-    esito: c.esito ?? "",
-    dataProntaConsegna: c.dataProntaConsegna ?? "",
-    dataRitiro: c.dataRitiro ?? "",
+    controlloFinale: c.controlloFinale ?? "",
+    noteChiusura: c.noteChiusura ?? "",
+    prontaIl: c.prontaIl ?? "",
+    ritirataIl: c.ritirataIl ?? "",
     acconto: c.acconto != null ? String(c.acconto) : "",
     saldo: c.saldo != null ? String(c.saldo) : "",
   };
@@ -91,13 +89,13 @@ export function CommesseClient({ initialCommesse }: CommesseClientProps) {
     const q = query.trim().toLowerCase();
     if (!q) return commesse;
     return commesse.filter((c) =>
-      matchesQuery([c.numero, c.committente, c.telefono, c.cellulare].filter(Boolean).join(" ").toLowerCase(), q)
+      matchesQuery([c.numero, c.cliente, c.telefono, c.cellulare].filter(Boolean).join(" ").toLowerCase(), q)
     );
   }, [commesse, query]);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.committente.trim()) return;
+    if (!form.cliente.trim()) return;
     setSaving(true);
     try {
       const res = await fetch("/api/commesse", {
@@ -108,17 +106,16 @@ export function CommesseClient({ initialCommesse }: CommesseClientProps) {
           indirizzo: form.indirizzo || null,
           telefono: form.telefono || null,
           cellulare: form.cellulare || null,
-          operatori: form.operatori || null,
+          operatore: form.operatore || null,
           richiesteParticolari: form.richiesteParticolari || null,
-          dataInizio: form.dataInizio || null,
-          dataConsegnaPrevista: form.dataConsegnaPrevista || null,
+          ricevutoIl: form.ricevutoIl || null,
+          consegnaPrevista: form.consegnaPrevista || null,
           acconto: form.acconto ? Number(form.acconto.replace(",", ".")) : null,
           saldo: form.saldo ? Number(form.saldo.replace(",", ".")) : null,
-          verifica: null,
-          nonConformitaNumero: null,
-          esito: null,
-          dataProntaConsegna: null,
-          dataRitiro: null,
+          controlloFinale: null,
+          noteChiusura: null,
+          prontaIl: null,
+          ritirataIl: null,
         }),
       });
       const body = await readJson(res);
@@ -126,7 +123,7 @@ export function CommesseClient({ initialCommesse }: CommesseClientProps) {
       setCommesse(body.commesse);
       setForm(EMPTY_FORM);
       setCreating(false);
-      showToast(`Commessa n. ${body.commessa.numero} creata`);
+      showToast(`Scheda n. ${body.commessa.numero} creata`);
     } catch (err) {
       showToast((err as Error).message);
     } finally {
@@ -168,15 +165,14 @@ export function CommesseClient({ initialCommesse }: CommesseClientProps) {
     await patchCommessa(
       c.numero,
       {
-        verifica: editForm.verifica || null,
-        nonConformitaNumero: editForm.nonConformitaNumero || null,
-        esito: editForm.esito || null,
-        dataProntaConsegna: editForm.dataProntaConsegna || null,
-        dataRitiro: editForm.dataRitiro || null,
+        controlloFinale: editForm.controlloFinale || null,
+        noteChiusura: editForm.noteChiusura || null,
+        prontaIl: editForm.prontaIl || null,
+        ritirataIl: editForm.ritirataIl || null,
         acconto: editForm.acconto ? Number(editForm.acconto.replace(",", ".")) : null,
         saldo: editForm.saldo ? Number(editForm.saldo.replace(",", ".")) : null,
       },
-      `Commessa n. ${c.numero} aggiornata`
+      `Scheda n. ${c.numero} aggiornata`
     );
   }
 
@@ -185,24 +181,24 @@ export function CommesseClient({ initialCommesse }: CommesseClientProps) {
       <header className="page-header">
         <h1>Commesse</h1>
         <p className="sub">
-          {commesse.length} commesse · scheda digitale (materiale/riparazione), stesso modulo di sempre
+          {commesse.length} schede lavoro · vendite e riparazioni, stesso modulo di sempre ma digitale
         </p>
       </header>
 
       <div className="panel">
         <div className="card-actions">
           <button className="btn primary" type="button" onClick={() => setCreating((v) => !v)}>
-            {creating ? "Annulla" : "+ Nuova commessa"}
+            {creating ? "Annulla" : "+ Nuova scheda"}
           </button>
         </div>
 
         {creating ? (
           <form onSubmit={handleCreate} style={{ marginTop: 16 }}>
             <div className="field">
-              <label>Committente</label>
+              <label>Cliente</label>
               <input
-                value={form.committente}
-                onChange={(e) => setForm({ ...form, committente: e.target.value })}
+                value={form.cliente}
+                onChange={(e) => setForm({ ...form, cliente: e.target.value })}
                 required
               />
             </div>
@@ -221,30 +217,30 @@ export function CommesseClient({ initialCommesse }: CommesseClientProps) {
               </div>
             </div>
             <div className="field">
-              <label>Tipologia di lavoro</label>
+              <label>Che lavoro è?</label>
               <div className="chips">
                 <button
                   type="button"
-                  className={`chip ${form.tipoMateriale ? "active" : ""}`}
-                  onClick={() => setForm({ ...form, tipoMateriale: !form.tipoMateriale })}
+                  className={`chip ${form.vendita ? "active" : ""}`}
+                  onClick={() => setForm({ ...form, vendita: !form.vendita })}
                 >
-                  Materiale
+                  Vendita
                 </button>
                 <button
                   type="button"
-                  className={`chip ${form.tipoRiparazione ? "active" : ""}`}
-                  onClick={() => setForm({ ...form, tipoRiparazione: !form.tipoRiparazione })}
+                  className={`chip ${form.riparazione ? "active" : ""}`}
+                  onClick={() => setForm({ ...form, riparazione: !form.riparazione })}
                 >
                   Riparazione
                 </button>
               </div>
             </div>
             <div className="field">
-              <label>Operatori</label>
-              <input value={form.operatori} onChange={(e) => setForm({ ...form, operatori: e.target.value })} />
+              <label>Chi se ne occupa</label>
+              <input value={form.operatore} onChange={(e) => setForm({ ...form, operatore: e.target.value })} />
             </div>
             <div className="field">
-              <label>Richieste particolari del cliente</label>
+              <label>Richieste del cliente</label>
               <textarea
                 rows={2}
                 value={form.richiesteParticolari}
@@ -253,19 +249,19 @@ export function CommesseClient({ initialCommesse }: CommesseClientProps) {
             </div>
             <div className="field-row">
               <div className="field">
-                <label>Data di inizio dei lavori</label>
+                <label>Ricevuto il</label>
                 <input
                   type="date"
-                  value={form.dataInizio}
-                  onChange={(e) => setForm({ ...form, dataInizio: e.target.value })}
+                  value={form.ricevutoIl}
+                  onChange={(e) => setForm({ ...form, ricevutoIl: e.target.value })}
                 />
               </div>
               <div className="field">
-                <label>Data di consegna del lavoro (prevista)</label>
+                <label>Consegna prevista il</label>
                 <input
                   type="date"
-                  value={form.dataConsegnaPrevista}
-                  onChange={(e) => setForm({ ...form, dataConsegnaPrevista: e.target.value })}
+                  value={form.consegnaPrevista}
+                  onChange={(e) => setForm({ ...form, consegnaPrevista: e.target.value })}
                 />
               </div>
             </div>
@@ -279,7 +275,7 @@ export function CommesseClient({ initialCommesse }: CommesseClientProps) {
                 />
               </div>
               <div className="field">
-                <label>Saldo €</label>
+                <label>Saldo da pagare €</label>
                 <input
                   inputMode="decimal"
                   value={form.saldo}
@@ -287,14 +283,17 @@ export function CommesseClient({ initialCommesse }: CommesseClientProps) {
                 />
               </div>
             </div>
+            <p className="hint" style={{ marginTop: -8, marginBottom: 14 }}>
+              Il saldo pagato, al ritiro, genera punti fedeltà per il cliente (1 punto per euro).
+            </p>
             <div className="field">
-              <label>Altro</label>
+              <label>Serve altro</label>
               <div className="chips">
                 {(
                   [
-                    ["richiestaMedica", "Richiesta medica"],
+                    ["richiestaMedica", "Prescrizione medica"],
                     ["documentazione", "Documentazione"],
-                    ["documentazioneDiagnostica", "Documentazione diagnostica"],
+                    ["documentazioneDiagnostica", "Referto diagnostico"],
                     ["altro", "Altro"],
                   ] as const
                 ).map(([key, label]) => (
@@ -311,7 +310,7 @@ export function CommesseClient({ initialCommesse }: CommesseClientProps) {
             </div>
             <div className="card-actions">
               <button className="btn primary" type="submit" disabled={saving}>
-                {saving ? "Creazione…" : "Crea commessa"}
+                {saving ? "Creazione…" : "Crea scheda"}
               </button>
             </div>
           </form>
@@ -322,13 +321,13 @@ export function CommesseClient({ initialCommesse }: CommesseClientProps) {
         <input
           className="searchbox"
           style={{ marginBottom: 14 }}
-          placeholder="Cerca per numero, committente, telefono…"
+          placeholder="Cerca per numero, cliente, telefono…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
         {filtered.length === 0 ? (
           <p className="hint" style={{ margin: 0 }}>
-            {commesse.length === 0 ? "Nessuna commessa ancora registrata." : "Nessuna commessa corrisponde alla ricerca."}
+            {commesse.length === 0 ? "Nessuna scheda ancora registrata." : "Nessuna scheda corrisponde alla ricerca."}
           </p>
         ) : (
           <div className="admin-table-wrap">
@@ -337,7 +336,7 @@ export function CommesseClient({ initialCommesse }: CommesseClientProps) {
                 <tr>
                   <th></th>
                   <th>N.</th>
-                  <th>Committente</th>
+                  <th>Cliente</th>
                   <th>Tipo</th>
                   <th>Consegna prevista</th>
                   <th>Saldo</th>
@@ -352,13 +351,9 @@ export function CommesseClient({ initialCommesse }: CommesseClientProps) {
                       <tr className="clickable-row" onClick={() => toggleOpen(c)}>
                         <td>{isOpen ? "▾" : "▸"}</td>
                         <td>{c.numero}</td>
-                        <td>{c.committente}</td>
-                        <td>
-                          {[c.tipoMateriale && "Materiale", c.tipoRiparazione && "Riparazione"]
-                            .filter(Boolean)
-                            .join(" + ") || "—"}
-                        </td>
-                        <td>{fmtDate(c.dataConsegnaPrevista)}</td>
+                        <td>{c.cliente}</td>
+                        <td>{[c.vendita && "Vendita", c.riparazione && "Riparazione"].filter(Boolean).join(" + ") || "—"}</td>
+                        <td>{fmtDate(c.consegnaPrevista)}</td>
                         <td>{fmtEuro(c.saldo)}</td>
                         <td>
                           <span className={`pill ${STATUS_PILL[c.stato]}`}>{COMMESSA_STATUS_LABEL[c.stato]}</span>
@@ -372,13 +367,13 @@ export function CommesseClient({ initialCommesse }: CommesseClientProps) {
                                 {c.indirizzo ? `${c.indirizzo} · ` : ""}
                                 {c.telefono ? `Tel. ${c.telefono} · ` : ""}
                                 {c.cellulare ? `Cell. ${c.cellulare} · ` : ""}
-                                {c.operatori ? `Operatori: ${c.operatori} · ` : ""}
-                                Iniziata il {fmtDate(c.dataInizio)}
+                                {c.operatore ? `A cura di: ${c.operatore} · ` : ""}
+                                Ricevuto il {fmtDate(c.ricevutoIl)}
                                 {c.richiesteParticolari ? ` · Richieste: ${c.richiesteParticolari}` : ""}
                                 {[
-                                  c.richiestaMedica && "Richiesta medica",
+                                  c.richiestaMedica && "Prescrizione medica",
                                   c.documentazione && "Documentazione",
-                                  c.documentazioneDiagnostica && "Documentazione diagnostica",
+                                  c.documentazioneDiagnostica && "Referto diagnostico",
                                   c.altro && "Altro",
                                 ]
                                   .filter(Boolean)
@@ -392,7 +387,7 @@ export function CommesseClient({ initialCommesse }: CommesseClientProps) {
                                     className="btn"
                                     type="button"
                                     disabled={savingEdit}
-                                    onClick={() => patchCommessa(c.numero, { stato: "pronta" }, `Commessa n. ${c.numero} pronta per la consegna`)}
+                                    onClick={() => patchCommessa(c.numero, { stato: "pronta" }, `Scheda n. ${c.numero} pronta per la consegna`)}
                                   >
                                     Segna pronta
                                   </button>
@@ -402,7 +397,13 @@ export function CommesseClient({ initialCommesse }: CommesseClientProps) {
                                     className="btn"
                                     type="button"
                                     disabled={savingEdit}
-                                    onClick={() => patchCommessa(c.numero, { stato: "ritirata", dataRitiro: editForm.dataRitiro || new Date().toISOString().slice(0, 10) }, `Commessa n. ${c.numero} ritirata`)}
+                                    onClick={() =>
+                                      patchCommessa(
+                                        c.numero,
+                                        { stato: "ritirata", ritirataIl: editForm.ritirataIl || new Date().toISOString().slice(0, 10) },
+                                        `Scheda n. ${c.numero} ritirata`
+                                      )
+                                    }
                                   >
                                     Segna ritirata
                                   </button>
@@ -412,7 +413,7 @@ export function CommesseClient({ initialCommesse }: CommesseClientProps) {
                                     className="btn"
                                     type="button"
                                     disabled={savingEdit}
-                                    onClick={() => patchCommessa(c.numero, { stato: "in_lavorazione" }, `Commessa n. ${c.numero} riportata in lavorazione`)}
+                                    onClick={() => patchCommessa(c.numero, { stato: "in_lavorazione" }, `Scheda n. ${c.numero} riportata in lavorazione`)}
                                   >
                                     Riporta in lavorazione
                                   </button>
@@ -429,7 +430,7 @@ export function CommesseClient({ initialCommesse }: CommesseClientProps) {
                                   />
                                 </div>
                                 <div className="field">
-                                  <label>Saldo €</label>
+                                  <label>Saldo da pagare €</label>
                                   <input
                                     inputMode="decimal"
                                     value={editForm.saldo}
@@ -439,52 +440,54 @@ export function CommesseClient({ initialCommesse }: CommesseClientProps) {
                               </div>
 
                               <div className="field">
-                                <label>Verifica</label>
+                                <label>Controllo finale</label>
                                 <div className="chips">
-                                  {(["ok", "c", "nc"] as const).map((v) => (
-                                    <button
-                                      key={v}
-                                      type="button"
-                                      className={`chip ${editForm.verifica === v ? "active" : ""}`}
-                                      onClick={() => setEditForm({ ...editForm, verifica: editForm.verifica === v ? "" : v })}
-                                    >
-                                      {v.toUpperCase()}
-                                    </button>
-                                  ))}
+                                  <button
+                                    type="button"
+                                    className={`chip ${editForm.controlloFinale === "ok" ? "active" : ""}`}
+                                    onClick={() =>
+                                      setEditForm({ ...editForm, controlloFinale: editForm.controlloFinale === "ok" ? "" : "ok" })
+                                    }
+                                  >
+                                    Tutto ok
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={`chip ${editForm.controlloFinale === "problema" ? "active" : ""}`}
+                                    onClick={() =>
+                                      setEditForm({
+                                        ...editForm,
+                                        controlloFinale: editForm.controlloFinale === "problema" ? "" : "problema",
+                                      })
+                                    }
+                                  >
+                                    Da sistemare
+                                  </button>
                                 </div>
                               </div>
-                              {editForm.verifica === "nc" ? (
-                                <div className="field">
-                                  <label>N. non conformità</label>
-                                  <input
-                                    value={editForm.nonConformitaNumero}
-                                    onChange={(e) => setEditForm({ ...editForm, nonConformitaNumero: e.target.value })}
-                                  />
-                                </div>
-                              ) : null}
                               <div className="field">
-                                <label>Esito</label>
+                                <label>Note di chiusura</label>
                                 <textarea
                                   rows={2}
-                                  value={editForm.esito}
-                                  onChange={(e) => setEditForm({ ...editForm, esito: e.target.value })}
+                                  value={editForm.noteChiusura}
+                                  onChange={(e) => setEditForm({ ...editForm, noteChiusura: e.target.value })}
                                 />
                               </div>
                               <div className="field-row">
                                 <div className="field">
-                                  <label>Data pronta consegna</label>
+                                  <label>Pronto il</label>
                                   <input
                                     type="date"
-                                    value={editForm.dataProntaConsegna}
-                                    onChange={(e) => setEditForm({ ...editForm, dataProntaConsegna: e.target.value })}
+                                    value={editForm.prontaIl}
+                                    onChange={(e) => setEditForm({ ...editForm, prontaIl: e.target.value })}
                                   />
                                 </div>
                                 <div className="field">
-                                  <label>Data ritiro</label>
+                                  <label>Ritirato il</label>
                                   <input
                                     type="date"
-                                    value={editForm.dataRitiro}
-                                    onChange={(e) => setEditForm({ ...editForm, dataRitiro: e.target.value })}
+                                    value={editForm.ritirataIl}
+                                    onChange={(e) => setEditForm({ ...editForm, ritirataIl: e.target.value })}
                                   />
                                 </div>
                               </div>

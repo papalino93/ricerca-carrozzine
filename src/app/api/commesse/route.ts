@@ -31,9 +31,9 @@ export async function POST(req: NextRequest) {
   if (unauthorized) return unauthorized;
 
   try {
-    const body = (await req.json()) as Omit<CommessaRecord, "numero" | "stato" | "creata">;
-    if (!body.committente?.trim()) {
-      return NextResponse.json({ error: "Committente obbligatorio" }, { status: 400 });
+    const body = (await req.json()) as Omit<CommessaRecord, "numero" | "stato" | "creata" | "puntiAssegnati">;
+    if (!body.cliente?.trim()) {
+      return NextResponse.json({ error: "Cliente obbligatorio" }, { status: 400 });
     }
     const commessa = await createCommessa(body);
     const commesse = await listCommesse();
