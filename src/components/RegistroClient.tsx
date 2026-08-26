@@ -5,6 +5,7 @@ import type { HistoryEvent } from "@/lib/history";
 import type { Device } from "@/lib/device-types";
 import type { DocumentLogEntry } from "@/lib/documentLog";
 import { matchesQuery } from "@/lib/search-match";
+import { IconNoleggio } from "./ReceptionIcons";
 
 interface RegistroClientProps {
   noleggi: HistoryEvent[];
@@ -67,7 +68,12 @@ export function RegistroClient({ noleggi, devices, firmeDrive }: RegistroClientP
   return (
     <div className="wrap wide">
       <header className="page-header">
-        <h1>Registro noleggi</h1>
+        <div className="page-title-row">
+          <span className="page-title-icon">
+            <IconNoleggio />
+          </span>
+          <h1>Registro noleggi</h1>
+        </div>
         <p className="sub">
           {noleggi.length} noleggi registrati · numero progressivo, dispositivo e cliente di ognuno
         </p>
@@ -123,7 +129,9 @@ export function RegistroClient({ noleggi, devices, firmeDrive }: RegistroClientP
                   const driveUrl = driveUrlByNoleggio.get(`${n.codice}::${n.contratto ?? ""}`);
                   return (
                     <tr key={`${n.contratto ?? "—"}-${n.codice}-${i}`}>
-                      <td>{n.contratto ?? "—"}</td>
+                      <td>
+                        {n.contratto ? <span className="width-tag">{n.contratto}</span> : "—"}
+                      </td>
                       <td>{fmtDate(n.data)}</td>
                       <td>{n.codice}</td>
                       <td>{d?.categoria ?? "—"}</td>
@@ -132,11 +140,11 @@ export function RegistroClient({ noleggi, devices, firmeDrive }: RegistroClientP
                       <td>{n.telefono ?? "—"}</td>
                       <td>
                         {driveUrl ? (
-                          <a href={driveUrl} target="_blank" rel="noreferrer">
+                          <a href={driveUrl} target="_blank" rel="noreferrer" className="pill disponibile">
                             Apri ↗
                           </a>
                         ) : (
-                          "—"
+                          <span className="pill archiviato">— nessuno</span>
                         )}
                       </td>
                     </tr>

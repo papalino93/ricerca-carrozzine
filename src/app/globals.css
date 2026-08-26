@@ -69,6 +69,33 @@ header.page-header {
   margin-bottom: 18px;
 }
 
+.page-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.page-title-row h1 {
+  margin: 0;
+}
+
+.page-title-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: var(--accent-bg);
+  color: var(--accent-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.page-title-icon svg {
+  width: 19px;
+  height: 19px;
+}
+
 .brand-row {
   display: flex;
   align-items: center;
@@ -135,6 +162,7 @@ h1 {
   border-radius: 22px;
   padding: 22px;
   margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(23, 48, 27, 0.05);
 }
 
 .panel h2 {
