@@ -7,7 +7,12 @@ import { SearchClient } from "@/components/SearchClient";
 
 export const dynamic = "force-dynamic";
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { q } = await searchParams;
   // Le letture sono indipendenti fra loro: eseguirle in parallelo invece
   // che in serie evita di sommare più round-trip verso Google Sheets a
   // ogni apertura della pagina.
@@ -46,6 +51,7 @@ export default async function HomePage() {
       logoUrl={logoUrl}
       categories={categories}
       tariffe={tariffe}
+      initialQuery={q}
     />
   );
 }

@@ -36,6 +36,10 @@ interface SearchClientProps {
   logoUrl?: string | null;
   categories: string[];
   tariffe: Tariffa[];
+  /** Testo già digitato nella ricerca della home: arriva come parametro
+   * nell'indirizzo, così quello che l'operatore ha scritto al banco non va
+   * perso nel passaggio da una pagina all'altra. */
+  initialQuery?: string;
 }
 
 type SortKey = "larghezza" | "codice" | "marca" | "stato" | "cliente";
@@ -50,7 +54,13 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
 
 const ALL_STATUSES = new Set(STATUS_OPTIONS.map((o) => o.key));
 
-export function SearchClient({ initialDevices, logoUrl, categories, tariffe }: SearchClientProps) {
+export function SearchClient({
+  initialDevices,
+  logoUrl,
+  categories,
+  tariffe,
+  initialQuery,
+}: SearchClientProps) {
   const [devices, setDevices] = useState(initialDevices);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [width, setWidth] = useState<number | null>(null);
@@ -66,7 +76,7 @@ export function SearchClient({ initialDevices, logoUrl, categories, tariffe }: S
   const [statuses, setStatuses] = useState<Set<string>>(
     new Set(["disponibile", "da_pulire", "da_verificare"])
   );
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialQuery ?? "");
   const [sortBy, setSortBy] = useState<SortKey>("larghezza");
   // Vivono qui, non nella singola DeviceCard: appena il noleggio viene
   // confermato il dispositivo passa a "noleggiato" e sparisce dall'elenco

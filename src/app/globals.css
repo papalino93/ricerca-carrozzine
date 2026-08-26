@@ -204,198 +204,335 @@ h1 {
   flex-wrap: wrap;
 }
 
-/* ---------- Reception (home Operatore banco) ---------- */
-.reception {
+/* ---------- Home Operatore banco ----------
+   Non un menu a pulsantoni: una schermata di lavoro. Ogni riquadro porta
+   il numero di oggi, e la colonna a destra mostra le scadenze che
+   altrimenti si scoprirebbero solo entrando nelle singole pagine. */
+.desk {
   min-height: 100dvh;
-  display: flex;
-  flex-direction: column;
   background:
-    radial-gradient(720px 420px at 50% -8%, var(--accent-bg) 0%, transparent 70%),
+    radial-gradient(760px 420px at 50% -10%, var(--accent-bg) 0%, transparent 68%),
     var(--bg);
-  padding: 28px 24px 48px;
+  padding: 22px 20px 40px;
 }
 
-.reception-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  max-width: 900px;
-  width: 100%;
+.desk-inner {
+  max-width: 1060px;
   margin: 0 auto;
 }
 
-.reception-brand {
+.desk-top {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
 }
 
-/* Il logo è caricabile da Impostazioni: se qualcuno carica un marchio molto
-   largo, senza un limite spingerebbe fuori schermo il pulsante accanto. */
-.reception-brand img {
-  height: 44px;
+.desk-brand {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.desk-brand img {
+  height: 42px;
   width: auto;
   max-width: 45vw;
   object-fit: contain;
+  display: block;
 }
 
-.reception-admin-link {
+.desk-top-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Data e ora: blocco scuro pieno, l'unico della schermata, così si stacca
+   nettamente dal resto invece di sembrare l'ennesima etichetta grigia. */
+.desk-clock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  background: var(--ink);
+  color: #fff;
+  border-radius: 12px;
+  padding: 7px 14px 8px;
+  /* Larghezza minima: l'orario compare solo dopo il caricamento (vedi
+     DeskClock), e senza questo la riga si sposterebbe di colpo. */
+  min-width: 168px;
+}
+
+.desk-clock-date {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.62);
+  white-space: nowrap;
+  min-height: 15px;
+}
+
+.desk-clock-time {
+  font-family: var(--mono);
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+  min-height: 22px;
+}
+
+.desk-admin-link {
   font-size: 12.5px;
   font-weight: 600;
   color: var(--ink-soft);
   text-decoration: none;
-  padding: 7px 13px;
+  padding: 9px 15px;
   border: 1px solid var(--line);
   border-radius: 999px;
   white-space: nowrap;
   background: var(--surface);
 }
 
-.reception-admin-link:hover {
+.desk-admin-link:hover {
   color: var(--ink);
   border-color: var(--ink-soft);
 }
 
-.reception-hero {
-  flex: 1;
+.desk-search {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  max-width: 900px;
-  width: 100%;
-  margin: 0 auto;
+  align-items: center;
+  gap: 11px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 9px 10px 9px 18px;
+  margin-bottom: 18px;
+  box-shadow: 0 1px 2px rgba(23, 48, 27, 0.04);
 }
 
-.reception-greet {
-  text-align: center;
-  margin-bottom: 40px;
+.desk-search:focus-within {
+  border-color: var(--accent);
 }
 
-.reception-greet h1 {
-  font-family: var(--heading);
-  font-size: clamp(28px, 4vw, 38px);
-  font-weight: 700;
+.desk-search svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: var(--ink-soft);
+}
+
+.desk-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  font-family: var(--sans);
+  font-size: 15px;
   color: var(--ink);
-  margin: 0 0 8px;
+  padding: 6px 0;
+}
+
+.desk-search input:focus {
+  outline: none;
+}
+
+.desk-layout {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.desk-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.desk-tile {
+  --c: var(--accent);
+  --cbg: var(--accent-bg);
+  display: block;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 15px 16px 14px;
+  text-decoration: none;
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgba(23, 48, 27, 0.04);
+  transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .desk-tile:hover {
+    transform: translateY(-2px);
+    border-color: var(--c);
+    box-shadow: 0 16px 30px -20px rgba(23, 48, 27, 0.34);
+  }
+}
+
+.desk-tile-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.desk-tile-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--cbg);
+  color: var(--c);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.desk-tile-icon svg {
+  width: 19px;
+  height: 19px;
+}
+
+.desk-tile-value {
+  font-family: var(--heading);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.desk-tile-label {
+  display: block;
+  font-family: var(--heading);
+  font-size: 15px;
+  font-weight: 650;
   letter-spacing: -0.01em;
 }
 
-.reception-greet p {
-  font-size: 14px;
+.desk-tile-sub {
+  display: block;
+  font-size: 12.5px;
   color: var(--ink-soft);
+}
+
+.desk-tile-info {
+  --c: var(--rent-fg);
+  --cbg: var(--rent-bg);
+}
+
+.desk-tile-warn {
+  --c: var(--clean-fg);
+  --cbg: var(--clean-bg);
+}
+
+.desk-tile-purple {
+  --c: var(--check-fg);
+  --cbg: var(--check-bg);
+}
+
+.desk-tile-accent {
+  --c: var(--accent);
+  --cbg: var(--accent-bg);
+}
+
+.desk-watch {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 16px 18px;
+  box-shadow: 0 1px 2px rgba(23, 48, 27, 0.04);
+}
+
+.desk-watch h2 {
+  margin: 0 0 10px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+}
+
+.desk-watch ul {
+  list-style: none;
   margin: 0;
-  text-transform: capitalize;
+  padding: 0;
 }
 
-.reception-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 18px;
+.desk-watch li + li {
+  border-top: 1px solid var(--line);
 }
 
-@media (max-width: 620px) {
-  .reception-grid {
+.desk-watch li a {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 0;
+  text-decoration: none;
+  color: var(--ink);
+  font-size: 13.5px;
+}
+
+.desk-watch li a:hover .desk-watch-who {
+  color: var(--accent-ink);
+}
+
+.desk-watch-code {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--accent-ink);
+  background: var(--accent-bg);
+  border-radius: 7px;
+  padding: 3px 8px;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.desk-watch-who {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.desk-watch-when {
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.desk-watch-when.urgent {
+  color: var(--broken-fg);
+  font-weight: 700;
+}
+
+@media (max-width: 860px) {
+  .desk-layout {
     grid-template-columns: 1fr;
   }
 }
 
-.reception-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  text-align: center;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-top: 4px solid var(--card-accent, var(--line));
-  border-radius: 32px;
-  padding: 46px 20px 38px;
-  text-decoration: none;
-  color: var(--ink);
-  box-shadow: 0 1px 3px rgba(23, 48, 27, 0.05);
-  transition: transform 0.22s ease, box-shadow 0.22s ease;
-}
-
-/* Solo dove esiste un vero puntatore: su touch il ":hover" resta attaccato
-   dopo il tocco, quindi il riquadro rimarrebbe sollevato e ombreggiato
-   anche dopo aver tolto il dito. */
-@media (hover: hover) and (pointer: fine) {
-  .reception-card:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 28px 48px -22px rgba(23, 48, 27, 0.38);
+@media (max-width: 520px) {
+  .desk-tiles {
+    grid-template-columns: 1fr;
   }
 
-  .reception-card:hover .reception-icon {
-    transform: scale(1.08);
+  .desk-top-right {
+    width: 100%;
+    justify-content: space-between;
   }
 }
-
-.reception-card-info {
-  --card-accent: var(--rent-fg);
-}
-
-.reception-card-warn {
-  --card-accent: var(--clean-fg);
-}
-
-.reception-card-purple {
-  --card-accent: var(--check-fg);
-}
-
-.reception-card-accent {
-  --card-accent: var(--accent);
-}
-
-.reception-icon {
-  width: 72px;
-  height: 72px;
-  border-radius: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 2px 4px rgba(23, 48, 27, 0.06);
-  transition: transform 0.18s ease;
-}
-
-.reception-icon svg {
-  width: 30px;
-  height: 30px;
-}
-
-.reception-icon-info {
-  background: var(--rent-bg);
-  color: var(--rent-fg);
-}
-
-.reception-icon-warn {
-  background: var(--clean-bg);
-  color: var(--clean-fg);
-}
-
-.reception-icon-purple {
-  background: var(--check-bg);
-  color: var(--check-fg);
-}
-
-.reception-icon-accent {
-  background: var(--accent-bg);
-  color: var(--accent-ink);
-}
-
-.reception-label {
-  font-family: var(--heading);
-  font-size: 16.5px;
-  font-weight: 700;
-  color: var(--ink);
-}
-
-.reception-sub {
-  font-size: 12.5px;
-  color: var(--ink-soft);
-  margin-top: -8px;
-}
-
 /* ---------- FrontBar (Commesse/Fidelity/Clienti da Operatore banco) ---------- */
 .front-bar {
   display: flex;
@@ -1733,7 +1870,7 @@ tr.clickable-row {
      l'ultima parte della pagina — compreso "Salva impostazioni" e l'ultimo
      riquadro della home. */
   .wrap,
-  .reception {
+  .desk {
     padding-bottom: 140px;
   }
 }

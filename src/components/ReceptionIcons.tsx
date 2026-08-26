@@ -34,10 +34,16 @@ export function IconCommessa() {
   );
 }
 
+/** Tessera fedeltà: sagoma della carta con la banda e le righe del numero.
+ * Una stella dice "preferito", non "tessera" — qui serve l'oggetto che il
+ * cliente ha davvero in mano. */
 export function IconFidelity() {
   return (
     <svg viewBox="0 0 24 24" {...SHARED}>
-      <polygon points="12,5 13.7,9.65 18.66,9.84 14.76,12.9 16.11,17.66 12,14.9 7.89,17.66 9.24,12.9 5.34,9.84 10.3,9.65" />
+      <rect x="2.5" y="5" width="19" height="14" rx="2.5" />
+      <line x1="2.5" y1="9.5" x2="21.5" y2="9.5" />
+      <line x1="6" y1="13.5" x2="12" y2="13.5" />
+      <line x1="6" y1="16" x2="9.5" y2="16" />
     </svg>
   );
 }
