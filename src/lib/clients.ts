@@ -1,5 +1,6 @@
 import "server-only";
 import { readSheet, writeSheet } from "./sheets";
+import { nextNumeroFidelity } from "./counter";
 
 export interface ClientRecord {
   nome: string;
@@ -138,16 +139,18 @@ export async function createClient(input: {
   nome: string;
   cellulare: string | null;
   email: string | null;
-  fidelity: string | null;
   indirizzo: string | null;
-}): Promise<ClientRecord[]> {
+}): Promise<{ client: ClientRecord; clients: ClientRecord[] }> {
   const nome = input.nome.trim();
   if (!nome) throw new Error("Nome obbligatorio");
   const clients = await readClients();
   if (clients.some((c) => c.nome.toLowerCase() === nome.toLowerCase())) {
     throw new Error(`"${nome}" esiste già in anagrafica`);
   }
-  clients.push({
+  // Il numero di tessera è assegnato qui, mai digitato dall'operatore:
+  // deve restare univoco (vedi counter.ts).
+  const fidelity = await nextNumeroFidelity();
+  const client: ClientRecord = {
     nome,
     telefono: null,
     ultimoContratto: null,
@@ -163,12 +166,13 @@ export async function createClient(input: {
     email: input.email || null,
     dataNascita: null,
     luogoNascita: null,
-    fidelity: input.fidelity || null,
+    fidelity,
     categoria: null,
     punti: 0,
-  });
+  };
+  clients.push(client);
   await writeSheet(TAB, [HEADER, ...clients.map(toRow)]);
-  return clients;
+  return { client, clients };
 }
 
 /**

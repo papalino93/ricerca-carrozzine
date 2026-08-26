@@ -15,20 +15,18 @@ export async function POST(req: NextRequest) {
       nome?: string;
       cellulare?: string | null;
       email?: string | null;
-      fidelity?: string | null;
       indirizzo?: string | null;
     };
     if (!body.nome || !body.nome.trim()) {
       return NextResponse.json({ error: "Nome obbligatorio" }, { status: 400 });
     }
-    const clients = await createClient({
+    const { client, clients } = await createClient({
       nome: body.nome,
       cellulare: body.cellulare || null,
       email: body.email || null,
-      fidelity: body.fidelity || null,
       indirizzo: body.indirizzo || null,
     });
-    return NextResponse.json({ clients });
+    return NextResponse.json({ client, clients });
   } catch (err) {
     return NextResponse.json(
       { error: (err as Error).message },

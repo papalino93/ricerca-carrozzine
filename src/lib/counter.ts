@@ -5,6 +5,7 @@ const TAB = "Contatori";
 const HEADER = ["Chiave", "Valore"];
 const KEY_NOLEGGIO = "numeroNoleggio";
 const KEY_COMMESSA = "numeroCommessa";
+const KEY_FIDELITY = "numeroFidelity";
 
 // Primo numero progressivo assegnato: i noleggi già in corso prima di questa
 // funzione hanno numeri di contratto manuali più bassi (max osservato in
@@ -14,6 +15,12 @@ const START_NOLEGGIO = 10000;
 // Le schede commessa cartacee non avevano un numero già assegnato quando
 // digitalizzate (campo lasciato in bianco sul modulo): si parte da 1.
 const START_COMMESSA = 1;
+
+// Le tessere fedeltà create da qui in poi partono da 1: il prefisso "MC-"
+// le distingue subito da quelle importate dal vecchio sistema
+// (fedelta.store), che sono numeriche o esadecimali pure e non usano mai
+// lettere+trattino — zero rischio di collisione.
+const START_FIDELITY = 1;
 
 /**
  * Prossimo valore di un contatore condiviso, identificato da `key` (righe
@@ -49,4 +56,11 @@ export async function nextNumeroNoleggio(): Promise<string> {
 /** Numero progressivo di scheda commessa (vedi commesse.ts). */
 export async function nextNumeroCommessa(): Promise<string> {
   return nextCounter(KEY_COMMESSA, START_COMMESSA);
+}
+
+/** Numero di tessera fedeltà per una nuova iscrizione: assegnato
+ * dall'app, mai digitato dall'operatore, per garantirne l'unicità. */
+export async function nextNumeroFidelity(): Promise<string> {
+  const n = await nextCounter(KEY_FIDELITY, START_FIDELITY);
+  return `MC-${n.padStart(6, "0")}`;
 }

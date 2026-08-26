@@ -27,7 +27,7 @@ function fmtDate(iso: string): string {
 }
 
 function emptyNewClientForm() {
-  return { nome: "", cellulare: "", email: "", fidelity: "", indirizzo: "" };
+  return { nome: "", cellulare: "", email: "", indirizzo: "" };
 }
 
 export function ClientsClient({ clients: initialClients, history, devices }: ClientsClientProps) {
@@ -83,16 +83,19 @@ export function ClientsClient({ clients: initialClients, history, devices }: Cli
           nome: newClientForm.nome,
           cellulare: newClientForm.cellulare || null,
           email: newClientForm.email || null,
-          fidelity: newClientForm.fidelity || null,
           indirizzo: newClientForm.indirizzo || null,
         }),
       });
       const body = await readJson(res);
       if (!res.ok) throw new Error(body.error || "Creazione non riuscita");
       setClients(body.clients);
-      showToast(`"${newClientForm.nome}" aggiunto in anagrafica`);
+      showToast(`"${newClientForm.nome}" aggiunto — tessera fedeltà n. ${body.client.fidelity}`);
       setNewClientForm(emptyNewClientForm());
       setCreating(false);
+      // Apre subito il dettaglio del cliente appena creato: il numero di
+      // tessera resta visibile finché l'operatore non lo trascrive sulla
+      // tessera fisica, invece di sparire con il toast dopo pochi secondi.
+      setOpen(body.client.nome);
     } catch (err) {
       showToast((err as Error).message);
     } finally {
@@ -243,23 +246,17 @@ export function ClientsClient({ clients: initialClients, history, devices }: Cli
                 />
               </div>
             </div>
-            <div className="field-row">
-              <div className="field">
-                <label>Numero tessera fedeltà</label>
-                <input
-                  value={newClientForm.fidelity}
-                  onChange={(e) => setNewClientForm({ ...newClientForm, fidelity: e.target.value })}
-                  placeholder="lascia vuoto se non richiesta"
-                />
-              </div>
-              <div className="field">
-                <label>Indirizzo</label>
-                <input
-                  value={newClientForm.indirizzo}
-                  onChange={(e) => setNewClientForm({ ...newClientForm, indirizzo: e.target.value })}
-                />
-              </div>
+            <div className="field">
+              <label>Indirizzo</label>
+              <input
+                value={newClientForm.indirizzo}
+                onChange={(e) => setNewClientForm({ ...newClientForm, indirizzo: e.target.value })}
+              />
             </div>
+            <p className="hint" style={{ marginTop: -6, marginBottom: 14 }}>
+              Il numero di tessera fedeltà viene assegnato automaticamente alla creazione, per
+              garantire che sia sempre univoco.
+            </p>
             <div className="card-actions">
               <button className="btn primary" type="submit" disabled={savingNewClient}>
                 {savingNewClient ? "Creazione…" : "Crea cliente"}
