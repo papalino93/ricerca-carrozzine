@@ -390,6 +390,24 @@ h1 {
   margin-top: 2px;
 }
 
+/* Freccia davanti al numero grande di "Domani": senza, quel numero è
+   indistinguibile da una temperatura attuale — nella colonna di oggi il
+   grande È adesso, qui invece è la massima. Stesso arancio della "↑" nel
+   dettaglio sotto, per la stessa lettura in entrambe le colonne. */
+.deskw-big-marker {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--clean-fg);
+  margin-right: 2px;
+  align-self: center;
+}
+
+@media (max-width: 700px) {
+  .deskw-big-marker {
+    font-size: 12px;
+  }
+}
+
 .deskw-hour {
   font-size: 25px;
   letter-spacing: -0.02em;

@@ -101,6 +101,15 @@ export function DeskClock({
               <WeatherIcon tipo={weather.domani.icona} />
             </span>
             <span className="deskw-big">
+              {/* Senza questa freccia il numero grande di domani era solo
+                  "36°", indistinguibile da una temperatura attuale: nella
+                  colonna di oggi il numero grande È adesso, qui invece è
+                  la massima, e nient'altro lo diceva. Stessa freccia e
+                  stesso colore arancio della massima nel dettaglio sotto,
+                  cosi le due colonne si leggono con la stessa chiave. */}
+              <i className="deskw-big-marker up" aria-hidden="true">
+                &uarr;
+              </i>
               {weather.domani.max}
               <i>&deg;</i>
             </span>
