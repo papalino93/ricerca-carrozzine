@@ -80,7 +80,11 @@ const MAX_RIGHE = 10;
 
 interface WatchRow {
   code: string;
-  who: string;
+  /** Categoria del dispositivo (o tipo di pratica per le commesse, che non
+   * hanno un dispositivo): sempre la prima parola accanto al codice, per
+   * riconoscere di cosa si tratta senza dover leggere il resto. */
+  cat: string;
+  rest: string;
   when: string;
   /** Vero per ciò che è già scaduto: si colora di rosso. */
   urgent: boolean;
@@ -161,7 +165,8 @@ export default async function ReceptionPage() {
     gia.add(d.codice);
     scadenze.push({
       code: d.codice,
-      who: `${d.cliente ?? "—"} · ${d.categoria}`,
+      cat: d.categoria,
+      rest: d.cliente ?? "—",
       when: giorni < 0 ? `scaduto da ${-giorni} gg` : giorni === 0 ? "rientro oggi" : fmtDate(d.alPrevisto),
       urgent: giorni <= 0,
       href: `/noleggi?q=${encodeURIComponent(d.codice)}`,
@@ -175,7 +180,8 @@ export default async function ReceptionPage() {
     if (giorni > 7) continue;
     scadenze.push({
       code: c.numero,
-      who: `${c.cliente} · ${c.riparazione && !c.vendita ? "riparazione" : "commessa"}`,
+      cat: c.riparazione && !c.vendita ? "riparazione" : "commessa",
+      rest: c.cliente,
       when: giorni < 0 ? `in ritardo di ${-giorni} gg` : giorni === 0 ? "consegna oggi" : fmtDate(c.consegnaPrevista),
       urgent: giorni <= 0,
       href: `/commesse?q=${encodeURIComponent(c.numero)}`,
@@ -199,12 +205,8 @@ export default async function ReceptionPage() {
       .slice(0, max)
       .map<WatchRow>((d) => ({
         code: d.codice,
-        // La categoria per prima: "INTERMED 131REHA" da solo non dice se
-        // è una carrozzina o un letto, e al banco quello è il dato che
-        // serve per sapere di cosa si sta parlando.
-        who: [d.categoria, [d.marca, d.modello].filter(Boolean).join(" ")]
-          .filter(Boolean)
-          .join(" · "),
+        cat: d.categoria,
+        rest: [d.marca, d.modello].filter(Boolean).join(" "),
         when: etichetta,
         tone,
         urgent: false,
@@ -228,7 +230,8 @@ export default async function ReceptionPage() {
     .slice(0, MAX_NOLEGGI_LUNGHI)
     .map<WatchRow>(({ d, giorni }) => ({
       code: d.codice,
-      who: `${d.cliente ?? "—"} · ${d.categoria}`,
+      cat: d.categoria,
+      rest: d.cliente ?? "—",
       when: `a noleggio da ${giorni} gg`,
       urgent: false,
       href: `/noleggi?q=${encodeURIComponent(d.codice)}`,
@@ -350,7 +353,15 @@ export default async function ReceptionPage() {
                   <li key={`${r.code}-${i}`}>
                     <Link href={r.href}>
                       <span className="desk-watch-code">{r.code}</span>
-                      <span className="desk-watch-who">{r.who}</span>
+                      <span className="desk-watch-who">
+                        <span className="desk-watch-cat">{r.cat}</span>
+                        {r.rest ? (
+                          <>
+                            <span className="desk-watch-sep">·</span>
+                            <span className="desk-watch-rest">{r.rest}</span>
+                          </>
+                        ) : null}
+                      </span>
                       <span
                         className={`desk-watch-when${r.urgent ? " urgent" : r.tone ? ` tone-${r.tone}` : ""}`}
                       >
