@@ -18,6 +18,11 @@ interface ClientsClientProps {
   clients: ClientRecord[];
   history: HistoryEvent[];
   devices: Device[];
+  /** Nome arrivato come parametro nell'indirizzo (es. da una riga di
+   * Fidelity "Vicini o oltre la soglia"): precompila la ricerca e apre
+   * subito la scheda, così il clic porta davvero al cliente invece che
+   * a un elenco intero da scorrere. */
+  initialQuery?: string;
 }
 
 const EVENT_LABEL: Record<HistoryEvent["evento"], string> = {
@@ -41,11 +46,21 @@ export function ClientsClient({
   history,
   devices,
   contesto = "admin",
+  initialQuery,
 }: ClientsClientProps) {
   const banco = contesto === "banco";
   const [clients, setClients] = useState(initialClients);
-  const [query, setQuery] = useState("");
-  const [open, setOpen] = useState<string | null>(null);
+  const [query, setQuery] = useState(initialQuery ?? "");
+  // Un link diretto che arriva su un nome esatto apre già la scheda:
+  // altrimenti bisognerebbe cercarlo E cliccarlo, due passaggi invece di
+  // uno per l'unico caso in cui sappiamo già di preciso chi si sta
+  // cercando.
+  const [open, setOpen] = useState<string | null>(() => {
+    const q = (initialQuery ?? "").trim().toLowerCase();
+    if (!q) return null;
+    const esatto = initialClients.find((c) => c.nome.toLowerCase() === q);
+    return esatto ? esatto.nome : null;
+  });
   const [deleting, setDeleting] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [puntiDelta, setPuntiDelta] = useState("");
@@ -124,6 +139,11 @@ export function ClientsClient({
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return sorted;
+    // Un nome esatto vince sulla ricerca sfumata: stessa logica già
+    // applicata a Noleggi e Commesse, per lo stesso motivo (un link
+    // diretto non deve aprire anche clienti con un nome solo simile).
+    const esatti = sorted.filter((c) => c.nome.toLowerCase() === q);
+    if (esatti.length) return esatti;
     return sorted.filter((c) =>
       matchesQuery(
         [c.nome, c.telefono, c.cellulare, c.email, c.fidelity].filter(Boolean).join(" ").toLowerCase(),

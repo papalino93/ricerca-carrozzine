@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Medical Center",
     short_name: "Medical Center",
     description:
-      "Noleggio e disponibilità di carrozzine e ausili sanitari a Scandicci, con documenti di consegna e restituzione pronti in PDF.",
+      "Gestionale per noleggio ausili, commesse, fidelity e anagrafica clienti a Scandicci.",
     start_url: "/",
     display: "standalone",
     // Stessi valori dei token in globals.css (--bg e --ink): la schermata di

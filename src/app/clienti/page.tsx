@@ -7,8 +7,13 @@ import { ClientsClient } from "@/components/ClientsClient";
 
 export const dynamic = "force-dynamic";
 
-export default async function FrontClientiPage() {
-  const [clients, history, devices, settings] = await Promise.all([
+export default async function FrontClientiPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const [{ q }, clients, history, devices, settings] = await Promise.all([
+    searchParams,
     listClients().catch(() => []),
     listHistory().catch(() => []),
     listDevices().catch(() => []),
@@ -18,7 +23,13 @@ export default async function FrontClientiPage() {
   return (
     <>
       <FrontBar logoUrl={settings.logoUrl} />
-      <ClientsClient clients={clients} history={history} devices={devices} contesto="banco" />
+      <ClientsClient
+        clients={clients}
+        history={history}
+        devices={devices}
+        contesto="banco"
+        initialQuery={q}
+      />
     </>
   );
 }

@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: "Medical Center",
   description:
-    "Noleggio e disponibilità di carrozzine e ausili sanitari a Scandicci, con documenti di consegna e restituzione pronti in PDF.",
+    "Gestionale per noleggio ausili, commesse, fidelity e anagrafica clienti a Scandicci.",
   icons: {
     icon: [{ url: "/favicon-32.png", sizes: "32x32", type: "image/png" }],
     apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Medical Center",
     description:
-      "Noleggio e disponibilità di carrozzine e ausili sanitari a Scandicci, con documenti di consegna e restituzione pronti in PDF.",
+      "Gestionale per noleggio ausili, commesse, fidelity e anagrafica clienti a Scandicci.",
     url: SITE_URL,
     siteName: "Medical Center",
     locale: "it_IT",
@@ -51,7 +51,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Medical Center",
     description:
-      "Noleggio e disponibilità di carrozzine e ausili sanitari a Scandicci, con documenti di consegna e restituzione pronti in PDF.",
+      "Gestionale per noleggio ausili, commesse, fidelity e anagrafica clienti a Scandicci.",
     images: ["/og-image.png"],
   },
 };

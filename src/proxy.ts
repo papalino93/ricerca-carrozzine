@@ -4,7 +4,7 @@ import { requireBasicAuth } from "@/lib/basic-auth";
 const SITE_URL = "https://ricerca-carrozzine.vercel.app";
 const TITLE = "Medical Center";
 const DESCRIPTION =
-  "Noleggio e disponibilità di carrozzine e ausili sanitari a Scandicci, con documenti di consegna e restituzione pronti in PDF.";
+  "Gestionale per noleggio ausili, commesse, fidelity e anagrafica clienti a Scandicci.";
 
 // I crawler delle anteprime social (WhatsApp, Facebook, Telegram, ecc.) non
 // sanno autenticarsi con Basic Auth: senza login non ricevono altro che un

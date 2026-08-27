@@ -8,12 +8,17 @@ export const dynamic = "force-dynamic";
 // L'anagrafica si popola già da sola a ogni noleggio (vedi rentDevice in
 // devices.ts) ma finora non era consultabile da nessuna parte: il dato
 // c'era, mancava solo questa pagina.
-export default async function ClientiPage() {
-  const [clients, history, devices] = await Promise.all([
+export default async function ClientiPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const [{ q }, clients, history, devices] = await Promise.all([
+    searchParams,
     listClients().catch(() => []),
     listHistory().catch(() => []),
     listDevices().catch(() => []),
   ]);
 
-  return <ClientsClient clients={clients} history={history} devices={devices} />;
+  return <ClientsClient clients={clients} history={history} devices={devices} initialQuery={q} />;
 }
