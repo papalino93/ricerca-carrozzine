@@ -9,6 +9,10 @@
   --accent: #175c22;
   --accent-ink: #0f401a;
   --accent-bg: #e7f0e3;
+  /* Stesso verde scuro della schermata di avvio PWA e delle icone (vedi
+     manifest.ts, icon-512.png): un solo verde scuro in tutta l'identità,
+     non uno per l'intestazione e uno per il resto. */
+  --header-dark: #16302e;
 
   --ok-fg: #1f7a3d;
   --ok-bg: #e4f4e8;
@@ -247,13 +251,21 @@ h1 {
   min-width: 0;
 }
 
+/* Barra scura a piena larghezza: prima l'intestazione era sullo stesso
+   sfondo chiaro di tutta la pagina e si confondeva con quello che c'era
+   sotto. Il verde scuro la stacca subito come "testata" della schermata,
+   coerente col resto dell'identità (favicon, icone PWA) che già usa
+   questo verde per i fondi scuri. */
 .desk-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
-  margin-bottom: 20px;
+  background: var(--header-dark);
+  border-radius: 20px;
+  padding: 16px 22px;
+  margin-bottom: 14px;
 }
 
 .desk-brand {
@@ -262,12 +274,21 @@ h1 {
   text-decoration: none;
 }
 
+/* Il logo resta a colori, invariato: provato anche in bianco a filo, ma
+   sull'assonanza di verdi fra logo e barra il rilievo della scritta
+   diventava illeggibile. Un riquadro bianco lo isola invece con nettezza,
+   la stessa soluzione già usata per il meteo qui accanto. */
+.desk-brand-chip {
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 8px 14px;
+  display: inline-flex;
+}
+
 .desk-brand img {
-  /* 56px e non 42: accanto al riquadro meteo, che ha più peso visivo
-     (icone, numeri grandi, tre colonne), il logo a 42px si perdeva. */
-  height: 56px;
+  height: 40px;
   width: auto;
-  max-width: 45vw;
+  max-width: 40vw;
   object-fit: contain;
   display: block;
 }
@@ -525,18 +546,18 @@ h1 {
 .desk-admin-link {
   font-size: 12.5px;
   font-weight: 600;
-  color: var(--ink-soft);
+  color: #fff;
   text-decoration: none;
   padding: 9px 15px;
-  border: 1px solid var(--line);
+  border: 1px solid rgba(255, 255, 255, 0.35);
   border-radius: 999px;
   white-space: nowrap;
-  background: var(--surface);
+  background: transparent;
 }
 
 .desk-admin-link:hover {
-  color: var(--ink);
-  border-color: var(--ink-soft);
+  border-color: #fff;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .desk-search {
@@ -589,30 +610,21 @@ h1 {
 .desk-tiles {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-auto-rows: 1fr;
   gap: 14px;
+  /* Altezza naturale, non più spartita a metà colonna: un riquadro
+     "Da tenere d'occhio" con tante voci non deve più tirarsi dietro le
+     quattro card, allungandole con un vuoto in mezzo. Le due colonne si
+     allineano dall'alto e ciascuna prende solo lo spazio che le serve. */
+  align-self: start;
 }
 
-/* I quattro riquadri si spartiscono tutta l'altezza della colonna: sul
-   monitor del banco la home resterebbe altrimenti con mezza schermata
-   bianca sotto. Il contenuto sta al centro, così lo spazio in più si legge
-   come margine e non come buco, e il riquadro somiglia a un pulsante. */
+/* Card compatta e allineata a sinistra, non più un pulsante centrato: con
+   la statistica sotto il sottotitolo (quando c'è del lavoro da fare) il
+   contenuto è più vario e il centrato lasciava vuoti irregolari. */
 .desk-tile {
   --c: var(--accent);
   --cbg: var(--accent-bg);
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  min-height: 152px;
-  /* Gradiente radiale sottilissimo invece di un bianco piatto: fa sembrare
-     il riquadro illuminato da una fonte in alto, coerente con lo swatch
-     tondo sopra. Fisso su --accent-bg apposta e non su --cbg: da quando
-     ogni card ha il suo colore nell'icona, --cbg varia per sezione, ma lo
-     sfondo deve restare lo stesso verde tenue ovunque — è solo l'icona a
-     distinguere le quattro card, non la superficie della card stessa. */
+  display: block;
   background: radial-gradient(
     120% 90% at 50% 0%,
     var(--surface) 40%,
@@ -621,7 +633,7 @@ h1 {
   );
   border: 1px solid var(--line);
   border-radius: 20px;
-  padding: 26px 22px;
+  padding: 20px 20px 18px;
   text-decoration: none;
   color: var(--ink);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 1px 2px rgba(23, 48, 27, 0.05),
@@ -645,22 +657,29 @@ h1 {
   }
 }
 
-/* La pastiglia compare solo quando c'è del lavoro da fare: un numero
-   visibile qui vuol sempre dire "guarda qui", mai "non c'è niente". */
-.desk-tile-badge {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  font-size: 11.5px;
-  font-weight: 700;
-  color: var(--c);
-  background: var(--cbg);
-  border-radius: 999px;
-  padding: 4px 11px;
-  max-width: calc(100% - 28px);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.desk-tile-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+
+/* La freccia dice "si entra da qui" senza bisogno di un pulsante a parte:
+   ora che la card non è più tutta cliccabile-al-centro ma un blocco di
+   testo allineato a sinistra, serve un segnale in più che l'intera
+   superficie porta comunque a un'altra pagina. */
+.desk-tile-arrow {
+  color: var(--line);
+  font-size: 15px;
+  line-height: 1;
+  transition: transform 0.18s ease, color 0.18s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .desk-tile:hover .desk-tile-arrow {
+    color: var(--c);
+    transform: translateX(2px);
+  }
 }
 
 /* Cerchio pieno e saturo, non più un tenue accenno di colore: era la
@@ -669,9 +688,8 @@ h1 {
    sottile, nessun cerchio, sfondo tenue) messi a schermo uno accanto
    all'altro. */
 .desk-tile-icon {
-  width: 76px;
-  height: 76px;
-  margin-bottom: 16px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
   background: var(--c);
   color: #fff;
@@ -691,8 +709,8 @@ h1 {
 }
 
 .desk-tile-icon svg {
-  width: 38px;
-  height: 38px;
+  width: 23px;
+  height: 23px;
 }
 
 .desk-tile-info {
@@ -718,35 +736,134 @@ h1 {
 .desk-tile-label {
   display: block;
   font-family: var(--heading);
-  font-size: 26px;
-  font-weight: 650;
+  font-size: 19px;
+  font-weight: 700;
   letter-spacing: -0.01em;
 }
 
 .desk-tile-sub {
   display: block;
-  font-size: 14.5px;
+  font-size: 13.5px;
   color: var(--ink-soft);
-  margin-top: 5px;
-  max-width: 24ch;
+  margin-top: 4px;
   line-height: 1.35;
+}
+
+/* Compare solo quando c'è del lavoro da fare: un numero visibile qui vuol
+   sempre dire "guarda qui", mai "non c'è niente" (vedi desk-tile-sub). */
+.desk-tile-stat {
+  display: block;
+  margin-top: 9px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--c);
 }
 
 .desk-watch {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 18px;
-  padding: 20px 22px;
+  padding: 18px 22px 14px;
   box-shadow: 0 1px 2px rgba(23, 48, 27, 0.04);
+  display: flex;
+  flex-direction: column;
+  /* Non deve superare l'altezza naturale delle quattro card (vedi
+     desk-tiles): oltre questa soglia le voci in più stanno dietro "Vedi
+     tutto", non allungano la home rendendola più alta della griglia.
+     Tarato sulle card SENZA statistica sotto (le più basse, 152px×2+gap):
+     con la statistica le card sono più alte e il riquadro resta più
+     corto di loro, mai più lungo — l'unico verso sbagliato è l'altro. */
+  max-height: 336px;
+  overflow: hidden;
+  position: relative;
 }
 
-.desk-watch h2 {
-  margin: 0 0 10px;
+.desk-watch-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 2px;
+}
+
+.desk-watch-head h2 {
+  margin: 0;
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--ink-soft);
+}
+
+.desk-watch-total {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  flex-shrink: 0;
+}
+
+/* Il colore del gruppo (guasto/da verificare/...) basta da solo a dire di
+   che problema si tratta: prima lo stesso colore si ripeteva su ogni riga
+   come pastiglia, ridondante quando le righe del gruppo condividono tutte
+   lo stesso stato. */
+.desk-watch-group {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 14px 0 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.desk-watch-group:first-of-type {
+  margin-top: 10px;
+}
+
+.desk-watch-group .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.desk-watch-group .count {
+  background: var(--line);
+  color: var(--ink-soft);
+  border-radius: 999px;
+  padding: 1px 7px;
+  font-size: 10.5px;
+}
+
+.desk-watch-group.urgent,
+.desk-watch-group.broken {
+  color: var(--broken-fg);
+}
+.desk-watch-group.urgent .dot,
+.desk-watch-group.broken .dot {
+  background: var(--broken-fg);
+}
+
+.desk-watch-group.check {
+  color: var(--check-fg);
+}
+.desk-watch-group.check .dot {
+  background: var(--check-fg);
+}
+
+.desk-watch-group.clean {
+  color: var(--clean-fg);
+}
+.desk-watch-group.clean .dot {
+  background: var(--clean-fg);
+}
+
+.desk-watch-group.neutral {
+  color: var(--ink-soft);
+}
+.desk-watch-group.neutral .dot {
+  background: var(--ink-soft);
 }
 
 .desk-watch ul {
@@ -762,11 +879,11 @@ h1 {
 .desk-watch li a {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 13px 0;
+  gap: 10px;
+  padding: 7px 0;
   text-decoration: none;
   color: var(--ink);
-  font-size: 14px;
+  font-size: 13.5px;
 }
 
 .desk-watch li a:hover .desk-watch-cat,
@@ -801,59 +918,76 @@ h1 {
   color: var(--ink);
 }
 
-.desk-watch-sep {
-  color: var(--ink-soft);
-  opacity: 0.6;
-  margin: 0 2px;
-}
-
 .desk-watch-rest {
   color: var(--ink-soft);
   font-weight: 400;
+  margin-left: 5px;
 }
 
-/* Stessa forma delle pastiglie di stato usate nel resto del sito
-   (vedi .pill): così il tipo di problema si riconosce a colpo d'occhio
-   invece che leggerlo come testo qualunque. */
+/* Testo semplice, non più una pastiglia: il colore del gruppo qui sopra
+   già dice di che si tratta, questa colonna serve solo per il dettaglio
+   che cambia riga per riga (una data, i giorni di ritardo o di noleggio) —
+   e infatti compare solo nei gruppi dove quel dettaglio non è lo stesso
+   per tutte le righe (vedi showWhen in lib/watchlist.ts). */
 .desk-watch-when {
-  font-size: 11px;
-  font-weight: 700;
-  padding: 3px 9px;
-  border-radius: 999px;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  border: 1px solid;
+  font-size: 12px;
+  color: var(--ink-soft);
   flex-shrink: 0;
   white-space: nowrap;
-  color: var(--ink-soft);
-  background: var(--line);
-  border-color: var(--line);
 }
 
 .desk-watch-when.urgent {
   color: var(--broken-fg);
-  background: var(--broken-bg);
-  border-color: var(--broken-line);
+  font-weight: 700;
 }
 
-/* Lo stato del magazzino con gli stessi colori delle pastiglie nelle
-   pagine: si riconosce "guasto" dal colore prima di leggere la parola. */
-.desk-watch-when.tone-broken {
-  color: var(--broken-fg);
-  background: var(--broken-bg);
-  border-color: var(--broken-line);
+/* Sfuma l'ultima riga visibile invece di tagliarla di netto, quando il
+   gruppo continua oltre il bordo del riquadro, e resta piena (non
+   trasparente) nella fascia dove sta "Vedi tutto": senza quella fascia
+   piena il testo della riga sotto trapassava il link, leggibile in
+   controluce sotto le sue lettere. */
+.desk-watch-fade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 56px;
+  background: linear-gradient(to bottom, transparent, var(--surface) 24px);
+  pointer-events: none;
 }
 
-.desk-watch-when.tone-check {
-  color: var(--check-fg);
-  background: var(--check-bg);
-  border-color: var(--check-line);
+/* Ancorato in basso con position:absolute, non con margin-top:auto: il
+   contenuto qui sopra supera apposta l'altezza del riquadro (è quello che
+   lo fa comparire), quindi in un normale flusso a colonna flex non ci
+   sarebbe mai spazio "avanzato" da spingere in fondo — "Vedi tutto"
+   finirebbe subito dopo l'ultima riga, oltre il bordo tagliato e quindi
+   invisibile. */
+.desk-watch-more {
+  position: absolute;
+  left: 22px;
+  right: 22px;
+  bottom: 14px;
+  text-align: right;
 }
 
-.desk-watch-when.tone-clean {
-  color: var(--clean-fg);
-  background: var(--clean-bg);
-  border-color: var(--clean-line);
+.desk-watch-more a {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--accent-ink);
+  text-decoration: none;
+}
+
+.desk-watch-more a:hover {
+  text-decoration: underline;
+}
+
+/* Pagina dedicata "Vedi tutto": stesso riquadro raggruppato della home,
+   ma senza il tetto d'altezza — qui l'elenco è il contenuto della pagina,
+   non un'anteprima accanto ad altro. */
+.desk-watch-full {
+  max-height: none;
+  overflow: visible;
+  max-width: 640px;
 }
 
 @media (max-width: 860px) {
@@ -867,26 +1001,8 @@ h1 {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  /* In colonna singola l'altezza fissa non serve più: quattro riquadri da
-     152px costringerebbero a scorrere per arrivare alle scadenze. */
-  .desk-tile {
-    min-height: 0;
-    padding: 18px 18px 17px;
-  }
-
-  .desk-tile-icon {
-    width: 58px;
-    height: 58px;
-    margin-bottom: 12px;
-  }
-
-  .desk-tile-icon svg {
-    width: 30px;
-    height: 30px;
-  }
-
-  .desk-tile-label {
-    font-size: 22px;
+  .desk-top {
+    padding: 14px 16px;
   }
 
   .desk-top-right {

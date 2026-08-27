@@ -7,16 +7,9 @@ import { getWeather } from "@/lib/weather";
 import { IconClienti, IconCommessa, IconFidelity, IconNoleggio } from "@/components/ReceptionIcons";
 import { DeskClock } from "@/components/DeskClock";
 import { DeskSearch } from "@/components/DeskSearch";
+import { buildWatchGroups, daysUntil } from "@/lib/watchlist";
 
 export const dynamic = "force-dynamic";
-
-/** "Oggi" nel fuso di Scandicci, non del server (che gira su UTC): fra
- * mezzanotte e le due di notte l'ora italiana è già il giorno dopo di
- * quella UTC, e senza questo una consegna prevista per oggi risulterebbe
- * "in ritardo" o "domani" a seconda dell'ora. */
-function todayIso(): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome" }).format(new Date());
-}
 
 /** Giorno, data e ora di Scandicci calcolati sul server, per averli già
  * scritti nell'HTML che arriva al browser. Senza, il riquadro in cima alla
@@ -35,68 +28,18 @@ function oraDiScandicci(): { giorno: string; data: string; ora: string } {
   };
 }
 
-function fmtDate(iso: string): string {
-  const [y, m, d] = iso.split("-");
-  if (!y || !m || !d) return iso;
-  return `${d}/${m}`;
-}
-
-/** Giorni fra oggi e una data: negativo se è già passata. */
-function daysUntil(iso: string): number {
-  const target = new Date(`${iso}T00:00:00`).getTime();
-  const today = new Date(`${todayIso()}T00:00:00`).getTime();
-  return Math.round((target - today) / 86_400_000);
-}
-
-/** Giorni trascorsi da una data. */
-function daysSince(iso: string): number {
-  return -daysUntil(iso);
-}
-
-/** Oltre questa durata un noleggio merita una telefonata: il contratto va
- * rinnovato, chiuso o l'ausilio recuperato.
- *
- * Sei mesi e non un mese: qui la durata mediana di un noleggio è di circa
- * sei settimane, quindi "oltre trenta giorni" descrive la normalità — due
- * noleggi su tre — e segnalarli tutti significa non segnalare niente. */
-const NOLEGGIO_LUNGO_GG = 180;
-
-/** Quante righe al massimo può occupare ciascuna categoria non urgente.
- *
- * Serve perché le categorie non sono grandi uguali: i noleggi lunghi sono
- * decine, i guasti tre. Con un'unica classifica per urgenza i primi
- * riempirebbero da soli tutto il riquadro e i secondi non comparirebbero
- * mai, che è esattamente il contrario di ciò che l'elenco deve fare —
- * mostrare le cose su cui si può agire adesso. Le scadenze vere (rientri e
- * consegne) non hanno tetto: se sono tante, sono tante. */
-const MAX_GUASTI = 3;
-const MAX_DA_VERIFICARE = 3;
-const MAX_DA_PULIRE = 2;
-const MAX_NOLEGGI_LUNGHI = 3;
-
-/** Righe mostrate: oltre questa soglia l'elenco smette di essere una
- * scorsa d'occhio e diventa una pagina da leggere. */
-const MAX_RIGHE = 10;
-
-interface WatchRow {
-  code: string;
-  /** Categoria del dispositivo (o tipo di pratica per le commesse, che non
-   * hanno un dispositivo): sempre la prima parola accanto al codice, per
-   * riconoscere di cosa si tratta senza dover leggere il resto. */
-  cat: string;
-  rest: string;
-  when: string;
-  /** Vero per ciò che è già scaduto: si colora di rosso. */
-  urgent: boolean;
-  /** Colore dello stato a destra, con la stessa tavolozza delle pastiglie
-   * del magazzino: chi legge riconosce "guasto" dal colore prima ancora di
-   * leggere la parola. */
-  tone?: "broken" | "check" | "clean";
-  href: string;
-  /** Solo per le scadenze, che si ordinano fra loro: più è basso, più è
-   * urgente. Gli altri gruppi hanno già un ordine proprio. */
-  rank?: number;
-}
+/** Quante righe al massimo mostra ogni gruppo in anteprima: il resto sta
+ * dietro "Vedi tutto". Il riquadro non deve superare l'altezza delle
+ * quattro card (vedi .desk-watch in globals.css), quindi anche le
+ * scadenze — che nella pagina dedicata non hanno un tetto — qui ne
+ * hanno uno. */
+const PREVIEW_CAP: Record<string, number> = {
+  scadenze: 4,
+  guasto: 3,
+  da_verificare: 3,
+  da_pulire: 2,
+  lunghi: 3,
+};
 
 export default async function ReceptionPage() {
   // Letture indipendenti, quindi in parallelo: sommarle in serie
@@ -142,102 +85,19 @@ export default async function ReceptionPage() {
   // "Da tenere d'occhio": le cose su cui si può agire oggi e che
   // altrimenti si scoprirebbero solo entrando pagina per pagina. Ogni riga
   // porta al record: il codice dell'ausilio o il numero di scheda finisce
-  // nella ricerca della pagina di destinazione.
-  //
-  // L'elenco si costruisce per gruppi, non con un'unica classifica: prima
-  // le scadenze (che non hanno tetto), poi il magazzino fermo, infine i
-  // noleggi che durano da troppo. Vedi i MAX_* sopra per il perché.
-
-  // 1. Scadenze vere: rientri oltre la data concordata e consegne di
-  //    commesse in ritardo o imminenti. Fra loro si ordinano per urgenza,
-  //    perché un rientro scaduto da tre giorni viene prima di una consegna
-  //    prevista fra due.
-  const scadenze: WatchRow[] = [];
-
-  // Un ausilio può ricadere in più casi (fuori data E in noleggio da mesi):
-  // va segnalato una volta sola, con il motivo più grave.
-  const gia = new Set<string>();
-
-  for (const d of attivi) {
-    if (d.stato !== "noleggiato" || !d.alPrevisto) continue;
-    const giorni = daysUntil(d.alPrevisto);
-    if (giorni > 3) continue;
-    gia.add(d.codice);
-    scadenze.push({
-      code: d.codice,
-      cat: d.categoria,
-      rest: d.cliente ?? "—",
-      when: giorni < 0 ? `scaduto da ${-giorni} gg` : giorni === 0 ? "rientro oggi" : fmtDate(d.alPrevisto),
-      urgent: giorni <= 0,
-      href: `/noleggi?q=${encodeURIComponent(d.codice)}`,
-      rank: giorni - 0.5,
-    });
-  }
-
-  for (const c of commesse) {
-    if (c.stato === "ritirata" || !c.consegnaPrevista) continue;
-    const giorni = daysUntil(c.consegnaPrevista);
-    if (giorni > 7) continue;
-    scadenze.push({
-      code: c.numero,
-      cat: c.riparazione && !c.vendita ? "riparazione" : "commessa",
-      rest: c.cliente,
-      when: giorni < 0 ? `in ritardo di ${-giorni} gg` : giorni === 0 ? "consegna oggi" : fmtDate(c.consegnaPrevista),
-      urgent: giorni <= 0,
-      href: `/commesse?q=${encodeURIComponent(c.numero)}`,
-      rank: giorni,
-    });
-  }
-
-  scadenze.sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0));
-
-  // 2. Magazzino fermo: ausili che esistono ma non si possono noleggiare
-  //    finché qualcuno non ci mette mano. Sono lavoro arretrato e, a
-  //    differenza dei noleggi, nessuna scadenza li farà emergere da soli.
-  const fermi = (
-    stato: "guasto" | "da_verificare" | "da_pulire",
-    etichetta: string,
-    tone: "broken" | "check" | "clean",
-    max: number
-  ) =>
-    attivi
-      .filter((d) => d.stato === stato)
-      .slice(0, max)
-      .map<WatchRow>((d) => ({
-        code: d.codice,
-        cat: d.categoria,
-        rest: [d.marca, d.modello].filter(Boolean).join(" "),
-        when: etichetta,
-        tone,
-        urgent: false,
-        href: `/noleggi?q=${encodeURIComponent(d.codice)}`,
-      }));
-
-  const magazzino = [
-    ...fermi("guasto", "guasto", "broken", MAX_GUASTI),
-    ...fermi("da_verificare", "da verificare", "check", MAX_DA_VERIFICARE),
-    ...fermi("da_pulire", "da sanificare", "clean", MAX_DA_PULIRE),
-  ];
-
-  // 3. Noleggi fuori da molto tempo: non sono un errore, ma prima o poi
-  //    vanno richiamati. Si mostrano i più vecchi, che sono anche quelli
-  //    per cui la telefonata è più tardiva.
-  const lunghi = attivi
-    .filter((d) => d.stato === "noleggiato" && d.dal && !gia.has(d.codice))
-    .map((d) => ({ d, giorni: daysSince(d.dal as string) }))
-    .filter((x) => x.giorni > NOLEGGIO_LUNGO_GG)
-    .sort((a, b) => b.giorni - a.giorni)
-    .slice(0, MAX_NOLEGGI_LUNGHI)
-    .map<WatchRow>(({ d, giorni }) => ({
-      code: d.codice,
-      cat: d.categoria,
-      rest: d.cliente ?? "—",
-      when: `a noleggio da ${giorni} gg`,
-      urgent: false,
-      href: `/noleggi?q=${encodeURIComponent(d.codice)}`,
-    }));
-
-  const watchTop = [...scadenze, ...magazzino, ...lunghi].slice(0, MAX_RIGHE);
+  // nella ricerca della pagina di destinazione. Qui si mostra solo
+  // un'anteprima (vedi PREVIEW_CAP): l'elenco completo, raggruppato allo
+  // stesso modo, sta nella pagina dedicata dietro "Vedi tutto".
+  const watchGroupsFull = buildWatchGroups(devices, commesse);
+  const watchTotal = watchGroupsFull.reduce((n, g) => n + g.rows.length, 0);
+  const watchGroups = watchGroupsFull.map((g) => ({
+    ...g,
+    total: g.rows.length,
+    rows: g.rows.slice(0, PREVIEW_CAP[g.key] ?? g.rows.length),
+  }));
+  const watchTruncated = watchGroupsFull.some(
+    (g) => g.rows.length > (PREVIEW_CAP[g.key] ?? g.rows.length)
+  );
 
   // I quattro riquadri sono pulsanti, non statistiche. Prima mostravano un
   // numero grande: al banco "Commesse 0" si legge come "qui non c'è
@@ -303,8 +163,10 @@ export default async function ReceptionPage() {
       <div className="desk-inner">
         <div className="desk-top">
           <Link href="/" className="desk-brand">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={settings?.logoUrl || "/logo.png"} alt="Medical Center" />
+            <span className="desk-brand-chip">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={settings?.logoUrl || "/logo.png"} alt="Medical Center" />
+            </span>
           </Link>
           <div className="desk-top-right">
             <DeskClock weather={weather} iniziale={oraDiScandicci()} />
@@ -327,50 +189,72 @@ export default async function ReceptionPage() {
           <div className="desk-tiles">
             {TILES.map((t) => (
               <Link key={t.href} href={t.href} className={`desk-tile desk-tile-${t.color}`}>
+                <span className="desk-tile-top">
+                  <span className="desk-tile-icon">{t.icon}</span>
+                  <span className="desk-tile-arrow" aria-hidden="true">
+                    →
+                  </span>
+                </span>
+                <span className="desk-tile-label">{t.label}</span>
+                <span className="desk-tile-sub">{t.sub}</span>
                 {t.badge > 0 ? (
-                  <span className="desk-tile-badge">
+                  <span className="desk-tile-stat">
                     {t.badge} {t.badgeLabel}
                   </span>
                 ) : null}
-                <span className="desk-tile-icon">{t.icon}</span>
-                <span className="desk-tile-label">{t.label}</span>
-                <span className="desk-tile-sub">{t.sub}</span>
               </Link>
             ))}
           </div>
 
           <div className="desk-watch">
-            <h2>Da tenere d&apos;occhio</h2>
-            {watchTop.length === 0 ? (
+            <div className="desk-watch-head">
+              <h2>Da tenere d&apos;occhio</h2>
+              {watchTotal > 0 ? <span className="desk-watch-total">{watchTotal} posizioni</span> : null}
+            </div>
+            {watchTotal === 0 ? (
               <p className="hint" style={{ margin: 0 }}>
                 {datiParziali
                   ? "Elenco non disponibile: Google Sheets non risponde."
                   : "Nessuna scadenza nei prossimi giorni."}
               </p>
             ) : (
-              <ul>
-                {watchTop.map((r, i) => (
-                  <li key={`${r.code}-${i}`}>
-                    <Link href={r.href}>
-                      <span className="desk-watch-code">{r.code}</span>
-                      <span className="desk-watch-who">
-                        <span className="desk-watch-cat">{r.cat}</span>
-                        {r.rest ? (
-                          <>
-                            <span className="desk-watch-sep">·</span>
-                            <span className="desk-watch-rest">{r.rest}</span>
-                          </>
-                        ) : null}
-                      </span>
-                      <span
-                        className={`desk-watch-when${r.urgent ? " urgent" : r.tone ? ` tone-${r.tone}` : ""}`}
-                      >
-                        {r.when}
-                      </span>
-                    </Link>
-                  </li>
+              <>
+                {watchGroups.map((g) => (
+                  <div key={g.key}>
+                    <div className={`desk-watch-group ${g.tone}`}>
+                      <span className="dot" aria-hidden="true" />
+                      {g.label}
+                      <span className="count">{g.total}</span>
+                    </div>
+                    <ul>
+                      {g.rows.map((r, i) => (
+                        <li key={`${r.code}-${i}`}>
+                          <Link href={r.href}>
+                            <span className="desk-watch-code">{r.code}</span>
+                            <span className="desk-watch-who">
+                              <span className="desk-watch-cat">{r.cat}</span>
+                              {r.rest ? <span className="desk-watch-rest">{r.rest}</span> : null}
+                            </span>
+                            {g.showWhen ? (
+                              <span className={`desk-watch-when${r.urgent ? " urgent" : ""}`}>
+                                {r.when}
+                              </span>
+                            ) : null}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 ))}
-              </ul>
+                {watchTruncated ? (
+                  <>
+                    <div className="desk-watch-fade" aria-hidden="true" />
+                    <div className="desk-watch-more">
+                      <Link href="/da-tenere-d-occhio">Vedi tutto →</Link>
+                    </div>
+                  </>
+                ) : null}
+              </>
             )}
           </div>
         </div>
