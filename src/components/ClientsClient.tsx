@@ -9,6 +9,12 @@ import { networkErrorMessage, readJson } from "@/lib/fetch-json";
 import { Toast } from "./Toast";
 
 interface ClientsClientProps {
+  /** Dove si sta guardando l'anagrafica. Al banco si cerca un cliente, lo
+   * si apre e semmai se ne aggiunge uno: l'import CSV è manutenzione del
+   * database, si fa da seduti una volta ogni tanto e qui toglierebbe solo
+   * spazio e attenzione. Vive quindi solo in amministrazione, sugli stessi
+   * dati. */
+  contesto?: "banco" | "admin";
   clients: ClientRecord[];
   history: HistoryEvent[];
   devices: Device[];
@@ -30,7 +36,13 @@ function emptyNewClientForm() {
   return { nome: "", cellulare: "", email: "", indirizzo: "" };
 }
 
-export function ClientsClient({ clients: initialClients, history, devices }: ClientsClientProps) {
+export function ClientsClient({
+  clients: initialClients,
+  history,
+  devices,
+  contesto = "admin",
+}: ClientsClientProps) {
+  const banco = contesto === "banco";
   const [clients, setClients] = useState(initialClients);
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState<string | null>(null);
@@ -197,8 +209,9 @@ export function ClientsClient({ clients: initialClients, history, devices }: Cli
         <div className="page-header-text">
           <h1>Clienti</h1>
           <p className="sub">
-            {clients.length} clienti in anagrafica · si aggiorna da sola a ogni noleggio, più i dati
-            importati da CSV
+            {banco
+              ? `${clients.length} clienti in anagrafica · cerca, apri la scheda o aggiungine uno nuovo`
+              : `${clients.length} clienti in anagrafica · si aggiorna da sola a ogni noleggio, più i dati importati da CSV`}
           </p>
         </div>
         <button className="btn primary" type="button" onClick={() => setCreating((v) => !v)}>
@@ -214,27 +227,31 @@ export function ClientsClient({ clients: initialClients, history, devices }: Cli
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
-        <div className="card-actions">
-          <button
-            className="btn"
-            type="button"
-            onClick={() => importInputRef.current?.click()}
-            disabled={importing}
-          >
-            {importing ? "Import in corso…" : "Importa CSV anagrafica"}
-          </button>
-          <input
-            ref={importInputRef}
-            type="file"
-            accept=".csv,text/csv"
-            style={{ display: "none" }}
-            onChange={handleImport}
-          />
-        </div>
-        <p className="hint" style={{ marginTop: 8, marginBottom: 0 }}>
-          Formato export fedelta.store: abbina i clienti già presenti per nome e cognome, senza
-          duplicarli — aggiunge indirizzo, email, data di nascita e numero fidelity.
-        </p>
+        {banco ? null : (
+          <>
+            <div className="card-actions">
+              <button
+                className="btn"
+                type="button"
+                onClick={() => importInputRef.current?.click()}
+                disabled={importing}
+              >
+                {importing ? "Import in corso…" : "Importa CSV anagrafica"}
+              </button>
+              <input
+                ref={importInputRef}
+                type="file"
+                accept=".csv,text/csv"
+                style={{ display: "none" }}
+                onChange={handleImport}
+              />
+            </div>
+            <p className="hint" style={{ marginTop: 8, marginBottom: 0 }}>
+              Formato export fedelta.store: abbina i clienti già presenti per nome e cognome, senza
+              duplicarli — aggiunge indirizzo, email, data di nascita e numero fidelity.
+            </p>
+          </>
+        )}
 
         {creating ? (
           <form onSubmit={handleCreateClient} style={{ marginTop: 16 }}>

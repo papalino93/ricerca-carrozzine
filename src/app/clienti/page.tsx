@@ -18,7 +18,7 @@ export default async function FrontClientiPage() {
   return (
     <>
       <FrontBar logoUrl={settings.logoUrl} />
-      <ClientsClient clients={clients} history={history} devices={devices} />
+      <ClientsClient clients={clients} history={history} devices={devices} contesto="banco" />
     </>
   );
 }
