@@ -55,6 +55,44 @@ function getSheetsApi() {
   return google.sheets({ version: "v4", auth: getAuth() });
 }
 
+/**
+ * Vero per gli errori che passano da soli: quota superata, un 5xx di
+ * Google, la connessione caduta a metà. Riprovare ha senso solo per
+ * questi — su un problema di permessi o su un foglio inesistente, il
+ * secondo tentativo fallirebbe esattamente come il primo, e nel frattempo
+ * chi sta aspettando la pagina aspetta il doppio.
+ */
+function isTransientError(err: unknown): boolean {
+  const e = err as { code?: number | string; status?: number; message?: string } | undefined;
+  const code = Number(e?.code ?? e?.status);
+  if (code === 429 || (code >= 500 && code < 600)) return true;
+  const message = e?.message ?? "";
+  return /quota exceeded|rate limit|ECONNRESET|ETIMEDOUT|EAI_AGAIN|socket hang up|network|backend error|internal error/i.test(
+    message
+  );
+}
+
+/**
+ * Esegue una lettura da Google Sheets riprovando quando l'errore è di
+ * quelli passeggeri.
+ *
+ * Il motivo: ogni pagina fa più letture, e un singolo intoppo di Google
+ * diventava una pagina di errore in faccia all'operatore. Due tentativi in
+ * più, a un quarto e a mezzo secondo, coprono praticamente tutti i casi
+ * senza far percepire attesa a chi guarda lo schermo.
+ */
+async function conRiprova<T>(operazione: () => Promise<T>): Promise<T> {
+  const attese = [250, 500];
+  for (let tentativo = 0; ; tentativo++) {
+    try {
+      return await operazione();
+    } catch (err) {
+      if (tentativo >= attese.length || !isTransientError(err)) throw err;
+      await new Promise((r) => setTimeout(r, attese[tentativo]));
+    }
+  }
+}
+
 function isMissingRangeError(err: unknown): boolean {
   const message = (err as { message?: string } | undefined)?.message ?? "";
   return message.includes("Unable to parse range");
@@ -103,10 +141,9 @@ async function ensureTab(sheets: sheets_v4.Sheets, spreadsheetId: string, tab: s
 export async function readRange(range: string): Promise<string[][]> {
   const sheets = getSheetsApi();
   try {
-    const res = await sheets.spreadsheets.values.get({
-      spreadsheetId: getSpreadsheetId(),
-      range,
-    });
+    const res = await conRiprova(() =>
+      sheets.spreadsheets.values.get({ spreadsheetId: getSpreadsheetId(), range })
+    );
     return (res.data.values as string[][] | undefined) ?? [];
   } catch (err) {
     if (isMissingRangeError(err)) return [];
@@ -170,10 +207,12 @@ export async function deleteRows(tab: string, rowNumbers: number[], spreadsheetI
 export async function readSheet(tab: string, spreadsheetIdOverride?: string): Promise<string[][]> {
   const sheets = getSheetsApi();
   try {
-    const res = await sheets.spreadsheets.values.get({
-      spreadsheetId: spreadsheetIdOverride ?? getSpreadsheetId(),
-      range: tab,
-    });
+    const res = await conRiprova(() =>
+      sheets.spreadsheets.values.get({
+        spreadsheetId: spreadsheetIdOverride ?? getSpreadsheetId(),
+        range: tab,
+      })
+    );
     return (res.data.values as string[][] | undefined) ?? [];
   } catch (err) {
     if (isMissingRangeError(err)) return [];
