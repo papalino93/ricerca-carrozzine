@@ -151,6 +151,29 @@ export async function readRange(range: string): Promise<string[][]> {
   }
 }
 
+/**
+ * Elenca i nomi di tutte le tab del foglio.
+ *
+ * Serve al backup: le tab da salvare si scoprono a runtime invece di
+ * essere elencate nel codice, così una tab aggiunta in futuro finisce nel
+ * backup da sola. Un elenco scritto a mano è esattamente il tipo di cosa
+ * che ci si dimentica di aggiornare, e ce ne si accorge il giorno in cui
+ * serve il backup.
+ */
+export async function listTabNames(spreadsheetIdOverride?: string): Promise<string[]> {
+  const sheets = getSheetsApi();
+  try {
+    const meta = await conRiprova(() =>
+      sheets.spreadsheets.get({ spreadsheetId: spreadsheetIdOverride ?? getSpreadsheetId() })
+    );
+    return (meta.data.sheets ?? [])
+      .map((s) => s.properties?.title)
+      .filter((t): t is string => Boolean(t));
+  } catch (err) {
+    throw friendlyError(err);
+  }
+}
+
 /** Id numerico interno di una tab, necessario per le operazioni strutturali. */
 async function getTabId(
   sheets: sheets_v4.Sheets,
