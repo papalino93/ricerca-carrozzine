@@ -15,7 +15,7 @@ const DESCRIPTION =
 const CRAWLER_UA =
   /facebookexternalhit|WhatsApp|Twitterbot|Slackbot|TelegramBot|LinkedInBot|Discordbot|SkypeUriPreview|Googlebot|bingbot/i;
 
-function previewHtml(): string {
+function previewHtml(pageUrl: string): string {
   const image = `${SITE_URL}/og-image.png`;
   return `<!doctype html>
 <html lang="it">
@@ -26,7 +26,7 @@ function previewHtml(): string {
 <meta name="description" content="${DESCRIPTION}" />
 <meta property="og:title" content="${TITLE}" />
 <meta property="og:description" content="${DESCRIPTION}" />
-<meta property="og:url" content="${SITE_URL}" />
+<meta property="og:url" content="${pageUrl}" />
 <meta property="og:site_name" content="${TITLE}" />
 <meta property="og:type" content="website" />
 <meta property="og:locale" content="it_IT" />
@@ -46,7 +46,7 @@ function previewHtml(): string {
 // pubblica. Sono esclusi solo gli asset statici (icone, logo, immagine di
 // preview, manifest PWA) che il browser scarica prima di poter presentare
 // le credenziali e che non contengono dati aziendali, più la paginetta di
-// anteprima per i crawler social sulla sola home (vedi sopra).
+// anteprima per i crawler social (vedi sopra).
 export default async function proxy(req: NextRequest) {
   const unauthorized = await requireBasicAuth(req);
   if (!unauthorized) return NextResponse.next();
@@ -64,8 +64,15 @@ export default async function proxy(req: NextRequest) {
     return unauthorized;
   }
 
-  if (req.nextUrl.pathname === "/" && CRAWLER_UA.test(req.headers.get("user-agent") ?? "")) {
-    return new NextResponse(previewHtml(), {
+  // Su qualunque pagina, non solo sulla home: condividendo un link diretto
+  // a una scheda (es. /noleggi?q=N130C) l'anteprima deve comparire lo
+  // stesso, non solo quando si condivide l'indirizzo nudo. Il testo e
+  // l'immagine restano sempre gli stessi — sono gli stessi metadata già
+  // pubblici del sito, mai dati del magazzino — cambia solo l'URL riportato
+  // in og:url, che rispecchia la pagina realmente condivisa.
+  if (CRAWLER_UA.test(req.headers.get("user-agent") ?? "")) {
+    const pageUrl = `${SITE_URL}${req.nextUrl.pathname}${req.nextUrl.search}`;
+    return new NextResponse(previewHtml(pageUrl), {
       status: 200,
       headers: { "Content-Type": "text/html; charset=utf-8" },
     });
