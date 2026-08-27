@@ -34,11 +34,11 @@ function oraDiScandicci(): { giorno: string; data: string; ora: string } {
  * scadenze — che nella pagina dedicata non hanno un tetto — qui ne
  * hanno uno. */
 const PREVIEW_CAP: Record<string, number> = {
-  scadenze: 5,
-  guasto: 4,
-  da_verificare: 4,
-  da_pulire: 3,
-  lunghi: 3,
+  scadenze: 4,
+  guasto: 3,
+  da_verificare: 3,
+  da_pulire: 2,
+  lunghi: 2,
 };
 
 export default async function ReceptionPage() {
