@@ -84,6 +84,10 @@ interface WatchRow {
   when: string;
   /** Vero per ciò che è già scaduto: si colora di rosso. */
   urgent: boolean;
+  /** Colore dello stato a destra, con la stessa tavolozza delle pastiglie
+   * del magazzino: chi legge riconosce "guasto" dal colore prima ancora di
+   * leggere la parola. */
+  tone?: "broken" | "check" | "clean";
   href: string;
   /** Solo per le scadenze, che si ordinano fra loro: più è basso, più è
    * urgente. Gli altri gruppi hanno già un ordine proprio. */
@@ -185,7 +189,12 @@ export default async function ReceptionPage() {
   // 2. Magazzino fermo: ausili che esistono ma non si possono noleggiare
   //    finché qualcuno non ci mette mano. Sono lavoro arretrato, ed è il
   //    motivo per cui "52 disponibili" non è tutta la storia.
-  const fermi = (stato: "guasto" | "da_verificare" | "da_pulire", etichetta: string, max: number) =>
+  const fermi = (
+    stato: "guasto" | "da_verificare" | "da_pulire",
+    etichetta: string,
+    tone: "broken" | "check" | "clean",
+    max: number
+  ) =>
     attivi
       .filter((d) => d.stato === stato)
       .slice(0, max)
@@ -193,14 +202,15 @@ export default async function ReceptionPage() {
         code: d.codice,
         who: [d.marca, d.modello].filter(Boolean).join(" ") || d.categoria,
         when: etichetta,
+        tone,
         urgent: false,
         href: `/noleggi?q=${encodeURIComponent(d.codice)}`,
       }));
 
   const magazzino = [
-    ...fermi("guasto", "guasto", MAX_GUASTI),
-    ...fermi("da_verificare", "da verificare", MAX_DA_VERIFICARE),
-    ...fermi("da_pulire", "da sanificare", MAX_DA_PULIRE),
+    ...fermi("guasto", "guasto", "broken", MAX_GUASTI),
+    ...fermi("da_verificare", "da verificare", "check", MAX_DA_VERIFICARE),
+    ...fermi("da_pulire", "da sanificare", "clean", MAX_DA_PULIRE),
   ];
 
   // 3. Noleggi fuori da molto tempo: non sono un errore, ma prima o poi
@@ -311,7 +321,11 @@ export default async function ReceptionPage() {
                     <Link href={r.href}>
                       <span className="desk-watch-code">{r.code}</span>
                       <span className="desk-watch-who">{r.who}</span>
-                      <span className={`desk-watch-when${r.urgent ? " urgent" : ""}`}>{r.when}</span>
+                      <span
+                        className={`desk-watch-when${r.urgent ? " urgent" : r.tone ? ` tone-${r.tone}` : ""}`}
+                      >
+                        {r.when}
+                      </span>
                     </Link>
                   </li>
                 ))}

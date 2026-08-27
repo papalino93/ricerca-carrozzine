@@ -739,6 +739,23 @@ h1 {
   font-weight: 700;
 }
 
+/* Lo stato del magazzino con gli stessi colori delle pastiglie nelle
+   pagine: si riconosce "guasto" dal colore prima di leggere la parola. */
+.desk-watch-when.tone-broken {
+  color: var(--broken-fg);
+  font-weight: 600;
+}
+
+.desk-watch-when.tone-check {
+  color: var(--check-fg);
+  font-weight: 600;
+}
+
+.desk-watch-when.tone-clean {
+  color: var(--clean-fg);
+  font-weight: 600;
+}
+
 @media (max-width: 860px) {
   .desk-layout {
     grid-template-columns: minmax(0, 1fr);
