@@ -108,11 +108,33 @@ async function costruisciRigheBackup(data: string): Promise<{ righe: string[][];
  * errore qui non deve far perdere anche quello. Lo stato di entrambi torna
  * nel risultato, così chi chiama (o guarda Impostazioni → Backup) lo vede.
  */
+/**
+ * Toglie le righe già presenti per una data, se ce ne sono, prima di
+ * scrivere quelle nuove.
+ *
+ * Serve perché il backup può girare più volte nello stesso giorno: una
+ * volta di notte dal cron, e potenzialmente altre da "Esegui backup ora"
+ * in Impostazioni. Senza questo passaggio le righe si accumulerebbero —
+ * due, tre serie di "Clienti parte 1/2" per lo stesso giorno — e in fase
+ * di ricostruzione non ci sarebbe modo di sapere quali due pezzi
+ * appartengono alla stessa esecuzione: la numerazione delle parti
+ * ricomincerebbe da 1 ogni volta, ambigua fra le serie.
+ */
+async function eliminaBackupDelGiorno(data: string, spreadsheetIdOverride?: string): Promise<void> {
+  const rows = await readSheet(TAB, spreadsheetIdOverride);
+  const daEliminare: number[] = [];
+  rows.slice(1).forEach((row, i) => {
+    if (row[0] === data) daEliminare.push(i + 2); // +2: header + indici del foglio da 1
+  });
+  await deleteRows(TAB, daEliminare, spreadsheetIdOverride);
+}
+
 export async function createSnapshot(): Promise<SnapshotResult> {
   const data = new Date().toISOString().slice(0, 10);
 
   const { righe, tabs } = await costruisciRigheBackup(data);
 
+  await eliminaBackupDelGiorno(data);
   await appendRows(TAB, righe, HEADER);
   await pruneOldSnapshots();
 
@@ -123,6 +145,7 @@ export async function createSnapshot(): Promise<SnapshotResult> {
       // Le stesse righe già lette e spezzate, non una seconda lettura da
       // capo: dimezza il lavoro e garantisce che primario e secondario
       // contengano esattamente lo stesso backup del giorno.
+      await eliminaBackupDelGiorno(data, backupId);
       await appendRows(TAB, righe, HEADER, backupId);
       await pruneOldSnapshots(backupId);
       backupSecondario.riuscito = true;
