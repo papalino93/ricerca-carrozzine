@@ -1,7 +1,7 @@
 import { listCommesse } from "@/lib/commesse";
 import { getSettingsSafe } from "@/lib/settings";
 import { FrontBar } from "@/components/FrontBar";
-import { CommesseClient } from "@/components/CommesseClient";
+import { CommesseBanco } from "@/components/CommesseBanco";
 
 export const dynamic = "force-dynamic";
 
@@ -18,11 +18,7 @@ export default async function FrontCommessePage({
   return (
     <>
       <FrontBar logoUrl={settings.logoUrl} />
-      <CommesseClient
-        initialCommesse={commesse}
-        puntiPerEuro={settings.puntiPerEuro}
-        initialQuery={q}
-      />
+      <CommesseBanco initialCommesse={commesse} initialQuery={q} />
     </>
   );
 }
