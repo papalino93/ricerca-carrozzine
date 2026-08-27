@@ -222,7 +222,10 @@ export function ClientsClient({
       <div className="panel">
         <input
           className="searchbox"
-          style={{ marginBottom: 14 }}
+          // Il margine sotto serve solo quando segue qualcosa: al banco, con
+          // l'import CSV nascosto, lascerebbe una striscia vuota in fondo al
+          // riquadro di ricerca.
+          style={banco ? undefined : { marginBottom: 14 }}
           placeholder="Cerca per nome, telefono, email…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
