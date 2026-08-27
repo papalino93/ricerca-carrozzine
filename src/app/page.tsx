@@ -131,7 +131,6 @@ export default async function ReceptionPage() {
     !settingsR.ok || !devicesR.ok || !commesseR.ok || !clientsR.ok;
 
   const attivi = devices.filter((d) => !d.archiviato);
-  const disponibili = attivi.filter((d) => d.stato === "disponibile").length;
   const daConsegnare = commesse.filter((c) => c.stato !== "ritirata").length;
   const soglia = settings?.sogliaPremioPunti ?? 0;
   const oltreSoglia = soglia > 0 ? clients.filter((c) => c.punti >= soglia).length : 0;
@@ -232,38 +231,55 @@ export default async function ReceptionPage() {
 
   const watchTop = [...scadenze, ...magazzino, ...lunghi].slice(0, MAX_RIGHE);
 
+  // I quattro riquadri sono pulsanti, non statistiche. Prima mostravano un
+  // numero grande: al banco "Commesse 0" si legge come "qui non c'è
+  // niente" invece che come "da qui ne apri una nuova", che è il contrario
+  // di quello che serve. Ora il disegno e il nome della sezione sono la
+  // cosa grande, e sotto c'è scritto cosa ci si fa.
+  //
+  // Il numero resta solo dove segnala del lavoro da fare, come pastiglia
+  // in alto a destra, e sparisce quando è zero: così un numero visibile
+  // vuol dire sempre "guarda qui", mai "non c'è niente".
+  const rientriVicini = attivi.filter(
+    (d) => d.stato === "noleggiato" && d.alPrevisto && daysUntil(d.alPrevisto) <= 3
+  ).length;
+
   const TILES = [
     {
       href: "/noleggi",
       icon: <IconNoleggio />,
       color: "info",
       label: "Noleggia",
-      sub: "ausili disponibili",
-      value: disponibili,
+      sub: "Consegne, rientri e magazzino",
+      badge: rientriVicini,
+      badgeLabel: "in scadenza",
     },
     {
       href: "/commesse",
       icon: <IconCommessa />,
       color: "warn",
       label: "Commesse",
-      sub: "da consegnare",
-      value: daConsegnare,
+      sub: "Nuova commessa o riparazione",
+      badge: daConsegnare,
+      badgeLabel: "da consegnare",
     },
     {
       href: "/fidelity",
       icon: <IconFidelity />,
       color: "purple",
       label: "Fidelity",
-      sub: soglia > 0 ? "oltre soglia premio" : "programma fedeltà",
-      value: oltreSoglia,
+      sub: "Tessere, punti e premi",
+      badge: oltreSoglia,
+      badgeLabel: "con premio",
     },
     {
       href: "/clienti",
       icon: <IconClienti />,
       color: "accent",
       label: "Clienti",
-      sub: "in anagrafica",
-      value: clients.length,
+      sub: "Anagrafica e storico",
+      badge: 0,
+      badgeLabel: "",
     },
   ];
 
@@ -296,10 +312,12 @@ export default async function ReceptionPage() {
           <div className="desk-tiles">
             {TILES.map((t) => (
               <Link key={t.href} href={t.href} className={`desk-tile desk-tile-${t.color}`}>
-                <span className="desk-tile-top">
-                  <span className="desk-tile-icon">{t.icon}</span>
-                  <span className="desk-tile-value">{t.value}</span>
-                </span>
+                {t.badge > 0 ? (
+                  <span className="desk-tile-badge">
+                    {t.badge} {t.badgeLabel}
+                  </span>
+                ) : null}
+                <span className="desk-tile-icon">{t.icon}</span>
                 <span className="desk-tile-label">{t.label}</span>
                 <span className="desk-tile-sub">{t.sub}</span>
               </Link>

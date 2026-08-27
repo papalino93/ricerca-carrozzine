@@ -570,20 +570,22 @@ h1 {
 
 /* I quattro riquadri si spartiscono tutta l'altezza della colonna: sul
    monitor del banco la home resterebbe altrimenti con mezza schermata
-   bianca sotto. Sono quindi colonne flex con il numero in alto e la
-   descrizione in fondo, così crescendo restano equilibrati invece di
-   accumulare il vuoto tutto sul bordo inferiore. */
+   bianca sotto. Il contenuto sta al centro, così lo spazio in più si legge
+   come margine e non come buco, e il riquadro somiglia a un pulsante. */
 .desk-tile {
   --c: var(--accent);
   --cbg: var(--accent-bg);
+  position: relative;
   display: flex;
   flex-direction: column;
+  align-items: center;
   justify-content: center;
+  text-align: center;
   min-height: 152px;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 20px;
-  padding: 24px 24px 22px;
+  padding: 26px 22px;
   text-decoration: none;
   color: var(--ink);
   box-shadow: 0 1px 2px rgba(23, 48, 27, 0.04);
@@ -598,18 +600,29 @@ h1 {
   }
 }
 
-.desk-tile-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 18px;
+/* La pastiglia compare solo quando c'è del lavoro da fare: un numero
+   visibile qui vuol sempre dire "guarda qui", mai "non c'è niente". */
+.desk-tile-badge {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--c);
+  background: var(--cbg);
+  border-radius: 999px;
+  padding: 4px 11px;
+  max-width: calc(100% - 28px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .desk-tile-icon {
-  width: 66px;
-  height: 66px;
-  border-radius: 18px;
+  width: 76px;
+  height: 76px;
+  margin-bottom: 16px;
+  border-radius: 22px;
   background: var(--cbg);
   color: var(--c);
   display: flex;
@@ -619,32 +632,25 @@ h1 {
 }
 
 .desk-tile-icon svg {
-  width: 34px;
-  height: 34px;
-}
-
-.desk-tile-value {
-  font-family: var(--heading);
-  font-size: 54px;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
+  width: 38px;
+  height: 38px;
 }
 
 .desk-tile-label {
   display: block;
   font-family: var(--heading);
-  font-size: 23px;
+  font-size: 26px;
   font-weight: 650;
   letter-spacing: -0.01em;
 }
 
 .desk-tile-sub {
   display: block;
-  font-size: 14px;
+  font-size: 14.5px;
   color: var(--ink-soft);
-  margin-top: 3px;
+  margin-top: 5px;
+  max-width: 24ch;
+  line-height: 1.35;
 }
 
 .desk-tile-info {
@@ -774,22 +780,19 @@ h1 {
     padding: 18px 18px 17px;
   }
 
-  .desk-tile-value {
-    font-size: 34px;
-  }
-
   .desk-tile-icon {
-    width: 50px;
-    height: 50px;
+    width: 58px;
+    height: 58px;
+    margin-bottom: 12px;
   }
 
   .desk-tile-icon svg {
-    width: 26px;
-    height: 26px;
+    width: 30px;
+    height: 30px;
   }
 
   .desk-tile-label {
-    font-size: 20px;
+    font-size: 22px;
   }
 
   .desk-top-right {
