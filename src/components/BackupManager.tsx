@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { networkErrorMessage, readJson } from "@/lib/fetch-json";
-import type { SnapshotStatus } from "@/lib/snapshot";
+import type { SnapshotStatus, TabBackupInfo } from "@/lib/snapshot";
 
 interface BackupManagerProps {
   initialStatus: SnapshotStatus;
@@ -20,6 +20,7 @@ export function BackupManager({ initialStatus }: BackupManagerProps) {
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastRun, setLastRun] = useState<string | null>(null);
+  const [lastTabs, setLastTabs] = useState<TabBackupInfo[] | null>(null);
 
   async function handleRunNow() {
     setRunning(true);
@@ -28,25 +29,37 @@ export function BackupManager({ initialStatus }: BackupManagerProps) {
       const res = await fetch("/api/backup");
       const body = await readJson(res);
       if (!res.ok) throw new Error(body.error || "Backup non riuscito");
+
+      const tabs = (body.tabs ?? []) as TabBackupInfo[];
+      const conErrore = tabs.filter((t) => t.errore);
+      setLastTabs(tabs);
+
       setStatus((s) => ({
-        primario: { ultimo: body.data, totale: s.primario.totale + (s.primario.ultimo === body.data ? 0 : 1) },
+        primario: { ultimo: body.data, giorni: s.primario.ultimo === body.data ? s.primario.giorni : s.primario.giorni + 1 },
         secondario: s.secondario.configurato
           ? {
               configurato: true,
               ultimo: body.backupSecondario?.riuscito ? body.data : s.secondario.ultimo,
-              totale:
-                s.secondario.totale +
-                (body.backupSecondario?.riuscito && s.secondario.ultimo !== body.data ? 1 : 0),
+              giorni:
+                body.backupSecondario?.riuscito && s.secondario.ultimo !== body.data
+                  ? s.secondario.giorni + 1
+                  : s.secondario.giorni,
               errore: body.backupSecondario?.errore,
             }
           : s.secondario,
       }));
+
+      const esitoTab =
+        conErrore.length > 0
+          ? ` Attenzione: ${conErrore.length === 1 ? "una tab non si è salvata" : `${conErrore.length} tab non si sono salvate`} (${conErrore.map((t) => t.tab).join(", ")}) — vedi sotto.`
+          : ` Tutte le ${tabs.length} tab salvate.`;
+
       setLastRun(
-        body.backupSecondario?.configurato
+        (body.backupSecondario?.configurato
           ? body.backupSecondario.riuscito
             ? "Backup eseguito su entrambi i fogli."
             : `Backup primario riuscito, ma quello secondario no: ${body.backupSecondario.errore ?? "errore sconosciuto"}.`
-          : "Backup primario eseguito. Il secondario non è ancora configurato."
+          : "Backup primario eseguito. Il secondario non è ancora configurato.") + esitoTab
       );
     } catch (err) {
       setError(networkErrorMessage(err));
@@ -59,10 +72,13 @@ export function BackupManager({ initialStatus }: BackupManagerProps) {
     <div className="panel">
       <h2>Backup dei dati</h2>
       <p className="hint" style={{ marginBottom: 14 }}>
-        Ogni notte il magazzino viene salvato automaticamente (fino a 60 giorni di storico). Il
-        backup primario vive nello stesso foglio Google di tutto il resto: se quel file si
-        danneggiasse o venisse eliminato per errore, sparirebbe insieme a lui. Il backup
-        secondario, su un foglio Google completamente separato, esiste apposta per quel caso.
+        Ogni notte TUTTO il gestionale viene salvato automaticamente — dispositivi, clienti,
+        commesse, punti fedeltà, storico, tariffe, impostazioni — fino a 60 giorni di storico.
+        Uniche escluse le foto degli ausili: si possono rifotografare, e includerle farebbe
+        esplodere le dimensioni del backup. Il backup primario vive nello stesso foglio Google di
+        tutto il resto: se quel file si danneggiasse o venisse eliminato per errore, sparirebbe
+        insieme a lui. Il backup secondario, su un foglio Google completamente separato, esiste
+        apposta per quel caso.
       </p>
 
       {error ? <div className="banner error">{error}</div> : null}
@@ -79,7 +95,7 @@ export function BackupManager({ initialStatus }: BackupManagerProps) {
               <th></th>
               <th>Stato</th>
               <th>Ultimo backup</th>
-              <th>Snapshot conservati</th>
+              <th>Giorni conservati</th>
             </tr>
           </thead>
           <tbody>
@@ -89,7 +105,7 @@ export function BackupManager({ initialStatus }: BackupManagerProps) {
                 <span className="pill disponibile">Attivo</span>
               </td>
               <td>{fmtDate(status.primario.ultimo)}</td>
-              <td>{status.primario.totale} / 60</td>
+              <td>{status.primario.giorni} / 60</td>
             </tr>
             <tr>
               <td>Secondario</td>
@@ -105,11 +121,42 @@ export function BackupManager({ initialStatus }: BackupManagerProps) {
                 )}
               </td>
               <td>{status.secondario.configurato ? fmtDate(status.secondario.ultimo) : "—"}</td>
-              <td>{status.secondario.configurato ? `${status.secondario.totale} / 60` : "—"}</td>
+              <td>{status.secondario.configurato ? `${status.secondario.giorni} / 60` : "—"}</td>
             </tr>
           </tbody>
         </table>
       </div>
+
+      {lastTabs ? (
+        <div className="admin-table-wrap" style={{ marginBottom: 16 }}>
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Tab salvata nell&apos;ultimo backup</th>
+                <th>Righe</th>
+                <th>Esito</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lastTabs.map((t) => (
+                <tr key={t.tab}>
+                  <td>{t.tab}</td>
+                  <td>{t.righe}</td>
+                  <td>
+                    {t.errore ? (
+                      <span className="pill guasto" title={t.errore}>
+                        Non salvata
+                      </span>
+                    ) : (
+                      <span className="pill disponibile">Salvata</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
 
       {!status.secondario.configurato ? (
         <div className="internal-note" style={{ marginBottom: 16 }}>

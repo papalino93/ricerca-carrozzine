@@ -287,6 +287,54 @@ export async function writeSheet(tab: string, rows: string[][], spreadsheetIdOve
 }
 
 /**
+ * Accoda più righe in fondo a una tab in una sola chiamata (creandola con
+ * l'intestazione se manca).
+ *
+ * Serve dove appendRow, chiamata una volta per riga, costerebbe una
+ * richiesta HTTP per riga: il backup completo scrive una decina di righe
+ * (una o più per ciascuna tab del gestionale) e farlo con una singola
+ * chiamata invece di dieci evita sia la lentezza sia il rischio di quota,
+ * oltre a rendere la scrittura tutta-o-niente invece che a metà se una
+ * delle dieci chiamate fallisse a metà del giro.
+ */
+export async function appendRows(
+  tab: string,
+  rows: string[][],
+  header?: string[],
+  spreadsheetIdOverride?: string
+): Promise<void> {
+  if (rows.length === 0) return;
+  try {
+    const sheets = getSheetsApi();
+    const spreadsheetId = spreadsheetIdOverride ?? getSpreadsheetId();
+    const isNewTab = !knownTabs.has(`${spreadsheetId}::${tab}`);
+    await ensureTab(sheets, spreadsheetId, tab);
+
+    if (isNewTab && header) {
+      const existing = await readSheet(tab, spreadsheetIdOverride);
+      if (existing.length === 0) {
+        await sheets.spreadsheets.values.update({
+          spreadsheetId,
+          range: `${tab}!A1`,
+          valueInputOption: "RAW",
+          requestBody: { values: [header] },
+        });
+      }
+    }
+
+    await sheets.spreadsheets.values.append({
+      spreadsheetId,
+      range: tab,
+      valueInputOption: "RAW",
+      insertDataOption: "INSERT_ROWS",
+      requestBody: { values: rows },
+    });
+  } catch (err) {
+    throw friendlyError(err);
+  }
+}
+
+/**
  * Accoda una riga in fondo a una tab (creandola con l'intestazione se manca),
  * senza dover rileggere/riscrivere tutto il contenuto esistente.
  */

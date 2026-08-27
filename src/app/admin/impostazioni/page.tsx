@@ -27,8 +27,8 @@ export default async function ImpostazioniPage() {
   const categories = await listCategories().catch(() => []);
   const tariffe = await listTariffe().catch(() => []);
   const backupStatus = await getSnapshotStatus().catch(() => ({
-    primario: { ultimo: null, totale: 0 },
-    secondario: { configurato: false, ultimo: null, totale: 0 },
+    primario: { ultimo: null, giorni: 0 },
+    secondario: { configurato: false, ultimo: null, giorni: 0 },
   }));
 
   return (

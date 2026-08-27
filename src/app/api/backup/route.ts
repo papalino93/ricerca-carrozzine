@@ -3,7 +3,9 @@ import { requireBasicAuth } from "@/lib/basic-auth";
 import { createSnapshot } from "@/lib/snapshot";
 
 export const runtime = "nodejs";
-export const maxDuration = 30;
+// Legge una dozzina di tab e ne scrive il backup in un colpo solo: più
+// margine di prima, che bastava per il solo magazzino.
+export const maxDuration = 60;
 
 /**
  * Chiamata una volta al giorno da Vercel Cron (vedi vercel.json), autenticata
