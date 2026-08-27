@@ -241,19 +241,10 @@ h1 {
    cliente lungo con "— noleggio lungo" accanto), quindi impone la propria
    larghezza all'intera griglia e su telefono la pagina esce dallo schermo
    con i numeri dei riquadri tagliati a destra. */
-.desk-left,
+.desk-tiles,
 .desk-watch {
   align-self: stretch;
   min-width: 0;
-}
-
-/* La colonna di sinistra impila riquadri, magazzino e movimenti: una
-   colonna flex e non una griglia, così i tre blocchi restano alti quanto il
-   loro contenuto invece di gonfiarsi per riempire lo spazio. */
-.desk-left {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
 }
 
 .desk-top {
@@ -573,20 +564,26 @@ h1 {
 .desk-tiles {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  /* Senza questo, su un monitor alto le due righe si spartiscono tutto lo
-     spazio libero e i riquadri diventano enormi e mezzi vuoti. */
-  align-content: start;
+  grid-auto-rows: 1fr;
+  gap: 14px;
 }
 
+/* I quattro riquadri si spartiscono tutta l'altezza della colonna: sul
+   monitor del banco la home resterebbe altrimenti con mezza schermata
+   bianca sotto. Sono quindi colonne flex con il numero in alto e la
+   descrizione in fondo, così crescendo restano equilibrati invece di
+   accumulare il vuoto tutto sul bordo inferiore. */
 .desk-tile {
   --c: var(--accent);
   --cbg: var(--accent-bg);
-  display: block;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 152px;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 18px;
-  padding: 20px 20px 19px;
+  border-radius: 20px;
+  padding: 24px 24px 22px;
   text-decoration: none;
   color: var(--ink);
   box-shadow: 0 1px 2px rgba(23, 48, 27, 0.04);
@@ -606,13 +603,13 @@ h1 {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .desk-tile-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+  width: 52px;
+  height: 52px;
+  border-radius: 15px;
   background: var(--cbg);
   color: var(--c);
   display: flex;
@@ -622,15 +619,15 @@ h1 {
 }
 
 .desk-tile-icon svg {
-  width: 23px;
-  height: 23px;
+  width: 27px;
+  height: 27px;
 }
 
 .desk-tile-value {
   font-family: var(--heading);
-  font-size: 30px;
+  font-size: 38px;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
@@ -638,15 +635,16 @@ h1 {
 .desk-tile-label {
   display: block;
   font-family: var(--heading);
-  font-size: 17px;
+  font-size: 19px;
   font-weight: 650;
   letter-spacing: -0.01em;
 }
 
 .desk-tile-sub {
   display: block;
-  font-size: 13px;
+  font-size: 13.5px;
   color: var(--ink-soft);
+  margin-top: 2px;
 }
 
 .desk-tile-info {
@@ -667,191 +665,6 @@ h1 {
 .desk-tile-accent {
   --c: var(--accent);
   --cbg: var(--accent-bg);
-}
-
-/* ---------- Magazzino in una riga (home) ---------- */
-.desk-stato,
-.desk-recent {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  padding: 18px 22px;
-  box-shadow: 0 1px 2px rgba(23, 48, 27, 0.04);
-  min-width: 0;
-}
-
-.desk-stato h2,
-.desk-recent h2 {
-  margin: 0 0 12px;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--ink-soft);
-}
-
-.desk-stato-row {
-  display: grid;
-  /* Cinque colonne uguali con minmax(0, …): l'etichetta più lunga
-     ("Da verificare") non deve poter allargare la riga oltre la colonna. */
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.desk-stato-item {
-  --c: var(--accent);
-  --cbg: var(--accent-bg);
-  --cline: var(--line);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  padding: 12px 6px 11px;
-  border-radius: 14px;
-  border: 1px solid var(--cline);
-  background: var(--cbg);
-  text-decoration: none;
-  min-width: 0;
-  transition: transform 0.16s ease, box-shadow 0.16s ease;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .desk-stato-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 22px -16px rgba(23, 48, 27, 0.4);
-  }
-}
-
-.desk-stato-n {
-  font-family: var(--heading);
-  font-size: 24px;
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
-  color: var(--c);
-}
-
-.desk-stato-l {
-  font-size: 11.5px;
-  font-weight: 600;
-  color: var(--c);
-  text-align: center;
-  line-height: 1.15;
-  /* L'etichetta può andare a capo ma non deve sfondare la colonna. */
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.desk-stato-ok {
-  --c: var(--ok-fg);
-  --cbg: var(--ok-bg);
-  --cline: var(--ok-line);
-}
-
-.desk-stato-rent {
-  --c: var(--rent-fg);
-  --cbg: var(--rent-bg);
-  --cline: var(--rent-line);
-}
-
-.desk-stato-clean {
-  --c: var(--clean-fg);
-  --cbg: var(--clean-bg);
-  --cline: var(--clean-line);
-}
-
-.desk-stato-broken {
-  --c: var(--broken-fg);
-  --cbg: var(--broken-bg);
-  --cline: var(--broken-line);
-}
-
-.desk-stato-check {
-  --c: var(--check-fg);
-  --cbg: var(--check-bg);
-  --cline: var(--check-line);
-}
-
-/* ---------- Ultimi movimenti (home) ---------- */
-.desk-recent ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.desk-recent li + li {
-  border-top: 1px solid var(--line);
-}
-
-.desk-recent li a {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 0;
-  text-decoration: none;
-  color: var(--ink);
-  font-size: 14px;
-  min-width: 0;
-}
-
-.desk-recent li a:hover .desk-recent-who {
-  color: var(--accent-ink);
-}
-
-.desk-recent-tag {
-  font-size: 10.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  padding: 3px 9px;
-  border-radius: 999px;
-  border: 1px solid;
-  flex-shrink: 0;
-  white-space: nowrap;
-}
-
-.desk-recent-tag.disponibile {
-  color: var(--ok-fg);
-  background: var(--ok-bg);
-  border-color: var(--ok-line);
-}
-
-.desk-recent-tag.noleggiato {
-  color: var(--rent-fg);
-  background: var(--rent-bg);
-  border-color: var(--rent-line);
-}
-
-.desk-recent-tag.da_pulire {
-  color: var(--clean-fg);
-  background: var(--clean-bg);
-  border-color: var(--clean-line);
-}
-
-.desk-recent-code {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--ink-soft);
-  font-variant-numeric: tabular-nums;
-  flex-shrink: 0;
-}
-
-.desk-recent-who {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.desk-recent-when {
-  font-size: 11.5px;
-  color: var(--ink-soft);
-  flex-shrink: 0;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
 }
 
 .desk-watch {
@@ -885,7 +698,7 @@ h1 {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 0;
+  padding: 13px 0;
   text-decoration: none;
   color: var(--ink);
   font-size: 14px;
@@ -932,27 +745,20 @@ h1 {
   }
 }
 
-@media (max-width: 620px) {
-  .desk-stato-row {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
 @media (max-width: 520px) {
   .desk-tiles {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .desk-stato,
-  .desk-recent {
-    padding: 16px;
+  /* In colonna singola l'altezza fissa non serve più: quattro riquadri da
+     152px costringerebbero a scorrere per arrivare alle scadenze. */
+  .desk-tile {
+    min-height: 0;
+    padding: 18px 18px 17px;
   }
 
-  /* Su telefono il codice dell'ausile è già nel link: la data basta,
-     l'etichetta dell'evento e il nome restano ma con meno respiro. */
-  .desk-recent li a {
-    gap: 8px;
-    font-size: 13.5px;
+  .desk-tile-value {
+    font-size: 32px;
   }
 
   .desk-top-right {

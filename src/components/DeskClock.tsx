@@ -9,13 +9,19 @@ import { WeatherIcon } from "./WeatherIcon";
  * data e ora, in tre colonne con la stessa struttura — etichetta, numero
  * grande, dettaglio sotto.
  *
- * Data e ora sono rese solo lato client: il server gira su fuso UTC, quindi
- * la data calcolata lì sarebbe quella sbagliata nelle ore serali italiane, e
- * l'ora esatta del browser non può comunque conoscerla senza disallineare
- * l'HTML già inviato. L'ingombro resta però lo stesso anche prima che i
- * valori compaiano, così la riga non "salta" al caricamento.
+ * Data e ora arrivano già scritte dal server (`iniziale`, calcolate nel
+ * fuso di Roma e non in quello UTC su cui gira Vercel): così sono leggibili
+ * fin dal primo istante invece di comparire dopo l'idratazione. Da lì in
+ * poi le aggiorna il browser, che è l'unico a conoscere l'ora esatta di chi
+ * guarda lo schermo.
  */
-export function DeskClock({ weather }: { weather: Weather | null }) {
+export function DeskClock({
+  weather,
+  iniziale,
+}: {
+  weather: Weather | null;
+  iniziale: { giorno: string; data: string; ora: string };
+}) {
   const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
@@ -31,9 +37,13 @@ export function DeskClock({ weather }: { weather: Weather | null }) {
     };
   }, []);
 
-  const giorno = now ? now.toLocaleDateString("it-IT", { weekday: "long" }) : "";
-  const data = now ? now.toLocaleDateString("it-IT", { day: "numeric", month: "long" }) : "";
-  const ora = now ? now.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" }) : "";
+  const giorno = now ? now.toLocaleDateString("it-IT", { weekday: "long" }) : iniziale.giorno;
+  const data = now
+    ? now.toLocaleDateString("it-IT", { day: "numeric", month: "long" })
+    : iniziale.data;
+  const ora = now
+    ? now.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })
+    : iniziale.ora;
 
   return (
     <div className="deskw">
@@ -76,10 +86,10 @@ export function DeskClock({ weather }: { weather: Weather | null }) {
       <div className="deskw-col">
         <span className="deskw-label">{giorno}</span>
         <span className="deskw-row">
-          <span className="deskw-big deskw-hour">{ora || " "}</span>
+          <span className="deskw-big deskw-hour">{ora}</span>
         </span>
         <span className="deskw-foot">
-          <span className="deskw-desc">{data || " "}</span>
+          <span className="deskw-desc">{data}</span>
         </span>
       </div>
 
