@@ -3,6 +3,7 @@ import { getSettings } from "@/lib/settings";
 import { listDevices } from "@/lib/devices";
 import { listCommesse } from "@/lib/commesse";
 import { listClients } from "@/lib/clients";
+import { listHistory } from "@/lib/history";
 import { getWeather } from "@/lib/weather";
 import { IconClienti, IconCommessa, IconFidelity, IconNoleggio } from "@/components/ReceptionIcons";
 import { DeskClock } from "@/components/DeskClock";
@@ -40,6 +41,18 @@ function daysSince(iso: string): number {
  * dalla sezione "Attenzione" del magazzino. */
 const NOLEGGIO_LUNGO_GG = 30;
 
+const EVENTO_LABEL = {
+  noleggio: "Consegna",
+  restituzione: "Rientro",
+  sanificazione: "Sanificato",
+} as const;
+
+const EVENTO_PILL = {
+  noleggio: "noleggiato",
+  restituzione: "da_pulire",
+  sanificazione: "disponibile",
+} as const;
+
 interface WatchRow {
   code: string;
   who: string;
@@ -56,7 +69,7 @@ export default async function ReceptionPage() {
   // aggiungerebbe un round-trip verso Google Sheets per ognuna a ogni
   // apertura della home. Ogni lettura fallisce per conto suo: se il foglio
   // non risponde la home resta comunque utilizzabile come menu.
-  const [settingsR, devicesR, commesseR, clientsR, weather] = await Promise.all([
+  const [settingsR, devicesR, commesseR, clientsR, weather, history] = await Promise.all([
     getSettings().then(
       (v) => ({ ok: true as const, v }),
       () => ({ ok: false as const, v: null })
@@ -74,6 +87,7 @@ export default async function ReceptionPage() {
       () => ({ ok: false as const, v: [] as Awaited<ReturnType<typeof listClients>> })
     ),
     getWeather(),
+    listHistory().catch(() => []),
   ]);
 
   const settings = settingsR.v;
@@ -168,7 +182,51 @@ export default async function ReceptionPage() {
   }
 
   watch.sort((a, b) => a.rank - b.rank);
-  const watchTop = watch.slice(0, 9);
+  const watchTop = watch.slice(0, 8);
+
+  // Ultimi movimenti registrati: listHistory restituisce già dal più
+  // recente. Solo i codici ancora esistenti, per non mandare a vuoto il
+  // link di un ausilio nel frattempo eliminato.
+  const codiciNoti = new Set(devices.map((d) => d.codice));
+  const movimenti = history.filter((e) => codiciNoti.has(e.codice)).slice(0, 6);
+
+  const STATO = [
+    {
+      key: "disponibile",
+      label: "Disponibili",
+      value: disponibili,
+      color: "ok",
+      href: "/noleggi",
+    },
+    {
+      key: "noleggiato",
+      label: "Noleggiati",
+      value: attivi.filter((d) => d.stato === "noleggiato").length,
+      color: "rent",
+      href: "/noleggi",
+    },
+    {
+      key: "da_pulire",
+      label: "Da pulire",
+      value: attivi.filter((d) => d.stato === "da_pulire").length,
+      color: "clean",
+      href: "/noleggi",
+    },
+    {
+      key: "guasto",
+      label: "Guasti",
+      value: attivi.filter((d) => d.stato === "guasto").length,
+      color: "broken",
+      href: "/noleggi",
+    },
+    {
+      key: "da_verificare",
+      label: "Da verificare",
+      value: attivi.filter((d) => d.stato === "da_verificare").length,
+      color: "check",
+      href: "/noleggi",
+    },
+  ];
 
   const TILES = [
     {
@@ -231,17 +289,57 @@ export default async function ReceptionPage() {
         ) : null}
 
         <div className="desk-layout">
-          <div className="desk-tiles">
-            {TILES.map((t) => (
-              <Link key={t.href} href={t.href} className={`desk-tile desk-tile-${t.color}`}>
-                <span className="desk-tile-top">
-                  <span className="desk-tile-icon">{t.icon}</span>
-                  <span className="desk-tile-value">{t.value}</span>
-                </span>
-                <span className="desk-tile-label">{t.label}</span>
-                <span className="desk-tile-sub">{t.sub}</span>
-              </Link>
-            ))}
+          <div className="desk-left">
+            <div className="desk-tiles">
+              {TILES.map((t) => (
+                <Link key={t.href} href={t.href} className={`desk-tile desk-tile-${t.color}`}>
+                  <span className="desk-tile-top">
+                    <span className="desk-tile-icon">{t.icon}</span>
+                    <span className="desk-tile-value">{t.value}</span>
+                  </span>
+                  <span className="desk-tile-label">{t.label}</span>
+                  <span className="desk-tile-sub">{t.sub}</span>
+                </Link>
+              ))}
+            </div>
+
+            {/* Il magazzino in una riga: quanti ausili sono in ciascuno
+                stato, e ogni voce filtra la ricerca su quello stato. Serve
+                a rispondere al banco senza aprire il magazzino. */}
+            <div className="desk-stato">
+              <h2>Magazzino</h2>
+              <div className="desk-stato-row">
+                {STATO.map((s) => (
+                  <Link key={s.key} href={s.href} className={`desk-stato-item desk-stato-${s.color}`}>
+                    <span className="desk-stato-n">{s.value}</span>
+                    <span className="desk-stato-l">{s.label}</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            {/* Ultimi movimenti: cosa è successo di recente (consegne,
+                rientri, sanificazioni). È l'informazione che l'operatore
+                cerca quando subentra a un collega. */}
+            {movimenti.length > 0 ? (
+              <div className="desk-recent">
+                <h2>Ultimi movimenti</h2>
+                <ul>
+                  {movimenti.map((m, i) => (
+                    <li key={`${m.codice}-${m.data}-${i}`}>
+                      <Link href={`/noleggi?q=${encodeURIComponent(m.codice)}`}>
+                        <span className={`desk-recent-tag ${EVENTO_PILL[m.evento]}`}>
+                          {EVENTO_LABEL[m.evento]}
+                        </span>
+                        <span className="desk-recent-code">{m.codice}</span>
+                        <span className="desk-recent-who">{m.cliente || "—"}</span>
+                        <span className="desk-recent-when">{fmtDate(m.data)}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
           </div>
 
           <div className="desk-watch">
