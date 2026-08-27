@@ -1074,7 +1074,12 @@ h1 {
    significato. Lo scuro pesa visivamente quanto il verde — quindi il
    pulsante resta impossibile da non vedere — ma si legge subito come una
    categoria diversa: scuro = spostati, verde = crea. */
-.front-bar-home {
+/* Selettore con il genitore (.front-bar .front-bar-home) e non la sola
+   classe: il pulsante è anche .btn, e la regola di .btn sta più in basso
+   nel foglio: a parità di specificità vincerebbe lei e questo blocco
+   verrebbe ignorato. Con due classi la specificità è maggiore e l'ordine
+   nel file smette di contare. */
+.front-bar .front-bar-home {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -1084,13 +1089,13 @@ h1 {
   font-weight: 700;
 }
 
-.front-bar-home svg {
+.front-bar .front-bar-home svg {
   width: 17px;
   height: 17px;
   flex-shrink: 0;
 }
 
-.front-bar-home:hover {
+.front-bar .front-bar-home:hover {
   background: var(--accent-ink);
   border-color: var(--accent-ink);
   color: #fff;
