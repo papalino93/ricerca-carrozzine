@@ -244,11 +244,15 @@ export default async function ReceptionPage() {
     (d) => d.stato === "noleggiato" && d.alPrevisto && daysUntil(d.alPrevisto) <= 3
   ).length;
 
+  // Un solo colore (verde, il brand) per tutte e quattro: il colore resta
+  // così libero per fare davvero il suo lavoro — segnalare cose che
+  // richiedono attenzione, come nel pannello "Da tenere d'occhio" — invece
+  // di essere speso per distinguere quattro pulsanti di navigazione che
+  // hanno già icona e posizione fissa per farlo.
   const TILES = [
     {
       href: "/noleggi",
       icon: <IconNoleggio />,
-      color: "info",
       label: "Noleggia",
       sub: "Consegne, rientri e magazzino",
       badge: rientriVicini,
@@ -257,7 +261,6 @@ export default async function ReceptionPage() {
     {
       href: "/commesse",
       icon: <IconCommessa />,
-      color: "warn",
       label: "Commesse",
       sub: "Nuove, in lavorazione e archivio",
       badge: daConsegnare,
@@ -266,7 +269,6 @@ export default async function ReceptionPage() {
     {
       href: "/fidelity",
       icon: <IconFidelity />,
-      color: "purple",
       label: "Fidelity",
       sub: "Tessere, punti e premi",
       badge: oltreSoglia,
@@ -275,7 +277,6 @@ export default async function ReceptionPage() {
     {
       href: "/clienti",
       icon: <IconClienti />,
-      color: "accent",
       label: "Clienti",
       sub: "Anagrafica e storico",
       badge: 0,
@@ -311,7 +312,7 @@ export default async function ReceptionPage() {
         <div className="desk-layout">
           <div className="desk-tiles">
             {TILES.map((t) => (
-              <Link key={t.href} href={t.href} className={`desk-tile desk-tile-${t.color}`}>
+              <Link key={t.href} href={t.href} className="desk-tile">
                 {t.badge > 0 ? (
                   <span className="desk-tile-badge">
                     {t.badge} {t.badgeLabel}
