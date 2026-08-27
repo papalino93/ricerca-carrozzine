@@ -1,4 +1,5 @@
 import "server-only";
+import { parseNumero } from "./importo";
 import { readSheet, writeSheet } from "./sheets";
 import { appendHistoryEvent } from "./history";
 import { upsertClient } from "./clients";
@@ -44,11 +45,8 @@ const VALID_ARCHIVE_STATUSES = ["venduto", "rottamato"];
 
 // Distingue una cella vuota (null) da uno zero legittimo (es. un accessorio
 // omaggio a prezzo 0): `Number(v) || null` confonderebbe i due casi.
-function numOrNull(v: string): number | null {
-  if (!v) return null;
-  const n = Number(v);
-  return Number.isFinite(n) ? n : null;
-}
+// parseNumero regge anche le cifre scritte a mano con la virgola.
+const numOrNull = parseNumero;
 
 function toDevice(row: string[]): Device {
   const [

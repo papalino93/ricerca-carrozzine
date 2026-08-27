@@ -1,4 +1,5 @@
 import "server-only";
+import { parseNumero } from "./importo";
 import { readSheet, writeSheet } from "./sheets";
 import { nextNumeroCommessa } from "./counter";
 import { adjustClientPunti, normalizeName } from "./clients";
@@ -36,7 +37,7 @@ const HEADER = [
 ];
 
 const bool = (v: string) => v === "1" || v.toLowerCase() === "true";
-const num = (v: string) => (v.trim() === "" ? null : Number(v));
+const num = parseNumero;
 
 function toCommessa(row: string[]): CommessaRecord {
   const [

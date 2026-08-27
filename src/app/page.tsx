@@ -186,8 +186,8 @@ export default async function ReceptionPage() {
   scadenze.sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0));
 
   // 2. Magazzino fermo: ausili che esistono ma non si possono noleggiare
-  //    finché qualcuno non ci mette mano. Sono lavoro arretrato, ed è il
-  //    motivo per cui "52 disponibili" non è tutta la storia.
+  //    finché qualcuno non ci mette mano. Sono lavoro arretrato e, a
+  //    differenza dei noleggi, nessuna scadenza li farà emergere da soli.
   const fermi = (
     stato: "guasto" | "da_verificare" | "da_pulire",
     etichetta: string,

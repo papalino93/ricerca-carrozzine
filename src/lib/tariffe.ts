@@ -1,4 +1,5 @@
 import "server-only";
+import { parseNumero } from "./importo";
 import { readSheet, writeSheet } from "./sheets";
 import { type Tariffa } from "./tariffe-types";
 
@@ -39,7 +40,9 @@ function toTariffa(row: string[]): Tariffa | null {
   return {
     categoria,
     sottocategoria: sottocategoria || null,
-    importo: Number(importo) || 0,
+    // `Number(importo) || 0` faceva diventare zero una tariffa scritta
+    // "12,50": un noleggio gratis senza che nessuno se ne accorgesse.
+    importo: parseNumero(importo) ?? 0,
     unita: unita === "settimana" ? "settimana" : "giorno",
     nota: nota || null,
   };
