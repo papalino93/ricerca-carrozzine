@@ -3,6 +3,7 @@ import { getSettings } from "@/lib/settings";
 import { listDevices } from "@/lib/devices";
 import { listCommesse } from "@/lib/commesse";
 import { listClients } from "@/lib/clients";
+import { getWeather } from "@/lib/weather";
 import { IconClienti, IconCommessa, IconFidelity, IconNoleggio } from "@/components/ReceptionIcons";
 import { DeskClock } from "@/components/DeskClock";
 import { DeskSearch } from "@/components/DeskSearch";
@@ -26,11 +27,20 @@ function daysUntil(iso: string): number {
   return Math.round((target - today) / 86_400_000);
 }
 
+/** Giorni trascorsi da una data. */
+function daysSince(iso: string): number {
+  return -daysUntil(iso);
+}
+
+/** Oltre questa durata un noleggio va ricontrollato: stessa soglia usata
+ * dalla sezione "Attenzione" del magazzino. */
+const NOLEGGIO_LUNGO_GG = 30;
+
 interface WatchRow {
   code: string;
   who: string;
   when: string;
-  /** Vero quando la scadenza è già passata o è oggi. */
+  /** Vero per ciò che è già scaduto: si colora di rosso. */
   urgent: boolean;
   href: string;
   /** Per ordinare: più è basso, più è urgente. */
@@ -42,11 +52,12 @@ export default async function ReceptionPage() {
   // aggiungerebbe un round-trip verso Google Sheets per ognuna a ogni
   // apertura della home. Ogni lettura fallisce per conto suo: se il foglio
   // non risponde la home resta comunque utilizzabile come menu.
-  const [settings, devices, commesse, clients] = await Promise.all([
+  const [settings, devices, commesse, clients, weather] = await Promise.all([
     getSettings().catch(() => null),
     listDevices().catch(() => []),
     listCommesse().catch(() => []),
     listClients().catch(() => []),
+    getWeather(),
   ]);
 
   const attivi = devices.filter((d) => !d.archiviato);
@@ -55,11 +66,33 @@ export default async function ReceptionPage() {
   const soglia = settings?.sogliaPremioPunti ?? 0;
   const oltreSoglia = soglia > 0 ? clients.filter((c) => c.punti >= soglia).length : 0;
 
-  // "Da tenere d'occhio": le scadenze che oggi si scoprono solo entrando nelle
-  // singole pagine. Consegne previste, rientri oltre la data concordata e
-  // ausili da verificare, i più urgenti per primi.
+  // "Da tenere d'occhio": ciò che richiede una decisione oggi e che
+  // altrimenti si scoprirebbe solo entrando nelle singole pagine. Ordinato
+  // per urgenza reale, non per tipo. Ogni riga porta al record: il codice o
+  // il numero di scheda finisce nella ricerca della pagina di destinazione.
   const watch: WatchRow[] = [];
 
+  // Un dispositivo può rientrare in più casi (fuori data E oltre 30 giorni):
+  // si segnala una volta sola, con il motivo più grave.
+  const gia = new Set<string>();
+
+  // 1. Rientri oltre la data concordata.
+  for (const d of attivi) {
+    if (d.stato !== "noleggiato" || !d.alPrevisto) continue;
+    const giorni = daysUntil(d.alPrevisto);
+    if (giorni > 3) continue;
+    gia.add(d.codice);
+    watch.push({
+      code: d.codice,
+      who: `${d.cliente ?? "—"} — rientro`,
+      when: giorni < 0 ? `scaduto da ${-giorni} gg` : giorni === 0 ? "rientro oggi" : fmtDate(d.alPrevisto),
+      urgent: giorni <= 0,
+      href: `/noleggi?q=${encodeURIComponent(d.codice)}`,
+      rank: giorni - 0.5,
+    });
+  }
+
+  // 2. Consegne di commesse in scadenza o già in ritardo.
   for (const c of commesse) {
     if (c.stato === "ritirata" || !c.consegnaPrevista) continue;
     const giorni = daysUntil(c.consegnaPrevista);
@@ -69,39 +102,46 @@ export default async function ReceptionPage() {
       who: `${c.cliente} — ${c.riparazione && !c.vendita ? "riparazione" : "commessa"}`,
       when: giorni < 0 ? `in ritardo di ${-giorni} gg` : giorni === 0 ? "consegna oggi" : fmtDate(c.consegnaPrevista),
       urgent: giorni <= 0,
-      href: "/commesse",
+      href: `/commesse?q=${encodeURIComponent(c.numero)}`,
       rank: giorni,
     });
   }
 
+  // 3. Noleggi che durano da oltre un mese: non sono in errore, ma vanno
+  // ricontrollati (l'ausilio è fuori da tanto e spesso il contratto va
+  // rinnovato o chiuso).
   for (const d of attivi) {
-    if (d.stato !== "noleggiato" || !d.alPrevisto) continue;
-    const giorni = daysUntil(d.alPrevisto);
-    if (giorni > 3) continue;
+    if (d.stato !== "noleggiato" || !d.dal || gia.has(d.codice)) continue;
+    const giorni = daysSince(d.dal);
+    if (giorni <= NOLEGGIO_LUNGO_GG) continue;
+    gia.add(d.codice);
     watch.push({
       code: d.codice,
-      who: `${d.cliente ?? "—"} — rientro`,
-      when: giorni < 0 ? `${-giorni} gg fa` : giorni === 0 ? "rientro oggi" : fmtDate(d.alPrevisto),
-      urgent: giorni <= 0,
-      href: "/noleggi",
-      rank: giorni - 0.5,
+      who: `${d.cliente ?? "—"} — noleggio lungo`,
+      when: `da ${giorni} gg`,
+      urgent: false,
+      href: `/noleggi?q=${encodeURIComponent(d.codice)}`,
+      // Dopo le scadenze vere, ma prima delle segnalazioni di magazzino;
+      // fra loro, prima i noleggi che durano da più tempo.
+      rank: 20 - Math.min(giorni / 365, 1),
     });
   }
 
+  // 4. Ausili fermi in magazzino perché guasti o da verificare.
   for (const d of attivi) {
-    if (d.stato !== "da_verificare") continue;
+    if (d.stato !== "da_verificare" && d.stato !== "guasto") continue;
     watch.push({
       code: d.codice,
       who: [d.marca, d.modello].filter(Boolean).join(" ") || d.categoria,
-      when: "da verificare",
+      when: d.stato === "guasto" ? "guasto" : "da verificare",
       urgent: false,
-      href: "/noleggi",
-      rank: 50,
+      href: `/noleggi?q=${encodeURIComponent(d.codice)}`,
+      rank: d.stato === "guasto" ? 40 : 50,
     });
   }
 
   watch.sort((a, b) => a.rank - b.rank);
-  const watchTop = watch.slice(0, 6);
+  const watchTop = watch.slice(0, 9);
 
   const TILES = [
     {
@@ -147,7 +187,7 @@ export default async function ReceptionPage() {
             <img src={settings?.logoUrl || "/logo.png"} alt="Medical Center" />
           </Link>
           <div className="desk-top-right">
-            <DeskClock />
+            <DeskClock weather={weather} />
             <Link href="/admin" className="desk-admin-link">
               Amministrazione ↗
             </Link>

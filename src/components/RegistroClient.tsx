@@ -46,11 +46,22 @@ export function RegistroClient({ noleggi, devices, firmeDrive }: RegistroClientP
   // noleggi diversi dello stesso ausilio finirebbero sulla stessa chiave —
   // col rischio di mostrare a un cliente il verbale firmato di un altro.
   // Meglio nessun collegamento che un collegamento sbagliato.
-  const driveUrlByNoleggio = useMemo(() => {
-    const map = new Map<string, string>();
+  //
+  // Il tipo fa parte della chiave: consegna e restituzione dello stesso
+  // noleggio sono due documenti distinti, entrambi da poter aprire. E in
+  // caso di più firme dello stesso tipo (un verbale rifatto) vince la più
+  // recente: listDocumentLog restituisce dal più nuovo al più vecchio,
+  // quindi si tiene la prima incontrata e si ignorano le successive.
+  const firmeByNoleggio = useMemo(() => {
+    const map = new Map<string, { consegna?: string; restituzione?: string }>();
     for (const d of firmeDrive) {
       if (!d.driveUrl || !d.numeroContratto) continue;
-      map.set(`${d.codice}::${d.numeroContratto}`, d.driveUrl);
+      const key = `${d.codice}::${d.numeroContratto}`;
+      const entry = map.get(key) ?? {};
+      const slot = d.tipo === "restituzione" ? "restituzione" : "consegna";
+      if (entry[slot]) continue;
+      entry[slot] = d.driveUrl;
+      map.set(key, entry);
     }
     return map;
   }, [firmeDrive]);
@@ -133,8 +144,8 @@ export function RegistroClient({ noleggi, devices, firmeDrive }: RegistroClientP
               <tbody>
                 {filtered.map((n, i) => {
                   const d = deviceByCodice.get(n.codice);
-                  const driveUrl = n.contratto
-                    ? driveUrlByNoleggio.get(`${n.codice}::${n.contratto}`)
+                  const firme = n.contratto
+                    ? firmeByNoleggio.get(`${n.codice}::${n.contratto}`)
                     : undefined;
                   return (
                     <tr key={`${n.contratto ?? "—"}-${n.codice}-${i}`}>
@@ -147,11 +158,33 @@ export function RegistroClient({ noleggi, devices, firmeDrive }: RegistroClientP
                       <td>{d ? `${d.marca} ${d.modello}` : "—"}</td>
                       <td>{n.cliente ?? "—"}</td>
                       <td>{n.telefono ?? "—"}</td>
+                      {/* Consegna e restituzione sono due verbali distinti:
+                          vanno mostrati entrambi, altrimenti quello di
+                          restituzione resterebbe su Drive irraggiungibile. */}
                       <td>
-                        {driveUrl ? (
-                          <a href={driveUrl} target="_blank" rel="noreferrer" className="pill disponibile">
-                            Apri ↗
-                          </a>
+                        {firme?.consegna || firme?.restituzione ? (
+                          <span className="verbale-links">
+                            {firme.consegna ? (
+                              <a
+                                href={firme.consegna}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="pill disponibile"
+                              >
+                                Consegna ↗
+                              </a>
+                            ) : null}
+                            {firme.restituzione ? (
+                              <a
+                                href={firme.restituzione}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="pill noleggiato"
+                              >
+                                Restituzione ↗
+                              </a>
+                            ) : null}
+                          </span>
                         ) : (
                           <span className="pill archiviato">— nessuno</span>
                         )}

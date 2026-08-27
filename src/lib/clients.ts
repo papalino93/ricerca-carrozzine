@@ -129,9 +129,13 @@ async function readClients(): Promise<ClientRecord[]> {
  * una riga salvata con uno spazio di troppo (copiata a mano nel foglio, o
  * arrivata da un import) non viene riconosciuta e si finisce per creare un
  * secondo cliente con lo stesso nome — con punti e tessera separati.
+ *
+ * Anche gli spazi INTERNI vanno collassati: "Mario  Rossi" digitato con due
+ * spazi è la stessa persona di "Mario Rossi", e senza questo diventerebbero
+ * due clienti distinti con due saldi punti.
  */
-function normalizeName(nome: string): string {
-  return nome.trim().toLowerCase();
+export function normalizeName(nome: string): string {
+  return nome.trim().replace(/\s+/g, " ").toLowerCase();
 }
 
 /** Anagrafica clienti: popolata automaticamente a ogni noleggio, più i campi

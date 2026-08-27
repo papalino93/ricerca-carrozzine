@@ -9,6 +9,10 @@ import { Toast } from "./Toast";
 interface CommesseClientProps {
   initialCommesse: CommessaRecord[];
   puntiPerEuro: number;
+  /** Numero di scheda arrivato come parametro nell'indirizzo (es. da una
+   * riga di "Da tenere d'occhio" nella home): precompila la ricerca, così
+   * il clic porta davvero sulla scheda invece che su un elenco intero. */
+  initialQuery?: string;
 }
 
 const STATUS_PILL: Record<CommessaRecord["stato"], string> = {
@@ -78,13 +82,17 @@ function fmtEuro(n: number | null): string {
   return `${n.toFixed(2).replace(".", ",")} €`;
 }
 
-export function CommesseClient({ initialCommesse, puntiPerEuro }: CommesseClientProps) {
+export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery }: CommesseClientProps) {
   const [commesse, setCommesse] = useState(initialCommesse);
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialQuery ?? "");
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
+  // Copia sempre aggiornata di "open", leggibile dentro una richiesta già
+  // partita: la variabile di stato lì dentro resta ferma al valore che
+  // aveva al momento del clic.
+  const openRef = useRef<string | null>(null);
   const [editForm, setEditForm] = useState<EditForm | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -153,10 +161,16 @@ export function CommesseClient({ initialCommesse, puntiPerEuro }: CommesseClient
   }
 
   function toggleOpen(c: CommessaRecord) {
+    // Mentre un salvataggio è in corso la riga non si apre né si chiude:
+    // cambiare scheda a metà scrittura porterebbe la risposta del server ad
+    // arrivare su un riquadro che mostra ormai un'altra commessa.
+    if (savingEdit) return;
     if (open === c.numero) {
+      openRef.current = null;
       setOpen(null);
       setEditForm(null);
     } else {
+      openRef.current = c.numero;
       setOpen(c.numero);
       setEditForm(toEditForm(c));
     }
@@ -173,12 +187,25 @@ export function CommesseClient({ initialCommesse, puntiPerEuro }: CommesseClient
       const body = await readJson(res);
       if (!res.ok) throw new Error(body.error || "Salvataggio non riuscito");
       setCommesse(body.commesse);
-      // Riallinea i campi del riquadro aperto con quello che il server ha
-      // davvero salvato: "Segna ritirata" imposta da sé la data di ritiro, e
-      // senza questo il form continuerebbe a mostrarla vuota — il salvataggio
-      // successivo la rimanderebbe a null, cancellandola dalla scheda.
+      // Riallinea le sole date che imposta il server ("Segna pronta" e
+      // "Segna ritirata" le scrivono da sé): senza questo il form
+      // continuerebbe a mostrarle vuote e il salvataggio successivo le
+      // rimanderebbe a null, cancellandole dalla scheda.
+      //
+      // Solo quelle, e tramite il valore corrente del form: il salvataggio
+      // dura un paio di secondi, durante i quali l'operatore può aver
+      // corretto un importo o aperto un'altra scheda — riscrivere l'intero
+      // form con la risposta del server cancellerebbe quanto digitato, o
+      // peggio riverserebbe i dati di questa scheda su quella nel frattempo
+      // aperta.
       const updated = (body.commesse as CommessaRecord[]).find((x) => x.numero === numero);
-      if (updated && open === numero) setEditForm(toEditForm(updated));
+      if (updated) {
+        setEditForm((f) =>
+          openRef.current === numero && f
+            ? { ...f, prontaIl: updated.prontaIl ?? "", ritirataIl: updated.ritirataIl ?? "" }
+            : f
+        );
+      }
       showToast(message);
     } catch (err) {
       showToast((err as Error).message);
@@ -195,7 +222,8 @@ export function CommesseClient({ initialCommesse, puntiPerEuro }: CommesseClient
       const body = await readJson(res);
       if (!res.ok) throw new Error(body.error || "Eliminazione non riuscita");
       setCommesse(body.commesse);
-      if (open === c.numero) {
+      if (openRef.current === c.numero) {
+        openRef.current = null;
         setOpen(null);
         setEditForm(null);
       }
@@ -512,6 +540,7 @@ export function CommesseClient({ initialCommesse, puntiPerEuro }: CommesseClient
                                     inputMode="decimal"
                                     value={editForm.acconto}
                                     onChange={(e) => setEditForm({ ...editForm, acconto: e.target.value })}
+                                    disabled={savingEdit}
                                   />
                                 </div>
                                 <div className="field">
@@ -520,6 +549,7 @@ export function CommesseClient({ initialCommesse, puntiPerEuro }: CommesseClient
                                     inputMode="decimal"
                                     value={editForm.saldo}
                                     onChange={(e) => setEditForm({ ...editForm, saldo: e.target.value })}
+                                    disabled={savingEdit}
                                   />
                                 </div>
                               </div>
@@ -556,6 +586,7 @@ export function CommesseClient({ initialCommesse, puntiPerEuro }: CommesseClient
                                   rows={2}
                                   value={editForm.noteChiusura}
                                   onChange={(e) => setEditForm({ ...editForm, noteChiusura: e.target.value })}
+                                  disabled={savingEdit}
                                 />
                               </div>
                               <div className="field-row">
@@ -565,6 +596,7 @@ export function CommesseClient({ initialCommesse, puntiPerEuro }: CommesseClient
                                     type="date"
                                     value={editForm.prontaIl}
                                     onChange={(e) => setEditForm({ ...editForm, prontaIl: e.target.value })}
+                                    disabled={savingEdit}
                                   />
                                 </div>
                                 <div className="field">
@@ -573,6 +605,7 @@ export function CommesseClient({ initialCommesse, puntiPerEuro }: CommesseClient
                                     type="date"
                                     value={editForm.ritirataIl}
                                     onChange={(e) => setEditForm({ ...editForm, ritirataIl: e.target.value })}
+                                    disabled={savingEdit}
                                   />
                                 </div>
                               </div>

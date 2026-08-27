@@ -210,15 +210,34 @@ h1 {
    altrimenti si scoprirebbero solo entrando nelle singole pagine. */
 .desk {
   min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
   background:
     radial-gradient(760px 420px at 50% -10%, var(--accent-bg) 0%, transparent 68%),
     var(--bg);
-  padding: 22px 20px 40px;
+  padding: 26px 22px 44px;
 }
 
 .desk-inner {
-  max-width: 1060px;
+  max-width: 1140px;
+  width: 100%;
   margin: 0 auto;
+  /* Occupa l'altezza rimasta e distribuisce lo spazio: su schermo alto la
+     pagina non resta con metà schermata vuota in fondo. */
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.desk-layout {
+  flex: 1;
+}
+
+/* Le due colonne si allungano insieme fino a riempire lo spazio, invece di
+   fermarsi all'altezza del contenuto. */
+.desk-tiles,
+.desk-watch {
+  align-self: stretch;
 }
 
 .desk-top {
@@ -251,40 +270,229 @@ h1 {
   flex-wrap: wrap;
 }
 
-/* Data e ora: blocco scuro pieno, l'unico della schermata, così si stacca
-   nettamente dal resto invece di sembrare l'ennesima etichetta grigia. */
-.desk-clock {
+/* Riquadro meteo + data/ora: condizioni di adesso, minima e massima di oggi,
+   ora corrente e previsione di domani. Chiaro e non un blocco scuro — deve
+   essere il dettaglio piacevole della schermata, non il suo elemento più
+   pesante. Il meteo viene da Open-Meteo (vedi lib/weather.ts) e può
+   mancare: in quel caso resta la sola parte con data e ora, senza buchi. */
+.deskw {
+  display: flex;
+  align-items: stretch;
+  gap: 18px;
+  background:
+    radial-gradient(120% 160% at 100% 0%, var(--accent-bg) 0%, transparent 62%),
+    var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 12px 20px;
+  box-shadow: 0 1px 2px rgba(23, 48, 27, 0.05), 0 10px 26px -20px rgba(23, 48, 27, 0.35);
+}
+
+/* --- adesso --- */
+.deskw-now {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.deskw-now-icon {
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.deskw-now-icon svg {
+  width: 38px;
+  height: 38px;
+}
+
+.deskw-now-txt {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  gap: 1px;
-  background: var(--ink);
-  color: #fff;
-  border-radius: 12px;
-  padding: 7px 14px 8px;
-  /* Larghezza minima: l'orario compare solo dopo il caricamento (vedi
-     DeskClock), e senza questo la riga si sposterebbe di colpo. */
-  min-width: 168px;
+  line-height: 1.1;
 }
 
-.desk-clock-date {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.62);
-  white-space: nowrap;
-  min-height: 15px;
-}
-
-.desk-clock-time {
-  font-family: var(--mono);
-  font-size: 19px;
+.deskw-now-txt > b {
+  font-family: var(--heading);
+  font-size: 32px;
   font-weight: 700;
-  line-height: 1.15;
-  letter-spacing: 0.01em;
+  letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
-  min-height: 22px;
+  display: flex;
+  align-items: flex-start;
+}
+
+/* Il grado più piccolo e alzato: alla stessa dimensione della cifra
+   sbilancia il numero, che è il dato da leggere. */
+.deskw-now-txt > b i {
+  font-style: normal;
+  font-size: 19px;
+  line-height: 1;
+  margin-top: 2px;
+}
+
+.deskw-now-desc {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.deskw-range {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 3px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.deskw-range i {
+  font-style: normal;
+  font-weight: 700;
+}
+
+.deskw-range i.down {
+  color: var(--rent-fg);
+}
+
+.deskw-range i.up {
+  color: var(--clean-fg);
+  margin-left: 7px;
+}
+
+/* --- data e ora --- */
+.deskw-time {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  line-height: 1.1;
+  padding: 0 18px;
+  border-left: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+  /* L'orario compare solo dopo il caricamento (vedi DeskClock): senza una
+     larghezza minima la riga si sposterebbe di colpo. */
+  min-width: 126px;
+}
+
+.deskw-day {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  white-space: nowrap;
+  min-height: 14px;
+}
+
+.deskw-hour {
+  font-family: var(--heading);
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  min-height: 34px;
+}
+
+.deskw-date {
+  font-size: 12px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  min-height: 16px;
+  text-transform: capitalize;
+}
+
+/* --- domani --- */
+.deskw-tomorrow {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  line-height: 1.1;
+}
+
+.deskw-tomorrow-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.deskw-tomorrow-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.deskw-tomorrow-icon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.deskw-tomorrow-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.deskw-tomorrow-temp {
+  font-size: 15px;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.deskw-tomorrow-temp b {
+  font-family: var(--heading);
+  font-weight: 700;
+  color: var(--ink);
+  font-size: 16px;
+}
+
+.deskw-tomorrow-desc {
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+/* Su schermo stretto il widget passa a una riga sola e più compatta: i due
+   separatori verticali diventano orizzontali per non tagliare le colonne. */
+@media (max-width: 620px) {
+  .deskw {
+    width: 100%;
+    gap: 12px;
+    padding: 12px 14px;
+  }
+
+  .deskw-time {
+    padding: 0 12px;
+    min-width: 104px;
+  }
+
+  .deskw-hour {
+    font-size: 25px;
+    min-height: 29px;
+  }
+
+  .deskw-now-txt > b {
+    font-size: 26px;
+  }
+
+  .deskw-tomorrow {
+    display: none;
+  }
 }
 
 .desk-admin-link {
@@ -307,12 +515,12 @@ h1 {
 .desk-search {
   display: flex;
   align-items: center;
-  gap: 11px;
+  gap: 12px;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 9px 10px 9px 18px;
-  margin-bottom: 18px;
+  border-radius: 16px;
+  padding: 11px 12px 11px 20px;
+  margin-bottom: 20px;
   box-shadow: 0 1px 2px rgba(23, 48, 27, 0.04);
 }
 
@@ -333,7 +541,7 @@ h1 {
   border: none;
   background: none;
   font-family: var(--sans);
-  font-size: 15px;
+  font-size: 16px;
   color: var(--ink);
   padding: 6px 0;
 }
@@ -346,7 +554,6 @@ h1 {
   display: grid;
   grid-template-columns: 1.15fr 1fr;
   gap: 16px;
-  align-items: start;
 }
 
 .desk-tiles {
@@ -361,8 +568,8 @@ h1 {
   display: block;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 16px;
-  padding: 15px 16px 14px;
+  border-radius: 18px;
+  padding: 20px 20px 19px;
   text-decoration: none;
   color: var(--ink);
   box-shadow: 0 1px 2px rgba(23, 48, 27, 0.04);
@@ -386,9 +593,9 @@ h1 {
 }
 
 .desk-tile-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
   background: var(--cbg);
   color: var(--c);
   display: flex;
@@ -398,13 +605,13 @@ h1 {
 }
 
 .desk-tile-icon svg {
-  width: 19px;
-  height: 19px;
+  width: 23px;
+  height: 23px;
 }
 
 .desk-tile-value {
   font-family: var(--heading);
-  font-size: 22px;
+  font-size: 30px;
   font-weight: 700;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
@@ -414,14 +621,14 @@ h1 {
 .desk-tile-label {
   display: block;
   font-family: var(--heading);
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 650;
   letter-spacing: -0.01em;
 }
 
 .desk-tile-sub {
   display: block;
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--ink-soft);
 }
 
@@ -448,8 +655,8 @@ h1 {
 .desk-watch {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 16px;
-  padding: 16px 18px;
+  border-radius: 18px;
+  padding: 20px 22px;
   box-shadow: 0 1px 2px rgba(23, 48, 27, 0.04);
 }
 
@@ -475,11 +682,11 @@ h1 {
 .desk-watch li a {
   display: flex;
   align-items: center;
-  gap: 11px;
-  padding: 10px 0;
+  gap: 12px;
+  padding: 12px 0;
   text-decoration: none;
   color: var(--ink);
-  font-size: 13.5px;
+  font-size: 14px;
 }
 
 .desk-watch li a:hover .desk-watch-who {
@@ -1102,6 +1309,13 @@ h1 {
   border: 1px solid transparent;
   border-radius: 999px;
   padding: 2px 9px;
+}
+
+/* Consegna e restituzione affiancate nella stessa cella del Registro. */
+.verbale-links {
+  display: inline-flex;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 /* Numero di noleggio nel Registro: larghezza minima fissa così la colonna

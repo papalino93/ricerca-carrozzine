@@ -1,7 +1,7 @@
 import "server-only";
 import { readSheet, writeSheet } from "./sheets";
 import { nextNumeroCommessa } from "./counter";
-import { adjustClientPunti } from "./clients";
+import { adjustClientPunti, normalizeName } from "./clients";
 import { getSettings } from "./settings";
 import type { CommessaRecord } from "./commesse-types";
 
@@ -174,9 +174,13 @@ export async function updateCommessa(
     // cifra digitata male al ritiro): accredita solo la differenza, così il
     // totale del cliente resta coerente con quanto ha davvero pagato senza
     // riassegnare due volte l'intero importo.
+    //
+    // Volutamente NON limitato allo stato "ritirata": una scheda riportata
+    // in lavorazione conserva puntiAssegnati, quindi una correzione fatta
+    // in quel momento non verrebbe mai recuperata — né subito né al
+    // successivo ritiro, che trova già il saldo aggiornato.
     next.puntiAssegnati &&
-    next.stato === "ritirata" &&
-    prev.cliente === next.cliente &&
+    normalizeName(prev.cliente) === normalizeName(next.cliente) &&
     (next.saldo ?? 0) !== (prev.saldo ?? 0)
   ) {
     const { puntiPerEuro } = await getSettings();

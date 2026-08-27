@@ -14,6 +14,9 @@ interface SignaturePadProps {
 export function SignaturePad({ label, onChange }: SignaturePadProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawingRef = useRef(false);
+  /** Come `empty`, ma leggibile dentro l'effetto di ridimensionamento senza
+   * doverlo far ripartire a ogni tratto. */
+  const drawnRef = useRef(false);
   const [empty, setEmpty] = useState(true);
 
   // Il canvas ha due misure: quella su schermo (CSS) e quella della sua
@@ -34,6 +37,14 @@ export function SignaturePad({ label, onChange }: SignaturePadProps) {
       const h = Math.round(rect.height * ratio);
       if (w === 0 || h === 0) return;
       if (canvas.width === w && canvas.height === h) return;
+
+      // Ridimensionare il canvas ne azzera il contenuto: la firma già
+      // tracciata va salvata prima e ridisegnata dopo. Senza, ruotare il
+      // telefono per far firmare l'altra persona cancellerebbe in silenzio
+      // la firma appena raccolta — e il documento verrebbe generato senza,
+      // senza che nessuno se ne accorga.
+      const precedente = drawnRef.current ? canvas.toDataURL("image/png") : null;
+
       canvas.width = w;
       canvas.height = h;
       const ctx = canvas.getContext("2d");
@@ -44,11 +55,18 @@ export function SignaturePad({ label, onChange }: SignaturePadProps) {
       ctx.lineWidth = 2;
       ctx.lineCap = "round";
       ctx.strokeStyle = "#17301b";
-      // Ridimensionare il canvas ne cancella il contenuto: meglio dichiararlo
-      // vuoto che tenere in memoria una firma che sullo schermo non c'è più.
       drawingRef.current = false;
-      setEmpty(true);
-      onChange(null);
+
+      if (precedente) {
+        const img = new Image();
+        img.onload = () => {
+          // Riadattata alla nuova larghezza: la firma resta la stessa, solo
+          // ridimensionata come il riquadro che la contiene.
+          ctx.drawImage(img, 0, 0, rect.width, rect.height);
+          onChange(canvas.toDataURL("image/png"));
+        };
+        img.src = precedente;
+      }
     }
 
     setup();
@@ -79,6 +97,7 @@ export function SignaturePad({ label, onChange }: SignaturePadProps) {
     const { x, y } = pos(e);
     ctx.lineTo(x, y);
     ctx.stroke();
+    drawnRef.current = true;
     if (empty) setEmpty(false);
   }
 
@@ -86,7 +105,7 @@ export function SignaturePad({ label, onChange }: SignaturePadProps) {
     if (!drawingRef.current) return;
     drawingRef.current = false;
     const canvas = canvasRef.current;
-    if (canvas && !empty) onChange(canvas.toDataURL("image/png"));
+    if (canvas && drawnRef.current) onChange(canvas.toDataURL("image/png"));
   }
 
   function handleClear() {
@@ -94,6 +113,7 @@ export function SignaturePad({ label, onChange }: SignaturePadProps) {
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawnRef.current = false;
     setEmpty(true);
     onChange(null);
   }
