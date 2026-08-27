@@ -1,6 +1,6 @@
 "use client";
 
-import { readJson } from "@/lib/fetch-json";
+import { networkErrorMessage, readJson } from "@/lib/fetch-json";
 import { useMemo, useRef, useState } from "react";
 import { ARCHIVE_LABEL, STATUS_COLOR, STATUS_LABEL, STATUS_OPTIONS, type Device, type DeviceStatus } from "@/lib/device-types";
 import { DeviceDetailModal } from "./DeviceDetailModal";
@@ -342,7 +342,7 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
       // versione aggiornata appena arrivata dall'API.
       setDocPrompt({ device: d, tipo: "restituzione" });
     } catch (err) {
-      showToast((err as Error).message);
+      showToast(networkErrorMessage(err));
     } finally {
       setSaving(false);
     }
@@ -362,7 +362,7 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
       setDevices(body.devices);
       showToast(`${codice} segnato come sanificato`);
     } catch (err) {
-      showToast((err as Error).message);
+      showToast(networkErrorMessage(err));
     } finally {
       setSaving(false);
     }

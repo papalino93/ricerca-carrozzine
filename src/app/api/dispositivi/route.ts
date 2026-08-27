@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireBasicAuth } from "@/lib/basic-auth";
 import { deleteDevice, listDevices, upsertDevice, type Device } from "@/lib/devices";
-import { toPublicDevice } from "@/lib/device-types";
 
 export const runtime = "nodejs";
 
-// Accessibile a chiunque sia autenticato (vedi proxy.ts): telefono e
-// contratto restano riservati alla schermata di ricerca (vedi
-// toPublicDevice) — chi è già autenticato può comunque vederli da
-// /admin, quindi "?vista=admin" (usato dal refresh automatico del
-// magazzino) non è una nuova esposizione di dati, solo la stessa vista
-// che /admin già serve.
+// Accessibile a chiunque sia autenticato (vedi proxy.ts). Nessun campo
+// viene più nascosto: l'accesso all'app è uno solo e chi entra vede
+// comunque tutto da /admin, mentre oscurare telefono, numero di noleggio e
+// prezzi qui rompeva la ricerca per numero di contratto e faceva salvare
+// campi vuoti sopra i prezzi reali. "?vista=admin" resta solo per decidere
+// se includere gli archiviati.
 export async function GET(req: NextRequest) {
   try {
     const devices = await listDevices();
@@ -19,7 +18,7 @@ export async function GET(req: NextRequest) {
     // vista pubblica (come il caricamento iniziale della home, vedi
     // app/page.tsx), visibile solo da admin dietro "Mostra archiviati".
     const visible = full ? devices : devices.filter((d) => !d.archiviato);
-    return NextResponse.json({ devices: full ? visible : visible.map(toPublicDevice) });
+    return NextResponse.json({ devices: visible });
   } catch (err) {
     return NextResponse.json(
       { error: (err as Error).message },

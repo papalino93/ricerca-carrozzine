@@ -1,6 +1,6 @@
 "use client";
 
-import { readJson } from "@/lib/fetch-json";
+import { networkErrorMessage, readJson } from "@/lib/fetch-json";
 import { useState } from "react";
 
 interface CategoriesManagerProps {
@@ -28,7 +28,7 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
       setCategories(body.categories);
       setNome("");
     } catch (err) {
-      setError((err as Error).message);
+      setError(networkErrorMessage(err));
     } finally {
       setSaving(false);
     }
@@ -46,7 +46,7 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
       if (!res.ok) throw new Error(body.error || "Impossibile eliminare la categoria");
       setCategories(body.categories);
     } catch (err) {
-      setError((err as Error).message);
+      setError(networkErrorMessage(err));
     } finally {
       setSaving(false);
     }

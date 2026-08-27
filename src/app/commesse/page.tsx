@@ -1,5 +1,5 @@
 import { listCommesse } from "@/lib/commesse";
-import { getSettings } from "@/lib/settings";
+import { getSettingsSafe } from "@/lib/settings";
 import { FrontBar } from "@/components/FrontBar";
 import { CommesseClient } from "@/components/CommesseClient";
 
@@ -13,7 +13,7 @@ export default async function FrontCommessePage({
   const [{ q }, commesse, settings] = await Promise.all([
     searchParams,
     listCommesse().catch(() => []),
-    getSettings(),
+    getSettingsSafe(),
   ]);
   return (
     <>

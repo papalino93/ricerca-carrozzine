@@ -1,6 +1,6 @@
 "use client";
 
-import { readJson } from "@/lib/fetch-json";
+import { networkErrorMessage, readJson } from "@/lib/fetch-json";
 import { useState } from "react";
 import type { AdminUser } from "@/lib/users";
 
@@ -31,7 +31,7 @@ export function UsersManager({ initialUsers }: UsersManagerProps) {
       setUsername("");
       setPassword("");
     } catch (err) {
-      setError((err as Error).message);
+      setError(networkErrorMessage(err));
     } finally {
       setSaving(false);
     }
@@ -52,7 +52,7 @@ export function UsersManager({ initialUsers }: UsersManagerProps) {
       if (!res.ok) throw new Error(body.error || "Impossibile reimpostare la password");
       alert(`Password aggiornata per "${u}".`);
     } catch (err) {
-      setError((err as Error).message);
+      setError(networkErrorMessage(err));
     } finally {
       setSaving(false);
     }
@@ -68,7 +68,7 @@ export function UsersManager({ initialUsers }: UsersManagerProps) {
       if (!res.ok) throw new Error(body.error || "Impossibile rimuovere l'utente");
       setUsers(body.users);
     } catch (err) {
-      setError((err as Error).message);
+      setError(networkErrorMessage(err));
     } finally {
       setSaving(false);
     }

@@ -5,7 +5,7 @@ import type { ClientRecord } from "@/lib/clients";
 import type { HistoryEvent } from "@/lib/history";
 import type { Device } from "@/lib/device-types";
 import { matchesQuery } from "@/lib/search-match";
-import { readJson } from "@/lib/fetch-json";
+import { networkErrorMessage, readJson } from "@/lib/fetch-json";
 import { Toast } from "./Toast";
 
 interface ClientsClientProps {
@@ -65,7 +65,7 @@ export function ClientsClient({ clients: initialClients, history, devices }: Cli
       setClients(body.clients);
       showToast(`Import completato: ${body.nuovi} nuovi, ${body.aggiornati} aggiornati${body.scartati ? `, ${body.scartati} scartati` : ""}`);
     } catch (err) {
-      showToast((err as Error).message);
+      showToast(networkErrorMessage(err));
     } finally {
       setImporting(false);
       if (importInputRef.current) importInputRef.current.value = "";
@@ -98,7 +98,7 @@ export function ClientsClient({ clients: initialClients, history, devices }: Cli
       // tessera fisica, invece di sparire con il toast dopo pochi secondi.
       setOpen(body.client.nome);
     } catch (err) {
-      showToast((err as Error).message);
+      showToast(networkErrorMessage(err));
     } finally {
       setSavingNewClient(false);
     }
@@ -144,7 +144,7 @@ export function ClientsClient({ clients: initialClients, history, devices }: Cli
       setPuntiDelta("");
       showToast(`Punti aggiornati per "${nome}"`);
     } catch (err) {
-      showToast((err as Error).message);
+      showToast(networkErrorMessage(err));
     } finally {
       setAdjustingPunti(false);
     }
@@ -163,7 +163,7 @@ export function ClientsClient({ clients: initialClients, history, devices }: Cli
       setClients(body.clients);
       showToast(`Tessera n. ${body.client.fidelity} assegnata a "${nome}"`);
     } catch (err) {
-      showToast((err as Error).message);
+      showToast(networkErrorMessage(err));
     } finally {
       setAssigningTessera(null);
     }
@@ -185,7 +185,7 @@ export function ClientsClient({ clients: initialClients, history, devices }: Cli
       if (open === nome) setOpen(null);
       showToast(`"${nome}" eliminato dall'anagrafica`);
     } catch (err) {
-      showToast((err as Error).message);
+      showToast(networkErrorMessage(err));
     } finally {
       setDeleting(null);
     }

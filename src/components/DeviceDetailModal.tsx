@@ -1,6 +1,6 @@
 "use client";
 
-import { readJson } from "@/lib/fetch-json";
+import { networkErrorMessage, readJson } from "@/lib/fetch-json";
 import { addDaysIso, todayIso } from "@/lib/dates";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -242,7 +242,7 @@ export function DeviceDetailModal({
       // quindi un onClose immediato lo smonterebbe prima che compaia.
       if (isNew) setTimeout(onClose, 900);
     } catch (err) {
-      setError((err as Error).message);
+      setError(networkErrorMessage(err));
     } finally {
       setSaving(false);
     }
@@ -259,7 +259,7 @@ export function DeviceDetailModal({
       if (!res.ok) throw new Error(body.error || "Eliminazione non riuscita");
       onDeleted(body.devices);
     } catch (err) {
-      setError((err as Error).message);
+      setError(networkErrorMessage(err));
     } finally {
       setSaving(false);
     }
@@ -318,7 +318,7 @@ export function DeviceDetailModal({
       setDocForcedTipo("consegna");
       setShowDoc(true);
     } catch (err) {
-      setError((err as Error).message);
+      setError(networkErrorMessage(err));
     } finally {
       setSaving(false);
     }
@@ -353,7 +353,7 @@ export function DeviceDetailModal({
         setShowDoc(true);
       }
     } catch (err) {
-      setError((err as Error).message);
+      setError(networkErrorMessage(err));
     } finally {
       setSaving(false);
     }
@@ -375,7 +375,7 @@ export function DeviceDetailModal({
       applyUpdate(body.devices, ["archiviato", "nota"]);
       showToast(tipo === "venduto" ? "Segnato come venduto" : "Segnato come rottamato");
     } catch (err) {
-      setError((err as Error).message);
+      setError(networkErrorMessage(err));
     } finally {
       setSaving(false);
     }
@@ -393,7 +393,7 @@ export function DeviceDetailModal({
       applyUpdate(body.devices, ["archiviato"]);
       showToast("Dispositivo ripristinato in magazzino");
     } catch (err) {
-      setError((err as Error).message);
+      setError(networkErrorMessage(err));
     } finally {
       setSaving(false);
     }
@@ -422,7 +422,7 @@ export function DeviceDetailModal({
       applyUpdate(body.devices, ["alPrevisto"]);
       showToast("Data di rientro aggiornata");
     } catch (err) {
-      setError((err as Error).message);
+      setError(networkErrorMessage(err));
     } finally {
       setSavingAlPrevisto(false);
     }
@@ -445,7 +445,7 @@ export function DeviceDetailModal({
       if (!res.ok) throw new Error(body.error || "Caricamento foto non riuscito");
       applyUpdate(body.devices, ["foto"]);
     } catch (err) {
-      setError((err as Error).message);
+      setError(networkErrorMessage(err));
     } finally {
       setUploadingPhoto(false);
     }
@@ -462,7 +462,7 @@ export function DeviceDetailModal({
       if (!res.ok) throw new Error(body.error || "Rimozione foto non riuscita");
       applyUpdate(body.devices, ["foto"]);
     } catch (err) {
-      setError((err as Error).message);
+      setError(networkErrorMessage(err));
     } finally {
       setUploadingPhoto(false);
     }
@@ -487,7 +487,7 @@ export function DeviceDetailModal({
       setGallery(body.photos);
       setGalleryTipo("");
     } catch (err) {
-      setError((err as Error).message);
+      setError(networkErrorMessage(err));
     } finally {
       setUploadingGallery(false);
     }
@@ -506,7 +506,7 @@ export function DeviceDetailModal({
       if (!res.ok) throw new Error(body.error || "Rimozione foto non riuscita");
       setGallery(body.photos);
     } catch (err) {
-      setError((err as Error).message);
+      setError(networkErrorMessage(err));
     } finally {
       setUploadingGallery(false);
     }

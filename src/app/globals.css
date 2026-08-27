@@ -314,6 +314,10 @@ h1 {
   display: flex;
   flex-direction: column;
   line-height: 1.1;
+  /* Consente al blocco di stringersi invece di far uscire il riquadro dallo
+     schermo: su <html> c'è overflow-x:hidden, quindi ciò che esce viene
+     tagliato via senza possibilità di scorrere. */
+  min-width: 0;
 }
 
 .deskw-now-txt > b {
@@ -339,6 +343,8 @@ h1 {
   font-size: 12.5px;
   color: var(--ink-soft);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .deskw-range {
@@ -560,6 +566,9 @@ h1 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+  /* Senza questo, su un monitor alto le due righe si spartiscono tutto lo
+     spazio libero e i riquadri diventano enormi e mezzi vuoti. */
+  align-content: start;
 }
 
 .desk-tile {

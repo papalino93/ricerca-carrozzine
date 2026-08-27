@@ -10,8 +10,12 @@ import { DeskSearch } from "@/components/DeskSearch";
 
 export const dynamic = "force-dynamic";
 
+/** "Oggi" nel fuso di Scandicci, non del server (che gira su UTC): fra
+ * mezzanotte e le due di notte l'ora italiana è già il giorno dopo di
+ * quella UTC, e senza questo una consegna prevista per oggi risulterebbe
+ * "in ritardo" o "domani" a seconda dell'ora. */
 function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome" }).format(new Date());
 }
 
 function fmtDate(iso: string): string {
@@ -52,13 +56,36 @@ export default async function ReceptionPage() {
   // aggiungerebbe un round-trip verso Google Sheets per ognuna a ogni
   // apertura della home. Ogni lettura fallisce per conto suo: se il foglio
   // non risponde la home resta comunque utilizzabile come menu.
-  const [settings, devices, commesse, clients, weather] = await Promise.all([
-    getSettings().catch(() => null),
-    listDevices().catch(() => []),
-    listCommesse().catch(() => []),
-    listClients().catch(() => []),
+  const [settingsR, devicesR, commesseR, clientsR, weather] = await Promise.all([
+    getSettings().then(
+      (v) => ({ ok: true as const, v }),
+      () => ({ ok: false as const, v: null })
+    ),
+    listDevices().then(
+      (v) => ({ ok: true as const, v }),
+      () => ({ ok: false as const, v: [] as Awaited<ReturnType<typeof listDevices>> })
+    ),
+    listCommesse().then(
+      (v) => ({ ok: true as const, v }),
+      () => ({ ok: false as const, v: [] as Awaited<ReturnType<typeof listCommesse>> })
+    ),
+    listClients().then(
+      (v) => ({ ok: true as const, v }),
+      () => ({ ok: false as const, v: [] as Awaited<ReturnType<typeof listClients>> })
+    ),
     getWeather(),
   ]);
+
+  const settings = settingsR.v;
+  const devices = devicesR.v;
+  const commesse = commesseR.v;
+  const clients = clientsR.v;
+  // Se anche una sola lettura è fallita i numeri qui sotto non sono reali:
+  // vanno dichiarati tali, altrimenti la home mostrerebbe "0 disponibili,
+  // nessuna scadenza" — indistinguibile da una giornata tranquilla, sulla
+  // schermata che resta aperta sul banco tutto il giorno.
+  const datiParziali =
+    !settingsR.ok || !devicesR.ok || !commesseR.ok || !clientsR.ok;
 
   const attivi = devices.filter((d) => !d.archiviato);
   const disponibili = attivi.filter((d) => d.stato === "disponibile").length;
@@ -196,6 +223,13 @@ export default async function ReceptionPage() {
 
         <DeskSearch />
 
+        {datiParziali ? (
+          <div className="banner error" style={{ marginBottom: 16 }}>
+            Google Sheets non risponde: i numeri qui sotto potrebbero non essere aggiornati.
+            Ricarica la pagina fra qualche istante.
+          </div>
+        ) : null}
+
         <div className="desk-layout">
           <div className="desk-tiles">
             {TILES.map((t) => (
@@ -214,7 +248,9 @@ export default async function ReceptionPage() {
             <h2>Da tenere d&apos;occhio</h2>
             {watchTop.length === 0 ? (
               <p className="hint" style={{ margin: 0 }}>
-                Nessuna scadenza nei prossimi giorni.
+                {datiParziali
+                  ? "Elenco non disponibile: Google Sheets non risponde."
+                  : "Nessuna scadenza nei prossimi giorni."}
               </p>
             ) : (
               <ul>

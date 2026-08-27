@@ -1,5 +1,4 @@
 import { listDevices } from "@/lib/devices";
-import { toPublicDevice } from "@/lib/device-types";
 import { getSettings } from "@/lib/settings";
 import { listCategories } from "@/lib/categories";
 import { listTariffe } from "@/lib/tariffe";
@@ -47,7 +46,7 @@ export default async function HomePage({
 
   return (
     <SearchClient
-      initialDevices={devices.map(toPublicDevice)}
+      initialDevices={devices}
       logoUrl={logoUrl}
       categories={categories}
       tariffe={tariffe}

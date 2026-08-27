@@ -84,21 +84,14 @@ export interface Device {
   archiviato: ArchiveStatus | null;
 }
 
-/**
- * Versione del dispositivo per la pagina di ricerca (accessibile solo dopo
- * login, vedi proxy.ts, ma comunque distinta dall'admin): il nome cliente
- * resta visibile (come nel prototipo originale), ma telefono, numero di
- * noleggio e prezzi — dati più sensibili — restano riservati a chi opera
- * dall'admin.
- */
-export function toPublicDevice(d: Device): Device {
-  return {
-    ...d,
-    telefono: null,
-    contratto: null,
-    prezzoAcquisto: null,
-    prezzoVendita: null,
-    tariffaApplicata: null,
-    tariffaUnita: null,
-  };
-}
+/* Qui viveva toPublicDevice, che nella pagina di ricerca azzerava telefono,
+   numero di noleggio, prezzi e tariffa. È stata rimossa: l'app ha un solo
+   livello di accesso (vedi proxy.ts) e chi entra vede comunque tutto da
+   /admin, quindi non nascondeva davvero nulla — ma rompeva tre cose:
+
+   - cercare per numero di noleggio dal banco non trovava niente, perché il
+     campo su cui cercare era vuoto;
+   - risolvendo un "da verificare" dalla ricerca, il salvataggio riscriveva
+     i prezzi a vuoto sopra quelli veri, cancellandoli dal foglio;
+   - il verbale di restituzione generato da lì restava senza numero di
+     noleggio, e quindi irraggiungibile dal Registro. */

@@ -3,7 +3,7 @@
 import { Fragment, useMemo, useRef, useState } from "react";
 import { COMMESSA_STATUS_LABEL, type CommessaRecord } from "@/lib/commesse-types";
 import { matchesQuery } from "@/lib/search-match";
-import { readJson } from "@/lib/fetch-json";
+import { networkErrorMessage, readJson } from "@/lib/fetch-json";
 import { Toast } from "./Toast";
 
 interface CommesseClientProps {
@@ -154,7 +154,7 @@ export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery }: 
       setCreating(false);
       showToast(`Scheda n. ${body.commessa.numero} creata`);
     } catch (err) {
-      showToast((err as Error).message);
+      showToast(networkErrorMessage(err));
     } finally {
       setSaving(false);
     }
@@ -208,7 +208,7 @@ export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery }: 
       }
       showToast(message);
     } catch (err) {
-      showToast((err as Error).message);
+      showToast(networkErrorMessage(err));
     } finally {
       setSavingEdit(false);
     }
@@ -229,7 +229,7 @@ export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery }: 
       }
       showToast(`Scheda n. ${c.numero} eliminata`);
     } catch (err) {
-      showToast((err as Error).message);
+      showToast(networkErrorMessage(err));
     } finally {
       setDeleting(null);
     }

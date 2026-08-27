@@ -1,6 +1,6 @@
 "use client";
 
-import { readJson } from "@/lib/fetch-json";
+import { networkErrorMessage, readJson } from "@/lib/fetch-json";
 import { useRef, useState } from "react";
 import type { CompanySettings } from "@/lib/settings";
 import type { AdminUser } from "@/lib/users";
@@ -66,7 +66,7 @@ export function SettingsClient({
       if (!res.ok) throw new Error(body.error || "Caricamento del logo non riuscito");
       setSettings((s) => ({ ...s, logoUrl: body.url }));
     } catch (err) {
-      setError((err as Error).message);
+      setError(networkErrorMessage(err));
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -87,7 +87,7 @@ export function SettingsClient({
       if (!res.ok) throw new Error(body.error || "Salvataggio non riuscito");
       showToast("Impostazioni salvate");
     } catch (err) {
-      setError((err as Error).message);
+      setError(networkErrorMessage(err));
     } finally {
       setSaving(false);
     }

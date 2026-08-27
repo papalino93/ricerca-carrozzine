@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { readJson } from "@/lib/fetch-json";
+import { networkErrorMessage, readJson } from "@/lib/fetch-json";
 import type { SnapshotStatus } from "@/lib/snapshot";
 
 interface BackupManagerProps {
@@ -49,7 +49,7 @@ export function BackupManager({ initialStatus }: BackupManagerProps) {
           : "Backup primario eseguito. Il secondario non è ancora configurato."
       );
     } catch (err) {
-      setError((err as Error).message);
+      setError(networkErrorMessage(err));
     } finally {
       setRunning(false);
     }

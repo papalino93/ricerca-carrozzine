@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { readJson } from "@/lib/fetch-json";
+import { networkErrorMessage, readJson } from "@/lib/fetch-json";
 import { STATUS_LABEL, type Device, type DeviceStatus } from "@/lib/device-types";
 
 function fmtDate(iso: string | null): string {
@@ -50,7 +50,7 @@ export function DevicePublicViewModal({ device: d, onClose, onUpdated }: DeviceP
       onUpdated?.(body.devices);
       if (patch.stato) onClose();
     } catch (err) {
-      setError((err as Error).message);
+      setError(networkErrorMessage(err));
     } finally {
       setSaving(false);
     }

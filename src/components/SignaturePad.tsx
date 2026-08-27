@@ -17,6 +17,9 @@ export function SignaturePad({ label, onChange }: SignaturePadProps) {
   /** Come `empty`, ma leggibile dentro l'effetto di ridimensionamento senza
    * doverlo far ripartire a ogni tratto. */
   const drawnRef = useRef(false);
+  /** Copia della firma in attesa di essere ridisegnata dopo un
+   * ridimensionamento: vedi il commento in setup(). */
+  const pendingRef = useRef<string | null>(null);
   const [empty, setEmpty] = useState(true);
 
   // Il canvas ha due misure: quella su schermo (CSS) e quella della sua
@@ -28,9 +31,12 @@ export function SignaturePad({ label, onChange }: SignaturePadProps) {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    // Il componente può sparire (modale chiusa) mentre l'immagine della firma
+    // si sta ancora ricaricando: da lì in poi non va più toccato nulla.
+    let vivo = true;
 
     function setup() {
-      if (!canvas) return;
+      if (!canvas || !vivo) return;
       const ratio = window.devicePixelRatio || 1;
       const rect = canvas.getBoundingClientRect();
       const w = Math.round(rect.width * ratio);
@@ -43,7 +49,14 @@ export function SignaturePad({ label, onChange }: SignaturePadProps) {
       // telefono per far firmare l'altra persona cancellerebbe in silenzio
       // la firma appena raccolta — e il documento verrebbe generato senza,
       // senza che nessuno se ne accorga.
-      const precedente = drawnRef.current ? canvas.toDataURL("image/png") : null;
+      //
+      // La copia viene tenuta da parte finché non è stata davvero ridisegnata:
+      // ruotando lo schermo il ridimensionamento arriva due volte di fila, e
+      // la seconda troverebbe il canvas già azzerato dalla prima — copiandone
+      // una versione vuota e cancellando la firma per sempre.
+      const precedente =
+        pendingRef.current ?? (drawnRef.current ? canvas.toDataURL("image/png") : null);
+      pendingRef.current = precedente;
 
       canvas.width = w;
       canvas.height = h;
@@ -60,10 +73,15 @@ export function SignaturePad({ label, onChange }: SignaturePadProps) {
       if (precedente) {
         const img = new Image();
         img.onload = () => {
+          if (!vivo || !canvas) return;
           // Riadattata alla nuova larghezza: la firma resta la stessa, solo
           // ridimensionata come il riquadro che la contiene.
           ctx.drawImage(img, 0, 0, rect.width, rect.height);
+          pendingRef.current = null;
           onChange(canvas.toDataURL("image/png"));
+        };
+        img.onerror = () => {
+          pendingRef.current = null;
         };
         img.src = precedente;
       }
@@ -72,7 +90,10 @@ export function SignaturePad({ label, onChange }: SignaturePadProps) {
     setup();
     const observer = new ResizeObserver(setup);
     observer.observe(canvas);
-    return () => observer.disconnect();
+    return () => {
+      vivo = false;
+      observer.disconnect();
+    };
   }, [onChange]);
 
   function pos(e: React.PointerEvent<HTMLCanvasElement>) {
@@ -114,6 +135,7 @@ export function SignaturePad({ label, onChange }: SignaturePadProps) {
     if (!canvas || !ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawnRef.current = false;
+    pendingRef.current = null;
     setEmpty(true);
     onChange(null);
   }

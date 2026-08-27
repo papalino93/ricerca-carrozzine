@@ -1,6 +1,6 @@
 "use client";
 
-import { readJson } from "@/lib/fetch-json";
+import { networkErrorMessage, readJson } from "@/lib/fetch-json";
 import { useState } from "react";
 import { fmtTariffa, type Tariffa, type TariffaUnita } from "@/lib/tariffe-types";
 
@@ -67,7 +67,7 @@ export function TariffeManager({ initialTariffe, categories }: TariffeManagerPro
       setForm(EMPTY_FORM);
       setEditing(null);
     } catch (err) {
-      setError((err as Error).message);
+      setError(networkErrorMessage(err));
     } finally {
       setSaving(false);
     }
@@ -89,7 +89,7 @@ export function TariffeManager({ initialTariffe, categories }: TariffeManagerPro
         cancelEdit();
       }
     } catch (err) {
-      setError((err as Error).message);
+      setError(networkErrorMessage(err));
     } finally {
       setSaving(false);
     }

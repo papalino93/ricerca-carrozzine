@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { readJson } from "@/lib/fetch-json";
+import { networkErrorMessage, readJson } from "@/lib/fetch-json";
 import { addDaysIso, todayIso } from "@/lib/dates";
 import type { Device } from "@/lib/device-types";
 import { calcolaTotale, findTariffa, fmtEuro, giorniTra, type Tariffa } from "@/lib/tariffe-types";
@@ -71,7 +71,7 @@ export function QuickRentModal({ device, tariffe, onClose, onRented }: QuickRent
       if (!res.ok) throw new Error(body.error || "Operazione non riuscita");
       onRented(body.devices);
     } catch (err) {
-      setError((err as Error).message);
+      setError(networkErrorMessage(err));
     } finally {
       setSaving(false);
     }

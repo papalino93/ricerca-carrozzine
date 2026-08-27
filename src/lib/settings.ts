@@ -74,7 +74,7 @@ export const DEFAULT_REGOLAMENTO_FEDELTA =
 export const DEFAULT_INFORMATIVA_PRIVACY_FEDELTA =
   "Informativa privacy (art. 13 Regolamento UE 2016/679) — Adesione alla Carta Fedeltà. Titolare del trattamento: la ragione sociale indicata in testa a questo documento, contattabile ai recapiti indicati. 1) Dati raccolti: nome, cognome, sesso, data e luogo di nascita, indirizzo, telefono, email, acquisti effettuati. 2) Modalità: il trattamento avviene con strumenti informatici e/o cartacei, con misure adeguate a tutelarne sicurezza e riservatezza. 3) Finalità: a) rilascio della Carta Fedeltà e gestione delle attività necessarie a consentire la fruizione di sconti, promozioni, premi e la partecipazione alla raccolta punti; b) solo previo consenso specifico, attività di marketing diretto (es. invio di comunicazioni promozionali via email, SMS); c) solo previo consenso specifico, attività di profilazione (es. analisi delle abitudini d'acquisto). 4) Natura del conferimento: per la finalità a) il conferimento è necessario al rilascio della tessera; per le finalità b) e c) è facoltativo e il rifiuto non pregiudica il rilascio della tessera né l'accesso ai suoi benefici. 5) Ambito di diffusione: i dati sono trattati da personale autorizzato e da eventuali fornitori di servizi informatici di cui il titolare si avvale, e non sono diffusi a terzi salvo obblighi di legge. 6) Periodo di conservazione: per la durata del programma fedeltà e comunque non oltre 24 mesi dall'ultimo movimento, salvo termini più lunghi imposti da obblighi di legge. 7) Diritti dell'interessato: accesso, rettifica, cancellazione, limitazione, portabilità e opposizione al trattamento, esercitabili in ogni momento contattando il titolare. [Testo segnaposto: da far verificare e integrare da un legale o consulente privacy prima dell'uso reale con i clienti.]";
 
-const EMPTY_SETTINGS: CompanySettings = {
+export const EMPTY_SETTINGS: CompanySettings = {
   ragioneSociale: "",
   indirizzo: "",
   partitaIva: "",
@@ -95,6 +95,18 @@ const EMPTY_SETTINGS: CompanySettings = {
 function numOrDefault(v: string | undefined, fallback: number): number {
   const n = Number(v);
   return v != null && v.trim() !== "" && Number.isFinite(n) ? n : fallback;
+}
+
+/**
+ * Come getSettings, ma non solleva mai: se il foglio non risponde (quota
+ * Google esaurita, rete assente) restituisce i valori predefiniti.
+ *
+ * Da usare nelle pagine dove le impostazioni servono solo per contorno —
+ * logo e regole fedeltà — e non vale la pena mostrare all'operatore la
+ * pagina di errore del framework, in inglese, al posto del suo lavoro.
+ */
+export async function getSettingsSafe(): Promise<CompanySettings> {
+  return getSettings().catch(() => EMPTY_SETTINGS);
 }
 
 export async function getSettings(): Promise<CompanySettings> {

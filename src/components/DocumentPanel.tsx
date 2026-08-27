@@ -5,6 +5,7 @@ import type { Device } from "@/lib/devices";
 import type { DocumentoTipo } from "@/lib/pdf/VerbaleDocument";
 import { calcolaTotale, fmtEuro, giorniTra } from "@/lib/tariffe-types";
 import { SignaturePad } from "./SignaturePad";
+import { networkErrorMessage } from "@/lib/fetch-json";
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
@@ -124,7 +125,7 @@ export function DocumentPanel({ device, onClose, forcedTipo }: DocumentPanelProp
       a.remove();
       URL.revokeObjectURL(url);
     } catch (err) {
-      setError((err as Error).message);
+      setError(networkErrorMessage(err));
     } finally {
       setLoading(false);
     }
