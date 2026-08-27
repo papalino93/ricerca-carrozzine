@@ -154,6 +154,26 @@ Vedi `.env.example`. In sintesi:
   firma digitale resta nascosta e tutto funziona come prima (verbale da
   scaricare e stampare).
 
+## Meteo nella home (nessuna configurazione)
+
+Il riquadro in alto nella home mostra il meteo di Scandicci — condizioni
+attuali, minima/massima di oggi e previsione di domani — accanto a data e
+ora. I dati arrivano da [Open-Meteo](https://open-meteo.com): niente
+registrazione, niente chiave, niente costi, quindi non c'è alcuna variabile
+d'ambiente da impostare (vedi `src/lib/weather.ts`, coordinate del negozio
+incluse nel file).
+
+La risposta viene tenuta in cache mezz'ora, e se il servizio non risponde
+entro 4 secondi il riquadro mostra semplicemente data e ora: la home si apre
+comunque, il meteo è un di più.
+
+Nota: il piano gratuito di Open-Meteo è pensato per usi non commerciali.
+L'utilizzo qui è di pochissime chiamate al giorno per una schermata interna;
+se in futuro si volesse essere formalmente in regola con un uso commerciale,
+esiste un piano a pagamento — oppure basta togliere la chiamata a
+`getWeather()` in `src/app/page.tsx` e il riquadro torna a mostrare solo
+data e ora.
+
 ## Autorizzare altri utenti
 
 `ADMIN_USER`/`ADMIN_PASSWORD` sono pensate per un solo account "titolare".
