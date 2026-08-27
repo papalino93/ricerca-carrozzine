@@ -85,6 +85,23 @@ function fmtEuro(n: number | null): string {
 export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery }: CommesseClientProps) {
   const [commesse, setCommesse] = useState(initialCommesse);
   const [query, setQuery] = useState(initialQuery ?? "");
+  // Una scheda ritirata è chiusa: il cliente ha portato via la merce e non
+  // c'è più niente da fare. Resta consultabile in archivio, ma sparisce
+  // dall'elenco di lavoro, che altrimenti cresce all'infinito e nasconde
+  // le schede ancora aperte fra decine di pratiche concluse.
+  //
+  // Se però si arriva qui da un link con una ricerca che corrisponde solo
+  // a schede archiviate — dalla home o da un altro punto del gestionale —
+  // si parte già dall'archivio, invece di mostrare un elenco vuoto per una
+  // scheda che esiste.
+  const [vista, setVista] = useState<"aperte" | "archivio">(() => {
+    const q = (initialQuery ?? "").trim().toLowerCase();
+    if (!q) return "aperte";
+    const trovate = initialCommesse.filter((c) =>
+      matchesQuery([c.numero, c.cliente, c.telefono, c.cellulare].filter(Boolean).join(" ").toLowerCase(), q)
+    );
+    return trovate.length > 0 && trovate.every((c) => c.stato === "ritirata") ? "archivio" : "aperte";
+  });
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
@@ -105,13 +122,25 @@ export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery }: 
     toastTimer.current = setTimeout(() => setToast(null), 2400);
   }
 
-  const filtered = useMemo(() => {
+  // La ricerca si applica prima della divisione fra aperte e archivio, così
+  // i due contatori dicono dove sono finiti i risultati: chi cerca una
+  // scheda già chiusa vede "Archivio (1)" invece di un elenco vuoto.
+  const cercate = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return commesse;
     return commesse.filter((c) =>
       matchesQuery([c.numero, c.cliente, c.telefono, c.cellulare].filter(Boolean).join(" ").toLowerCase(), q)
     );
   }, [commesse, query]);
+
+  const aperteCount = useMemo(() => cercate.filter((c) => c.stato !== "ritirata").length, [cercate]);
+  const archivioCount = cercate.length - aperteCount;
+
+  const filtered = useMemo(
+    () =>
+      cercate.filter((c) => (vista === "archivio" ? c.stato === "ritirata" : c.stato !== "ritirata")),
+    [cercate, vista]
+  );
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -422,14 +451,37 @@ export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery }: 
       <div className="panel">
         <input
           className="searchbox"
-          style={{ marginBottom: 14 }}
           placeholder="Cerca per numero, cliente, telefono…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
+        <div className="chips" style={{ margin: "12px 0 14px" }}>
+          <button
+            type="button"
+            className={`chip ${vista === "aperte" ? "active" : ""}`}
+            onClick={() => setVista("aperte")}
+          >
+            Da lavorare ({aperteCount})
+          </button>
+          <button
+            type="button"
+            className={`chip ${vista === "archivio" ? "active" : ""}`}
+            onClick={() => setVista("archivio")}
+          >
+            Archivio ({archivioCount})
+          </button>
+        </div>
         {filtered.length === 0 ? (
           <p className="hint" style={{ margin: 0 }}>
-            {commesse.length === 0 ? "Nessuna scheda ancora registrata." : "Nessuna scheda corrisponde alla ricerca."}
+            {commesse.length === 0
+              ? "Nessuna scheda ancora registrata."
+              : query.trim()
+                ? vista === "aperte" && archivioCount > 0
+                  ? `Nessuna scheda aperta corrisponde alla ricerca, ma ${archivioCount === 1 ? "ce n'è una" : `ce ne sono ${archivioCount}`} in archivio.`
+                  : "Nessuna scheda corrisponde alla ricerca."
+                : vista === "archivio"
+                  ? "Nessuna scheda ritirata: l'archivio è vuoto."
+                  : "Nessuna scheda da lavorare: sono state tutte ritirate."}
           </p>
         ) : (
           <div className="admin-table-wrap">
@@ -512,7 +564,7 @@ export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery }: 
                                         c,
                                         "ritirata",
                                         { ritirataIl: editForm?.ritirataIl || todayIso() },
-                                        `Scheda n. ${c.numero} ritirata`
+                                        `Scheda n. ${c.numero} ritirata — spostata in archivio`
                                       )
                                     }
                                   >

@@ -259,9 +259,9 @@ export default async function ReceptionPage() {
       icon: <IconCommessa />,
       color: "warn",
       label: "Commesse",
-      sub: "Nuova commessa o riparazione",
+      sub: "Nuove, in lavorazione e archivio",
       badge: daConsegnare,
-      badgeLabel: "da consegnare",
+      badgeLabel: "da lavorare",
     },
     {
       href: "/fidelity",
