@@ -228,6 +228,20 @@ export function CommesseBanco({ initialCommesse, initialQuery }: CommesseBancoPr
                   onChange={(e) => setForm({ ...form, telefono: e.target.value })}
                 />
               </div>
+              {/* La cosa più importante della scheda: senza, resta una
+                  commessa che non dice cosa è stato ordinato. Occupa due
+                  colonne e sta in alto perché è la prima cosa che si
+                  scrive prendendo l'ordine al banco. */}
+              <div className="field banco-field-wide">
+                <label htmlFor="banco-articolo">Cosa ordina il cliente</label>
+                <textarea
+                  id="banco-articolo"
+                  rows={2}
+                  placeholder="Modello, misura, colore, quantità…"
+                  value={form.richiesteParticolari}
+                  onChange={(e) => setForm({ ...form, richiesteParticolari: e.target.value })}
+                />
+              </div>
               <div className="field">
                 <label htmlFor="banco-consegna">Consegna prevista</label>
                 <input
@@ -255,14 +269,6 @@ export function CommesseBanco({ initialCommesse, initialQuery }: CommesseBancoPr
                   placeholder="0,00"
                   value={form.saldo}
                   onChange={(e) => setForm({ ...form, saldo: e.target.value })}
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="banco-note">Note</label>
-                <input
-                  id="banco-note"
-                  value={form.richiesteParticolari}
-                  onChange={(e) => setForm({ ...form, richiesteParticolari: e.target.value })}
                 />
               </div>
             </div>

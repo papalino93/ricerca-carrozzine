@@ -161,7 +161,7 @@ export default async function ReceptionPage() {
     gia.add(d.codice);
     scadenze.push({
       code: d.codice,
-      who: `${d.cliente ?? "—"} — rientro`,
+      who: `${d.cliente ?? "—"} · ${d.categoria}`,
       when: giorni < 0 ? `scaduto da ${-giorni} gg` : giorni === 0 ? "rientro oggi" : fmtDate(d.alPrevisto),
       urgent: giorni <= 0,
       href: `/noleggi?q=${encodeURIComponent(d.codice)}`,
@@ -175,7 +175,7 @@ export default async function ReceptionPage() {
     if (giorni > 7) continue;
     scadenze.push({
       code: c.numero,
-      who: `${c.cliente} — ${c.riparazione && !c.vendita ? "riparazione" : "commessa"}`,
+      who: `${c.cliente} · ${c.riparazione && !c.vendita ? "riparazione" : "commessa"}`,
       when: giorni < 0 ? `in ritardo di ${-giorni} gg` : giorni === 0 ? "consegna oggi" : fmtDate(c.consegnaPrevista),
       urgent: giorni <= 0,
       href: `/commesse?q=${encodeURIComponent(c.numero)}`,
@@ -199,7 +199,12 @@ export default async function ReceptionPage() {
       .slice(0, max)
       .map<WatchRow>((d) => ({
         code: d.codice,
-        who: [d.marca, d.modello].filter(Boolean).join(" ") || d.categoria,
+        // La categoria per prima: "INTERMED 131REHA" da solo non dice se
+        // è una carrozzina o un letto, e al banco quello è il dato che
+        // serve per sapere di cosa si sta parlando.
+        who: [d.categoria, [d.marca, d.modello].filter(Boolean).join(" ")]
+          .filter(Boolean)
+          .join(" · "),
         when: etichetta,
         tone,
         urgent: false,
@@ -223,8 +228,8 @@ export default async function ReceptionPage() {
     .slice(0, MAX_NOLEGGI_LUNGHI)
     .map<WatchRow>(({ d, giorni }) => ({
       code: d.codice,
-      who: `${d.cliente ?? "—"} — noleggio lungo`,
-      when: `da ${giorni} gg`,
+      who: `${d.cliente ?? "—"} · ${d.categoria}`,
+      when: `a noleggio da ${giorni} gg`,
       urgent: false,
       href: `/noleggi?q=${encodeURIComponent(d.codice)}`,
     }));

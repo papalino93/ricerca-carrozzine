@@ -323,7 +323,9 @@ h1 {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 10.5px;
+  /* 11px è il minimo sotto cui un maiuscoletto spaziato smette di essere
+     comodo da leggere, e su tablet questa era la misura che restava. */
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -472,13 +474,16 @@ h1 {
     height: 22px;
   }
 
+  /* 11px e non 9,5: sotto gli 11px un maiuscoletto spaziato su un telefono
+     si legge a fatica. Lo spazio per alzarlo c'è, perché sotto i 420px la
+     descrizione del meteo sparisce già (vedi la regola qui sotto). */
   .deskw-label {
-    font-size: 9.5px;
-    letter-spacing: 0.05em;
+    font-size: 11px;
+    letter-spacing: 0.04em;
   }
 
   .deskw-foot {
-    font-size: 10.5px;
+    font-size: 11.5px;
     gap: 4px;
   }
 }
@@ -807,6 +812,33 @@ h1 {
     justify-content: space-between;
   }
 }
+/* ---------- Modulo nuova commessa (banco) ---------- */
+/* Due colonne su schermo largo, una sul telefono. Prima questa classe non
+   esisteva affatto in CSS: i campi si impilavano uno sotto l'altro a tutta
+   larghezza, e il modulo diventava una colonna lunghissima da scorrere. */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 16px;
+}
+
+/* "Cosa ordina il cliente" prende tutta la riga: è il campo in cui si
+   scrive di più, e stretto a metà larghezza si legge male. */
+.banco-field-wide {
+  grid-column: 1 / -1;
+}
+
+.form-grid textarea {
+  resize: vertical;
+  min-height: 62px;
+}
+
+@media (max-width: 620px) {
+  .form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /* ---------- Elenco da banco (Commesse) ---------- */
 /* Righe alte e distanziate, non una tabella: al banco si lavora in piedi,
    spesso col dito su un tablet, e ogni voce deve essere un bersaglio
@@ -1718,6 +1750,27 @@ h1 {
   .btn {
     min-height: 44px;
   }
+
+  /* Comandi che non sono .btn ma si toccano lo stesso. Sullo schermo di un
+     telefono un bersaglio alto 19px si sbaglia: qui si aggiunge spazio
+     attorno senza cambiare l'aspetto, così l'area toccabile arriva a
+     misura di dito.
+
+     Restano deliberatamente fuori i collegamenti dentro una frase (es.
+     "quando una commessa passa a ritirata"): ingrandirli spezzerebbe
+     l'interlinea del paragrafo, e per i link in linea nel testo la regola
+     sulla dimensione minima del bersaglio non si applica. */
+  .front-bar-links a:not(.btn) {
+    padding: 11px 4px;
+  }
+
+  .refresh-hint {
+    padding: 9px 6px 9px 4px;
+  }
+
+  .sort-select select {
+    min-height: 44px;
+  }
 }
 
 .btn.primary:hover {
@@ -2137,6 +2190,16 @@ tr.clickable-row {
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.55);
   margin: 0;
+}
+
+/* Dopo la regola qui sopra e non dentro il blocco @media più in alto nel
+   file: a parità di specificità vince l'ultima scritta, quindi lassù
+   questo override veniva semplicemente ignorato. 9,5px in maiuscoletto su
+   un telefono è al limite del leggibile. */
+@media (pointer: coarse) {
+  .admin-sidebar-brand .eyebrow {
+    font-size: 11px;
+  }
 }
 
 .admin-sidebar-link {
