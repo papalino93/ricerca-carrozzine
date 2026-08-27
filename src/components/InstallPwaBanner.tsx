@@ -114,14 +114,14 @@ export function InstallPwaBanner() {
     <div className="install-banner">
       {mode === "ios" ? (
         <p>
-          Aggiungi <b>Ricerca Ausili</b> alla schermata Home: tocca <b>Condividi</b> (il
+          Aggiungi <b>Medical Center</b> alla schermata Home: tocca <b>Condividi</b> (il
           riquadro con la freccia, nella barra di Safari) e poi{" "}
           <b>&quot;Aggiungi alla schermata Home&quot;</b>.
         </p>
       ) : (
         <div className="install-banner-row">
           <p>
-            Installa <b>Ricerca Ausili</b> come app sulla schermata Home.
+            Installa <b>Medical Center</b> come app sulla schermata Home.
           </p>
           <button type="button" className="btn primary" onClick={handleInstall}>
             Installa

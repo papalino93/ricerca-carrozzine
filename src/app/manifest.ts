@@ -2,10 +2,10 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Ricerca Ausili",
-    short_name: "Ausili",
+    name: "Medical Center",
+    short_name: "Medical Center",
     description:
-      "Ricerca disponibilità e gestione del noleggio di carrozzine e altri ausili/dispositivi.",
+      "Noleggio e disponibilità di carrozzine e ausili sanitari a Scandicci, con documenti di consegna e restituzione pronti in PDF.",
     start_url: "/",
     display: "standalone",
     // Stessi valori dei token in globals.css (--bg e --ink): la schermata di

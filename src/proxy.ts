@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireBasicAuth } from "@/lib/basic-auth";
 
 const SITE_URL = "https://ricerca-carrozzine.vercel.app";
-const TITLE = "Ricerca Ausili";
+const TITLE = "Medical Center";
 const DESCRIPTION =
-  "Ricerca disponibilità e gestione del noleggio di carrozzine e altri ausili/dispositivi.";
+  "Noleggio e disponibilità di carrozzine e ausili sanitari a Scandicci, con documenti di consegna e restituzione pronti in PDF.";
 
 // I crawler delle anteprime social (WhatsApp, Facebook, Telegram, ecc.) non
 // sanno autenticarsi con Basic Auth: senza login non ricevono altro che un

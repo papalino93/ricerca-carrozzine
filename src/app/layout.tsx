@@ -11,11 +11,18 @@ const heading = Inter({
 
 const SITE_URL = "https://ricerca-carrozzine.vercel.app";
 
+// "Ricerca Ausili" era il nome di lavoro del progetto, sparito da mesi da
+// ogni schermata del gestionale (l'ultimo punto rimasto era l'intestazione
+// di Magazzino noleggio). Questi metadata però non si vedono usando il
+// sito: si vedono SOLO condividendo il link — l'anteprima su WhatsApp, la
+// scheda del browser, l'icona sulla schermata Home — quindi il vecchio
+// nome ci era rimasto senza che nessuno se ne accorgesse aprendo una
+// pagina normale.
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: "Ricerca Ausili",
+  title: "Medical Center",
   description:
-    "Ricerca disponibilità e gestione del noleggio di carrozzine e altri ausili/dispositivi.",
+    "Noleggio e disponibilità di carrozzine e ausili sanitari a Scandicci, con documenti di consegna e restituzione pronti in PDF.",
   icons: {
     icon: [{ url: "/favicon-32.png", sizes: "32x32", type: "image/png" }],
     apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
@@ -28,23 +35,23 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Ricerca Ausili",
+    title: "Medical Center",
   },
   openGraph: {
-    title: "Ricerca Ausili",
+    title: "Medical Center",
     description:
-      "Ricerca disponibilità e gestione del noleggio di carrozzine e altri ausili/dispositivi.",
+      "Noleggio e disponibilità di carrozzine e ausili sanitari a Scandicci, con documenti di consegna e restituzione pronti in PDF.",
     url: SITE_URL,
-    siteName: "Ricerca Ausili",
+    siteName: "Medical Center",
     locale: "it_IT",
     type: "website",
     images: [{ url: "/og-image.png", width: 1200, height: 630 }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Ricerca Ausili",
+    title: "Medical Center",
     description:
-      "Ricerca disponibilità e gestione del noleggio di carrozzine e altri ausili/dispositivi.",
+      "Noleggio e disponibilità di carrozzine e ausili sanitari a Scandicci, con documenti di consegna e restituzione pronti in PDF.",
     images: ["/og-image.png"],
   },
 };
