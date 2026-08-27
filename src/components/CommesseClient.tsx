@@ -97,9 +97,15 @@ export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery }: 
   const [vista, setVista] = useState<"aperte" | "archivio">(() => {
     const q = (initialQuery ?? "").trim().toLowerCase();
     if (!q) return "aperte";
-    const trovate = initialCommesse.filter((c) =>
-      matchesQuery([c.numero, c.cliente, c.telefono, c.cellulare].filter(Boolean).join(" ").toLowerCase(), q)
-    );
+    // Il numero esatto vince sulla ricerca sfumata: un link diretto da "Da
+    // tenere d'occhio" passa il numero di scheda, e la tolleranza ai
+    // refusi altrimenti mescolava anche schede con un numero vicino.
+    const esatte = initialCommesse.filter((c) => c.numero.toLowerCase() === q);
+    const trovate = esatte.length
+      ? esatte
+      : initialCommesse.filter((c) =>
+          matchesQuery([c.numero, c.cliente, c.telefono, c.cellulare].filter(Boolean).join(" ").toLowerCase(), q)
+        );
     return trovate.length > 0 && trovate.every((c) => c.stato === "ritirata") ? "archivio" : "aperte";
   });
   const [creating, setCreating] = useState(false);
@@ -128,6 +134,10 @@ export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery }: 
   const cercate = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return commesse;
+    // Stessa priorità della vista iniziale qui sopra: un numero di scheda
+    // esatto non deve mai mescolarsi con quelli solo vicini per un refuso.
+    const esatte = commesse.filter((c) => c.numero.toLowerCase() === q);
+    if (esatte.length) return esatte;
     return commesse.filter((c) =>
       matchesQuery([c.numero, c.cliente, c.telefono, c.cellulare].filter(Boolean).join(" ").toLowerCase(), q)
     );
