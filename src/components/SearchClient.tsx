@@ -188,25 +188,34 @@ export function SearchClient({
     // cliente"): ignora i filtri di categoria/stato/larghezza e guarda
     // in tutto il magazzino, altrimenti un dispositivo noleggiato o guasto
     // resterebbe invisibile anche cercandolo per codice esatto.
-    let list = q
-      ? devices.filter((d) => {
-          const hay = [d.codice, d.marca, d.modello, d.cliente, d.telefono, d.contratto, d.larghezza]
-            .filter((v) => v != null && v !== "")
-            .join(" ")
-            .toLowerCase();
-          return matchesQuery(hay, q);
-        })
-      : devices.filter((d) => {
-          if (category !== "Tutte" && d.categoria !== category) return false;
-          if (subcategory !== "Tutte" && d.sottocategoria !== subcategory) return false;
-          if (!statuses.has(d.stato)) return false;
-          if (
-            width != null &&
-            (d.larghezza == null || Math.abs(d.larghezza - width) > widthTolerance)
-          )
-            return false;
-          return true;
-        });
+    //
+    // Il codice esatto vince sempre sulla ricerca sfumata: un link diretto
+    // a un ausilio preciso (dalla home, da "Da tenere d'occhio") passa
+    // proprio il codice, e la tolleranza ai refusi della ricerca libera
+    // altrimenti apriva anche codici vicini per un solo carattere — un
+    // codice non è mai un refuso di un altro.
+    const exact = q ? devices.filter((d) => d.codice.toLowerCase() === q) : [];
+    let list = exact.length
+      ? exact
+      : q
+        ? devices.filter((d) => {
+            const hay = [d.codice, d.marca, d.modello, d.cliente, d.telefono, d.contratto, d.larghezza]
+              .filter((v) => v != null && v !== "")
+              .join(" ")
+              .toLowerCase();
+            return matchesQuery(hay, q);
+          })
+        : devices.filter((d) => {
+            if (category !== "Tutte" && d.categoria !== category) return false;
+            if (subcategory !== "Tutte" && d.sottocategoria !== subcategory) return false;
+            if (!statuses.has(d.stato)) return false;
+            if (
+              width != null &&
+              (d.larghezza == null || Math.abs(d.larghezza - width) > widthTolerance)
+            )
+              return false;
+            return true;
+          });
 
     if (sortBy === "larghezza" && width) {
       list = [...list].sort((a, b) => {

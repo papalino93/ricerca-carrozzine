@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BackButton } from "./BackButton";
 
 interface FrontBarProps {
   logoUrl?: string | null;
@@ -17,6 +18,7 @@ export function FrontBar({ logoUrl }: FrontBarProps) {
         <img src={logoUrl || "/logo.png"} alt="Medical Center" />
       </Link>
       <div className="front-bar-links">
+        <BackButton />
         <Link href="/" className="btn front-bar-home">
           {/* Una casetta al posto della freccia "←": si riconosce senza
               doverla leggere, e dice "home" invece del generico

@@ -1307,6 +1307,21 @@ h1 {
   color: #fff;
 }
 
+/* Chiaro e non scuro come Home: sono due azioni diverse (torna
+   indietro vs vai al menu principale) e solo una — Home — deve pesare
+   come la destinazione "di sicurezza" sempre uguale. */
+.front-bar-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.front-bar-back svg {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+}
+
 .front-bar-links a:not(.btn) {
   font-size: 12.5px;
   font-weight: 600;
