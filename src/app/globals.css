@@ -1067,6 +1067,35 @@ h1 {
   gap: 18px;
 }
 
+/* Il tasto per tornare alla home: pieno e scuro, non verde.
+   Il verde pieno in questo gestionale vuol dire "crea/conferma" (+ Nuova
+   commessa, Cerca, Crea): usarlo anche qui avrebbe dato a Home lo stesso
+   peso di un'azione di creazione, facendo perdere al colore il suo
+   significato. Lo scuro pesa visivamente quanto il verde — quindi il
+   pulsante resta impossibile da non vedere — ma si legge subito come una
+   categoria diversa: scuro = spostati, verde = crea. */
+.front-bar-home {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+  font-weight: 700;
+}
+
+.front-bar-home svg {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+}
+
+.front-bar-home:hover {
+  background: var(--accent-ink);
+  border-color: var(--accent-ink);
+  color: #fff;
+}
+
 .front-bar-links a:not(.btn) {
   font-size: 12.5px;
   font-weight: 600;
