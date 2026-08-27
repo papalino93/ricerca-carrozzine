@@ -34,10 +34,10 @@ function oraDiScandicci(): { giorno: string; data: string; ora: string } {
  * scadenze — che nella pagina dedicata non hanno un tetto — qui ne
  * hanno uno. */
 const PREVIEW_CAP: Record<string, number> = {
-  scadenze: 4,
-  guasto: 3,
-  da_verificare: 3,
-  da_pulire: 2,
+  scadenze: 5,
+  guasto: 4,
+  da_verificare: 4,
+  da_pulire: 3,
   lunghi: 3,
 };
 
@@ -161,22 +161,24 @@ export default async function ReceptionPage() {
   return (
     <div className="desk">
       <div className="desk-inner">
-        <div className="desk-top">
-          <Link href="/" className="desk-brand">
-            <span className="desk-brand-chip">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={settings?.logoUrl || "/logo.png"} alt="Medical Center" />
-            </span>
-          </Link>
-          <div className="desk-top-right">
-            <DeskClock weather={weather} iniziale={oraDiScandicci()} />
-            <Link href="/admin" className="desk-admin-link">
-              Amministrazione ↗
+        <div className="desk-header">
+          <div className="desk-top">
+            <Link href="/" className="desk-brand">
+              <span className="desk-brand-chip">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={settings?.logoUrl || "/logo.png"} alt="Medical Center" />
+              </span>
             </Link>
+            <div className="desk-top-right">
+              <DeskClock weather={weather} iniziale={oraDiScandicci()} />
+              <Link href="/admin" className="desk-admin-link">
+                Amministrazione ↗
+              </Link>
+            </div>
           </div>
-        </div>
 
-        <DeskSearch />
+          <DeskSearch />
+        </div>
 
         {datiParziali ? (
           <div className="banner error" style={{ marginBottom: 16 }}>

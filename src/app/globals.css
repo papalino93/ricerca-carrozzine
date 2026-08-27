@@ -9,10 +9,11 @@
   --accent: #175c22;
   --accent-ink: #0f401a;
   --accent-bg: #e7f0e3;
-  /* Stesso verde scuro della schermata di avvio PWA e delle icone (vedi
-     manifest.ts, icon-512.png): un solo verde scuro in tutta l'identità,
-     non uno per l'intestazione e uno per il resto. */
-  --header-dark: #16302e;
+  /* Verde campionato dal logo vero (settings.logoUrl): non un verde
+     scelto a occhio, ma lo stesso colore della scritta "Medical Center"
+     che sta nel riquadro bianco qui sopra — così i due non stonano fra
+     loro. È leggermente più puro/acceso di --accent, che ha più blu. */
+  --header-dark: #0e4a0d;
 
   --ok-fg: #1f7a3d;
   --ok-bg: #e4f4e8;
@@ -223,7 +224,7 @@ h1 {
 }
 
 .desk-inner {
-  max-width: 1140px;
+  max-width: 1440px;
   width: 100%;
   margin: 0 auto;
   /* Occupa l'altezza rimasta e distribuisce lo spazio: su schermo alto la
@@ -251,21 +252,26 @@ h1 {
   min-width: 0;
 }
 
-/* Barra scura a piena larghezza: prima l'intestazione era sullo stesso
-   sfondo chiaro di tutta la pagina e si confondeva con quello che c'era
-   sotto. Il verde scuro la stacca subito come "testata" della schermata,
-   coerente col resto dell'identità (favicon, icone PWA) che già usa
-   questo verde per i fondi scuri. */
+/* Barra scura a piena larghezza, logo/meteo/amministrazione E la ricerca
+   dentro lo stesso riquadro: prima l'intestazione era sullo stesso sfondo
+   chiaro di tutta la pagina e si confondeva con quello che c'era sotto, e
+   la ricerca stava fuori, separata. Il verde la stacca subito come
+   "testata" della schermata — stesso verde del pulsante "Cerca" qui
+   dentro, non un verde a parte. */
+.desk-header {
+  background: var(--header-dark);
+  border-radius: 20px;
+  padding: 18px 20px 20px;
+  margin-bottom: 14px;
+}
+
 .desk-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
-  background: var(--header-dark);
-  border-radius: 20px;
-  padding: 16px 22px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
 .desk-brand {
@@ -322,7 +328,7 @@ h1 {
     var(--surface);
   border: 1px solid var(--line);
   border-radius: 18px;
-  padding: 11px 6px;
+  padding: 9px 5px;
   box-shadow: 0 1px 2px rgba(23, 48, 27, 0.05), 0 10px 26px -20px rgba(23, 48, 27, 0.35);
 }
 
@@ -333,7 +339,7 @@ h1 {
   justify-content: center;
   min-width: 0;
   flex: 1 1 auto;
-  padding: 0 14px;
+  padding: 0 11px;
 }
 
 /* La riga divisoria appartiene alla colonna che la precede: se una colonna
@@ -377,8 +383,8 @@ h1 {
 }
 
 .deskw-icon {
-  width: 30px;
-  height: 30px;
+  width: 25px;
+  height: 25px;
   flex-shrink: 0;
   color: var(--accent);
   display: flex;
@@ -387,15 +393,15 @@ h1 {
 }
 
 .deskw-icon svg {
-  width: 27px;
-  height: 27px;
+  width: 22px;
+  height: 22px;
 }
 
 .deskw-big {
   display: flex;
   align-items: flex-start;
   font-family: var(--heading);
-  font-size: 27px;
+  font-size: 23px;
   font-weight: 700;
   letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
@@ -408,7 +414,7 @@ h1 {
    sbilancia il numero, che è il dato da leggere. */
 .deskw-big i {
   font-style: normal;
-  font-size: 16px;
+  font-size: 14px;
   line-height: 1;
   margin-top: 2px;
 }
@@ -432,16 +438,16 @@ h1 {
 }
 
 .deskw-hour {
-  font-size: 25px;
+  font-size: 21px;
   letter-spacing: -0.02em;
-  min-height: 28px;
+  min-height: 24px;
 }
 
 .deskw-foot {
   display: flex;
   align-items: baseline;
   gap: 6px;
-  font-size: 11.5px;
+  font-size: 11px;
   color: var(--ink-soft);
   min-width: 0;
   min-height: 16px;
@@ -568,7 +574,6 @@ h1 {
   border: 1px solid var(--line);
   border-radius: 16px;
   padding: 11px 12px 11px 20px;
-  margin-bottom: 20px;
   box-shadow: 0 1px 2px rgba(23, 48, 27, 0.04);
 }
 
@@ -610,7 +615,7 @@ h1 {
 .desk-tiles {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  gap: 32px;
   /* Altezza naturale, non più spartita a metà colonna: un riquadro
      "Da tenere d'occhio" con tante voci non deve più tirarsi dietro le
      quattro card, allungandole con un vuoto in mezzo. Le due colonne si
@@ -625,15 +630,18 @@ h1 {
   --c: var(--accent);
   --cbg: var(--accent-bg);
   display: block;
+  /* Sfumatura più chiara della prima versione: quella pesava troppo verso
+     il bordo della card, che risultava più cupa di quanto serva per un
+     riquadro che al centro deve restare quasi bianco. */
   background: radial-gradient(
     120% 90% at 50% 0%,
-    var(--surface) 40%,
-    color-mix(in srgb, var(--surface) 50%, var(--accent-bg)) 78%,
-    var(--accent-bg) 100%
+    var(--surface) 48%,
+    color-mix(in srgb, var(--surface) 62%, var(--accent-bg)) 82%,
+    color-mix(in srgb, var(--surface) 30%, var(--accent-bg)) 100%
   );
   border: 1px solid var(--line);
-  border-radius: 20px;
-  padding: 20px 20px 18px;
+  border-radius: 24px;
+  padding: 74px 60px 62px;
   text-decoration: none;
   color: var(--ink);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 1px 2px rgba(23, 48, 27, 0.05),
@@ -661,7 +669,7 @@ h1 {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 22px;
+  margin-bottom: 52px;
 }
 
 /* La freccia dice "si entra da qui" senza bisogno di un pulsante a parte:
@@ -670,7 +678,7 @@ h1 {
    superficie porta comunque a un'altra pagina. */
 .desk-tile-arrow {
   color: var(--line);
-  font-size: 15px;
+  font-size: 21px;
   line-height: 1;
   transition: transform 0.18s ease, color 0.18s ease;
 }
@@ -688,8 +696,8 @@ h1 {
    sottile, nessun cerchio, sfondo tenue) messi a schermo uno accanto
    all'altro. */
 .desk-tile-icon {
-  width: 46px;
-  height: 46px;
+  width: 108px;
+  height: 108px;
   border-radius: 50%;
   background: var(--c);
   color: #fff;
@@ -709,8 +717,8 @@ h1 {
 }
 
 .desk-tile-icon svg {
-  width: 23px;
-  height: 23px;
+  width: 50px;
+  height: 50px;
 }
 
 .desk-tile-info {
@@ -736,25 +744,25 @@ h1 {
 .desk-tile-label {
   display: block;
   font-family: var(--heading);
-  font-size: 19px;
+  font-size: 36px;
   font-weight: 700;
   letter-spacing: -0.01em;
 }
 
 .desk-tile-sub {
   display: block;
-  font-size: 13.5px;
+  font-size: 18px;
   color: var(--ink-soft);
-  margin-top: 4px;
-  line-height: 1.35;
+  margin-top: 9px;
+  line-height: 1.4;
 }
 
 /* Compare solo quando c'è del lavoro da fare: un numero visibile qui vuol
    sempre dire "guarda qui", mai "non c'è niente" (vedi desk-tile-sub). */
 .desk-tile-stat {
   display: block;
-  margin-top: 9px;
-  font-size: 12.5px;
+  margin-top: 18px;
+  font-size: 15.5px;
   font-weight: 700;
   color: var(--c);
 }
@@ -762,18 +770,18 @@ h1 {
 .desk-watch {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 18px;
-  padding: 18px 22px 14px;
+  border-radius: 22px;
+  padding: 32px 34px 24px;
   box-shadow: 0 1px 2px rgba(23, 48, 27, 0.04);
   display: flex;
   flex-direction: column;
   /* Non deve superare l'altezza naturale delle quattro card (vedi
      desk-tiles): oltre questa soglia le voci in più stanno dietro "Vedi
      tutto", non allungano la home rendendola più alta della griglia.
-     Tarato sulle card SENZA statistica sotto (le più basse, 152px×2+gap):
-     con la statistica le card sono più alte e il riquadro resta più
-     corto di loro, mai più lungo — l'unico verso sbagliato è l'altro. */
-  max-height: 336px;
+     Tarato sulle card SENZA statistica sotto (le più basse): con la
+     statistica le card sono più alte e il riquadro resta più corto di
+     loro, mai più lungo — l'unico verso sbagliato è l'altro. */
+  max-height: 804px;
   overflow: hidden;
   position: relative;
 }
@@ -783,12 +791,12 @@ h1 {
   align-items: baseline;
   justify-content: space-between;
   gap: 10px;
-  margin: 0 0 2px;
+  margin: 0 0 4px;
 }
 
 .desk-watch-head h2 {
   margin: 0;
-  font-size: 11px;
+  font-size: 13.5px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -796,7 +804,7 @@ h1 {
 }
 
 .desk-watch-total {
-  font-size: 11.5px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--ink-soft);
   flex-shrink: 0;
@@ -809,21 +817,21 @@ h1 {
 .desk-watch-group {
   display: flex;
   align-items: center;
-  gap: 7px;
-  margin: 14px 0 4px;
-  font-size: 11px;
+  gap: 8px;
+  margin: 21px 0 7px;
+  font-size: 13px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
 
 .desk-watch-group:first-of-type {
-  margin-top: 10px;
+  margin-top: 14px;
 }
 
 .desk-watch-group .dot {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
 }
@@ -832,8 +840,8 @@ h1 {
   background: var(--line);
   color: var(--ink-soft);
   border-radius: 999px;
-  padding: 1px 7px;
-  font-size: 10.5px;
+  padding: 2px 8px;
+  font-size: 11.5px;
 }
 
 .desk-watch-group.urgent,
@@ -879,11 +887,11 @@ h1 {
 .desk-watch li a {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 7px 0;
+  gap: 12px;
+  padding: 12px 0;
   text-decoration: none;
   color: var(--ink);
-  font-size: 13.5px;
+  font-size: 16px;
 }
 
 .desk-watch li a:hover .desk-watch-cat,
@@ -892,12 +900,12 @@ h1 {
 }
 
 .desk-watch-code {
-  font-size: 11.5px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--accent-ink);
   background: var(--accent-bg);
   border-radius: 7px;
-  padding: 3px 8px;
+  padding: 4px 10px;
   flex-shrink: 0;
   font-variant-numeric: tabular-nums;
 }
@@ -930,7 +938,7 @@ h1 {
    e infatti compare solo nei gruppi dove quel dettaglio non è lo stesso
    per tutte le righe (vedi showWhen in lib/watchlist.ts). */
 .desk-watch-when {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--ink-soft);
   flex-shrink: 0;
   white-space: nowrap;
@@ -971,7 +979,7 @@ h1 {
 }
 
 .desk-watch-more a {
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 700;
   color: var(--accent-ink);
   text-decoration: none;
@@ -987,7 +995,7 @@ h1 {
 .desk-watch-full {
   max-height: none;
   overflow: visible;
-  max-width: 640px;
+  max-width: 720px;
 }
 
 @media (max-width: 860px) {
@@ -1001,8 +1009,8 @@ h1 {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .desk-top {
-    padding: 14px 16px;
+  .desk-header {
+    padding: 14px 14px 16px;
   }
 
   .desk-top-right {
