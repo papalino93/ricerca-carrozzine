@@ -263,7 +263,9 @@ h1 {
 }
 
 .desk-brand img {
-  height: 42px;
+  /* 56px e non 42: accanto al riquadro meteo, che ha più peso visivo
+     (icone, numeri grandi, tre colonne), il logo a 42px si perdeva. */
+  height: 56px;
   width: auto;
   max-width: 45vw;
   object-fit: contain;
