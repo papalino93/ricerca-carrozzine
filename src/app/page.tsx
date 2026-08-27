@@ -53,9 +53,30 @@ function daysSince(iso: string): number {
   return -daysUntil(iso);
 }
 
-/** Oltre questa durata un noleggio va ricontrollato: stessa soglia usata
- * dalla sezione "Attenzione" del magazzino. */
-const NOLEGGIO_LUNGO_GG = 30;
+/** Oltre questa durata un noleggio merita una telefonata: il contratto va
+ * rinnovato, chiuso o l'ausilio recuperato.
+ *
+ * Sei mesi e non un mese: qui la durata mediana di un noleggio è di circa
+ * sei settimane, quindi "oltre trenta giorni" descrive la normalità — due
+ * noleggi su tre — e segnalarli tutti significa non segnalare niente. */
+const NOLEGGIO_LUNGO_GG = 180;
+
+/** Quante righe al massimo può occupare ciascuna categoria non urgente.
+ *
+ * Serve perché le categorie non sono grandi uguali: i noleggi lunghi sono
+ * decine, i guasti tre. Con un'unica classifica per urgenza i primi
+ * riempirebbero da soli tutto il riquadro e i secondi non comparirebbero
+ * mai, che è esattamente il contrario di ciò che l'elenco deve fare —
+ * mostrare le cose su cui si può agire adesso. Le scadenze vere (rientri e
+ * consegne) non hanno tetto: se sono tante, sono tante. */
+const MAX_GUASTI = 3;
+const MAX_DA_VERIFICARE = 3;
+const MAX_DA_PULIRE = 2;
+const MAX_NOLEGGI_LUNGHI = 3;
+
+/** Righe mostrate: oltre questa soglia l'elenco smette di essere una
+ * scorsa d'occhio e diventa una pagina da leggere. */
+const MAX_RIGHE = 10;
 
 interface WatchRow {
   code: string;
@@ -64,8 +85,9 @@ interface WatchRow {
   /** Vero per ciò che è già scaduto: si colora di rosso. */
   urgent: boolean;
   href: string;
-  /** Per ordinare: più è basso, più è urgente. */
-  rank: number;
+  /** Solo per le scadenze, che si ordinano fra loro: più è basso, più è
+   * urgente. Gli altri gruppi hanno già un ordine proprio. */
+  rank?: number;
 }
 
 export default async function ReceptionPage() {
@@ -110,23 +132,31 @@ export default async function ReceptionPage() {
   const soglia = settings?.sogliaPremioPunti ?? 0;
   const oltreSoglia = soglia > 0 ? clients.filter((c) => c.punti >= soglia).length : 0;
 
-  // "Da tenere d'occhio": ciò che richiede una decisione oggi e che
-  // altrimenti si scoprirebbe solo entrando nelle singole pagine. Ordinato
-  // per urgenza reale, non per tipo. Ogni riga porta al record: il codice o
-  // il numero di scheda finisce nella ricerca della pagina di destinazione.
-  const watch: WatchRow[] = [];
+  // "Da tenere d'occhio": le cose su cui si può agire oggi e che
+  // altrimenti si scoprirebbero solo entrando pagina per pagina. Ogni riga
+  // porta al record: il codice dell'ausilio o il numero di scheda finisce
+  // nella ricerca della pagina di destinazione.
+  //
+  // L'elenco si costruisce per gruppi, non con un'unica classifica: prima
+  // le scadenze (che non hanno tetto), poi il magazzino fermo, infine i
+  // noleggi che durano da troppo. Vedi i MAX_* sopra per il perché.
 
-  // Un dispositivo può rientrare in più casi (fuori data E oltre 30 giorni):
-  // si segnala una volta sola, con il motivo più grave.
+  // 1. Scadenze vere: rientri oltre la data concordata e consegne di
+  //    commesse in ritardo o imminenti. Fra loro si ordinano per urgenza,
+  //    perché un rientro scaduto da tre giorni viene prima di una consegna
+  //    prevista fra due.
+  const scadenze: WatchRow[] = [];
+
+  // Un ausilio può ricadere in più casi (fuori data E in noleggio da mesi):
+  // va segnalato una volta sola, con il motivo più grave.
   const gia = new Set<string>();
 
-  // 1. Rientri oltre la data concordata.
   for (const d of attivi) {
     if (d.stato !== "noleggiato" || !d.alPrevisto) continue;
     const giorni = daysUntil(d.alPrevisto);
     if (giorni > 3) continue;
     gia.add(d.codice);
-    watch.push({
+    scadenze.push({
       code: d.codice,
       who: `${d.cliente ?? "—"} — rientro`,
       when: giorni < 0 ? `scaduto da ${-giorni} gg` : giorni === 0 ? "rientro oggi" : fmtDate(d.alPrevisto),
@@ -136,12 +166,11 @@ export default async function ReceptionPage() {
     });
   }
 
-  // 2. Consegne di commesse in scadenza o già in ritardo.
   for (const c of commesse) {
     if (c.stato === "ritirata" || !c.consegnaPrevista) continue;
     const giorni = daysUntil(c.consegnaPrevista);
     if (giorni > 7) continue;
-    watch.push({
+    scadenze.push({
       code: c.numero,
       who: `${c.cliente} — ${c.riparazione && !c.vendita ? "riparazione" : "commessa"}`,
       when: giorni < 0 ? `in ritardo di ${-giorni} gg` : giorni === 0 ? "consegna oggi" : fmtDate(c.consegnaPrevista),
@@ -151,41 +180,47 @@ export default async function ReceptionPage() {
     });
   }
 
-  // 3. Noleggi che durano da oltre un mese: non sono in errore, ma vanno
-  // ricontrollati (l'ausilio è fuori da tanto e spesso il contratto va
-  // rinnovato o chiuso).
-  for (const d of attivi) {
-    if (d.stato !== "noleggiato" || !d.dal || gia.has(d.codice)) continue;
-    const giorni = daysSince(d.dal);
-    if (giorni <= NOLEGGIO_LUNGO_GG) continue;
-    gia.add(d.codice);
-    watch.push({
+  scadenze.sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0));
+
+  // 2. Magazzino fermo: ausili che esistono ma non si possono noleggiare
+  //    finché qualcuno non ci mette mano. Sono lavoro arretrato, ed è il
+  //    motivo per cui "52 disponibili" non è tutta la storia.
+  const fermi = (stato: "guasto" | "da_verificare" | "da_pulire", etichetta: string, max: number) =>
+    attivi
+      .filter((d) => d.stato === stato)
+      .slice(0, max)
+      .map<WatchRow>((d) => ({
+        code: d.codice,
+        who: [d.marca, d.modello].filter(Boolean).join(" ") || d.categoria,
+        when: etichetta,
+        urgent: false,
+        href: `/noleggi?q=${encodeURIComponent(d.codice)}`,
+      }));
+
+  const magazzino = [
+    ...fermi("guasto", "guasto", MAX_GUASTI),
+    ...fermi("da_verificare", "da verificare", MAX_DA_VERIFICARE),
+    ...fermi("da_pulire", "da sanificare", MAX_DA_PULIRE),
+  ];
+
+  // 3. Noleggi fuori da molto tempo: non sono un errore, ma prima o poi
+  //    vanno richiamati. Si mostrano i più vecchi, che sono anche quelli
+  //    per cui la telefonata è più tardiva.
+  const lunghi = attivi
+    .filter((d) => d.stato === "noleggiato" && d.dal && !gia.has(d.codice))
+    .map((d) => ({ d, giorni: daysSince(d.dal as string) }))
+    .filter((x) => x.giorni > NOLEGGIO_LUNGO_GG)
+    .sort((a, b) => b.giorni - a.giorni)
+    .slice(0, MAX_NOLEGGI_LUNGHI)
+    .map<WatchRow>(({ d, giorni }) => ({
       code: d.codice,
       who: `${d.cliente ?? "—"} — noleggio lungo`,
       when: `da ${giorni} gg`,
       urgent: false,
       href: `/noleggi?q=${encodeURIComponent(d.codice)}`,
-      // Dopo le scadenze vere, ma prima delle segnalazioni di magazzino;
-      // fra loro, prima i noleggi che durano da più tempo.
-      rank: 20 - Math.min(giorni / 365, 1),
-    });
-  }
+    }));
 
-  // 4. Ausili fermi in magazzino perché guasti o da verificare.
-  for (const d of attivi) {
-    if (d.stato !== "da_verificare" && d.stato !== "guasto") continue;
-    watch.push({
-      code: d.codice,
-      who: [d.marca, d.modello].filter(Boolean).join(" ") || d.categoria,
-      when: d.stato === "guasto" ? "guasto" : "da verificare",
-      urgent: false,
-      href: `/noleggi?q=${encodeURIComponent(d.codice)}`,
-      rank: d.stato === "guasto" ? 40 : 50,
-    });
-  }
-
-  watch.sort((a, b) => a.rank - b.rank);
-  const watchTop = watch.slice(0, 10);
+  const watchTop = [...scadenze, ...magazzino, ...lunghi].slice(0, MAX_RIGHE);
 
   const TILES = [
     {
