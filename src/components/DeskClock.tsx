@@ -5,8 +5,9 @@ import type { Weather } from "@/lib/weather";
 import { WeatherIcon } from "./WeatherIcon";
 
 /**
- * Riquadro in cima alla home: meteo di Scandicci (adesso, minima/massima di
- * oggi e previsione di domani) accanto a data e ora.
+ * Riquadro in cima alla home: meteo di Scandicci (adesso e domani) accanto a
+ * data e ora, in tre colonne con la stessa struttura — etichetta, numero
+ * grande, dettaglio sotto.
  *
  * Data e ora sono rese solo lato client: il server gira su fuso UTC, quindi
  * la data calcolata lì sarebbe quella sbagliata nelle ore serali italiane, e
@@ -37,50 +38,72 @@ export function DeskClock({ weather }: { weather: Weather | null }) {
   return (
     <div className="deskw">
       {weather ? (
-        <div className="deskw-now">
-          <span className="deskw-now-icon">
-            <WeatherIcon tipo={weather.icona} notte={weather.notte} />
+        <div className="deskw-col">
+          <span className="deskw-label">
+            <svg viewBox="0 0 24 24" aria-hidden="true" className="deskw-pin">
+              <path d="M12 21s6.4-6 6.4-10.4a6.4 6.4 0 1 0-12.8 0C5.6 15 12 21 12 21Z" />
+              <circle cx="12" cy="10.4" r="2.3" />
+            </svg>
+            Scandicci
           </span>
-          <span className="deskw-now-txt">
-            <b>
+          <span className="deskw-row">
+            <span className="deskw-icon">
+              <WeatherIcon tipo={weather.icona} notte={weather.notte} />
+            </span>
+            <span className="deskw-big">
               {weather.adesso}
-              <i>°</i>
-            </b>
-            <span className="deskw-now-desc">{weather.descrizione}</span>
+              <i>&deg;</i>
+            </span>
+          </span>
+          <span className="deskw-foot">
+            <span className="deskw-desc">{weather.descrizione}</span>
             {weather.oggi ? (
               <span className="deskw-range">
                 <i className="down" aria-hidden="true">
-                  ↓
+                  &darr;
                 </i>
-                {weather.oggi.min}°
+                {weather.oggi.min}&deg;
                 <i className="up" aria-hidden="true">
-                  ↑
+                  &uarr;
                 </i>
-                {weather.oggi.max}°
+                {weather.oggi.max}&deg;
               </span>
             ) : null}
           </span>
         </div>
       ) : null}
 
-      <div className="deskw-time">
-        <span className="deskw-day">{giorno}</span>
-        <span className="deskw-hour">{ora || " "}</span>
-        <span className="deskw-date">{data || " "}</span>
+      <div className="deskw-col">
+        <span className="deskw-label">{giorno}</span>
+        <span className="deskw-row">
+          <span className="deskw-big deskw-hour">{ora || " "}</span>
+        </span>
+        <span className="deskw-foot">
+          <span className="deskw-desc">{data || " "}</span>
+        </span>
       </div>
 
       {weather?.domani ? (
-        <div className="deskw-tomorrow">
-          <span className="deskw-tomorrow-label">Domani</span>
-          <span className="deskw-tomorrow-row">
-            <span className="deskw-tomorrow-icon">
+        <div className="deskw-col">
+          <span className="deskw-label">Domani</span>
+          <span className="deskw-row">
+            <span className="deskw-icon">
               <WeatherIcon tipo={weather.domani.icona} />
             </span>
-            <span className="deskw-tomorrow-temp">
-              {weather.domani.min}° / <b>{weather.domani.max}°</b>
+            <span className="deskw-big">
+              {weather.domani.max}
+              <i>&deg;</i>
             </span>
           </span>
-          <span className="deskw-tomorrow-desc">{weather.domani.descrizione}</span>
+          <span className="deskw-foot">
+            <span className="deskw-desc">{weather.domani.descrizione}</span>
+            <span className="deskw-range">
+              <i className="down" aria-hidden="true">
+                &darr;
+              </i>
+              {weather.domani.min}&deg;
+            </span>
+          </span>
         </div>
       ) : null}
     </div>
