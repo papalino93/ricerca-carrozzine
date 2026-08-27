@@ -1,10 +1,8 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { STATUS_COLOR, STATUS_OPTIONS, type Device, type DeviceStatus } from "@/lib/device-types";
 import { DeviceCard } from "./DeviceCard";
-import { BrandHeader } from "./BrandHeader";
 import { StatTiles } from "./StatTiles";
 import { DocumentPanel } from "./DocumentPanel";
 import { QuickRentModal } from "./QuickRentModal";
@@ -33,7 +31,6 @@ function clamp(v: number, a: number, b: number): number {
 
 interface SearchClientProps {
   initialDevices: Device[];
-  logoUrl?: string | null;
   categories: string[];
   tariffe: Tariffa[];
   /** Testo già digitato nella ricerca della home: arriva come parametro
@@ -56,7 +53,6 @@ const ALL_STATUSES = new Set(STATUS_OPTIONS.map((o) => o.key));
 
 export function SearchClient({
   initialDevices,
-  logoUrl,
   categories,
   tariffe,
   initialQuery,
@@ -262,15 +258,15 @@ export function SearchClient({
 
   return (
     <div className="wrap">
-      <BrandHeader logoUrl={logoUrl} eyebrow="Magazzino noleggio" />
+      {/* Niente intestazione di marca qui dentro: la FrontBar sopra la
+          pagina porta già logo e — soprattutto — il tasto "← Home", che
+          prima su questa pagina esisteva solo come minuscolo collegamento
+          testuale nel sottotitolo, mentre sulle altre era un pulsante. */}
       <header className="page-header">
         <div className="top-nav">
           <h1>Trova l&apos;ausilio giusto</h1>
-          <Link href="/admin">Area amministrazione →</Link>
         </div>
-        <p className="sub">
-          <Link href="/">← Home</Link> · {devices.length} ausili in magazzino
-        </p>
+        <p className="sub">{devices.length} ausili in magazzino</p>
       </header>
 
       <div className="panel hero-search">

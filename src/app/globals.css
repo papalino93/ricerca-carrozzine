@@ -932,6 +932,72 @@ h1 {
   }
 }
 
+/* ---------- Scheletro di caricamento ---------- */
+/* Vedi PageSkeleton.tsx: compare nell'istante del clic e viene sostituito
+   dai dati veri appena Google Sheets risponde. Volutamente sobrio — deve
+   dire "sto caricando", non attirare l'attenzione. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skel-bar {
+  background: linear-gradient(90deg, var(--line) 0%, var(--bg) 50%, var(--line) 100%);
+  background-size: 200% 100%;
+  border-radius: 8px;
+  animation: skel-slide 1.4s ease-in-out infinite;
+}
+
+/* Chi ha chiesto meno animazioni vede una barra ferma, non un lampeggio. */
+@media (prefers-reduced-motion: reduce) {
+  .skel-bar {
+    animation: none;
+  }
+}
+
+@keyframes skel-slide {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.skel-title {
+  height: 30px;
+  width: min(260px, 60%);
+  margin: 26px 0 10px;
+  border-radius: 8px;
+  background: var(--line);
+}
+
+.skel-sub {
+  height: 15px;
+  width: min(360px, 80%);
+  border-radius: 8px;
+  background: var(--line);
+  opacity: 0.7;
+}
+
+.skel-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+}
+
+.skel-row + .skel-row {
+  border-top: 1px solid var(--line);
+}
+
 /* ---------- FrontBar (Commesse/Fidelity/Clienti da Operatore banco) ---------- */
 .front-bar {
   display: flex;
@@ -942,6 +1008,11 @@ h1 {
   border-bottom: 1px solid var(--line);
   background: var(--surface);
   flex-wrap: wrap;
+  /* Appiccicata in alto: con 361 clienti in elenco, il tasto per tornare
+     alla home sparirebbe al primo scorrimento proprio quando serve. */
+  position: sticky;
+  top: 0;
+  z-index: 30;
 }
 
 .front-bar-brand {

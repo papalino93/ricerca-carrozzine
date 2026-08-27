@@ -3,6 +3,7 @@ import { getSettings } from "@/lib/settings";
 import { listCategories } from "@/lib/categories";
 import { listTariffe } from "@/lib/tariffe";
 import { SearchClient } from "@/components/SearchClient";
+import { FrontBar } from "@/components/FrontBar";
 
 export const dynamic = "force-dynamic";
 
@@ -31,12 +32,17 @@ export default async function HomePage({
   ]);
 
   if (devicesResult.error) {
+    // Anche qui la FrontBar: senza, da una pagina in errore non ci sarebbe
+    // modo di tornare alla home se non con il tasto indietro del browser.
     return (
-      <div className="wrap">
-        <div className="banner error">
-          Impossibile leggere il magazzino da Google Sheets: {devicesResult.error}
+      <>
+        <FrontBar logoUrl={logoUrl} />
+        <div className="wrap">
+          <div className="banner error">
+            Impossibile leggere il magazzino da Google Sheets: {devicesResult.error}
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
@@ -45,12 +51,14 @@ export default async function HomePage({
   const devices = devicesResult.devices.filter((d) => !d.archiviato);
 
   return (
-    <SearchClient
-      initialDevices={devices}
-      logoUrl={logoUrl}
-      categories={categories}
-      tariffe={tariffe}
-      initialQuery={q}
-    />
+    <>
+      <FrontBar logoUrl={logoUrl} />
+      <SearchClient
+        initialDevices={devices}
+        categories={categories}
+        tariffe={tariffe}
+        initialQuery={q}
+      />
+    </>
   );
 }
