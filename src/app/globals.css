@@ -484,6 +484,35 @@ h1 {
   margin-left: 5px;
 }
 
+/* Massima/minima di oggi, impilate accanto al numero grande invece che in
+   riga sotto la descrizione: la colonna "oggi" era più larga delle altre
+   due proprio per quella riga. Stessi colori delle frecce di deskw-range,
+   ma qui senza freccia: la posizione (sopra/sotto) fa da sola il lavoro
+   di dire quale sia la massima e quale la minima. */
+.deskw-today-range {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  flex-shrink: 0;
+  margin-left: 1px;
+  padding-left: 9px;
+  border-left: 1px solid var(--line);
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.deskw-today-max {
+  color: var(--clean-fg);
+}
+
+.deskw-today-min {
+  color: var(--rent-fg);
+}
+
 /* Su telefono il riquadro prende tutta la riga e le tre colonne si
    spartiscono lo spazio in parti uguali: niente colonne nascoste, quindi
    niente spazio vuoto accanto a un separatore. */
@@ -532,6 +561,11 @@ h1 {
   .deskw-foot {
     font-size: 11.5px;
     gap: 4px;
+  }
+
+  .deskw-today-range {
+    font-size: 10.5px;
+    padding-left: 7px;
   }
 }
 

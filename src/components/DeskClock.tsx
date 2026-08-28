@@ -64,21 +64,19 @@ export function DeskClock({
               {weather.adesso}
               <i>&deg;</i>
             </span>
+            {weather.oggi ? (
+              // Massima sopra, minima sotto (mai il contrario): a differenza
+              // della freccia unica di "Domani", qui ci sono due valori
+              // vicini e senza freccia — l'ordine verticale è l'unico modo
+              // per non farli sembrare intercambiabili.
+              <span className="deskw-today-range">
+                <span className="deskw-today-max">{weather.oggi.max}&deg;</span>
+                <span className="deskw-today-min">{weather.oggi.min}&deg;</span>
+              </span>
+            ) : null}
           </span>
           <span className="deskw-foot">
             <span className="deskw-desc">{weather.descrizione}</span>
-            {weather.oggi ? (
-              <span className="deskw-range">
-                <i className="down" aria-hidden="true">
-                  &darr;
-                </i>
-                {weather.oggi.min}&deg;
-                <i className="up" aria-hidden="true">
-                  &uarr;
-                </i>
-                {weather.oggi.max}&deg;
-              </span>
-            ) : null}
           </span>
         </div>
       ) : null}
