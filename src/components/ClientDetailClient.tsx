@@ -1,0 +1,429 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import type { ClientRecord } from "@/lib/clients";
+import type { HistoryEvent } from "@/lib/history";
+import type { Device } from "@/lib/device-types";
+import { FASCICOLO_STATO_LABEL, type FascicoloRecord } from "@/lib/fascicoli-types";
+import { networkErrorMessage, readJson } from "@/lib/fetch-json";
+import { Toast } from "./Toast";
+
+interface ClientDetailClientProps {
+  initialClient: ClientRecord;
+  history: HistoryEvent[];
+  currentDevice: Device | null;
+  fascicoli: FascicoloRecord[];
+}
+
+const EVENT_LABEL: Record<HistoryEvent["evento"], string> = {
+  noleggio: "Noleggio",
+  restituzione: "Restituzione",
+  sanificazione: "Sanificazione",
+};
+
+function fmtDate(iso: string): string {
+  if (!iso) return "—";
+  const datePart = iso.includes("T") ? iso.slice(0, 10) : iso;
+  const [y, m, d] = datePart.split("-");
+  if (!y || !m || !d) return iso;
+  return `${d}/${m}/${y}`;
+}
+
+function anagraficaFromClient(c: ClientRecord) {
+  return {
+    cognome: c.cognome ?? "",
+    nomeProprio: c.nomeProprio ?? "",
+    codiceFiscale: c.codiceFiscale ?? "",
+    dataNascita: c.dataNascita ?? "",
+    luogoNascita: c.luogoNascita ?? "",
+    indirizzo: c.indirizzo ?? "",
+    cap: c.cap ?? "",
+    localita: c.localita ?? "",
+    provincia: c.provincia ?? "",
+    telefono: c.telefono ?? "",
+    cellulare: c.cellulare ?? "",
+    email: c.email ?? "",
+  };
+}
+
+export function ClientDetailClient({ initialClient, history, currentDevice, fascicoli }: ClientDetailClientProps) {
+  const router = useRouter();
+  const [client, setClient] = useState(initialClient);
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState(() => anagraficaFromClient(initialClient));
+  const [savingAnagrafica, setSavingAnagrafica] = useState(false);
+  const [puntiDelta, setPuntiDelta] = useState("");
+  const [adjustingPunti, setAdjustingPunti] = useState(false);
+  const [assigningTessera, setAssigningTessera] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+
+  function showToast(msg: string) {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2400);
+  }
+
+  function startEdit() {
+    setForm(anagraficaFromClient(client));
+    setEditing(true);
+  }
+
+  async function handleSaveAnagrafica(e: React.FormEvent) {
+    e.preventDefault();
+    setSavingAnagrafica(true);
+    try {
+      const res = await fetch("/api/clienti", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nome: client.nome,
+          azione: "anagrafica",
+          patch: {
+            cognome: form.cognome || null,
+            nomeProprio: form.nomeProprio || null,
+            codiceFiscale: form.codiceFiscale || null,
+            dataNascita: form.dataNascita || null,
+            luogoNascita: form.luogoNascita || null,
+            indirizzo: form.indirizzo || null,
+            cap: form.cap || null,
+            localita: form.localita || null,
+            provincia: form.provincia || null,
+            telefono: form.telefono || null,
+            cellulare: form.cellulare || null,
+            email: form.email || null,
+          },
+        }),
+      });
+      const body = await readJson(res);
+      if (!res.ok) throw new Error(body.error || "Salvataggio non riuscito");
+      setClient(body.client);
+      setEditing(false);
+      showToast("Anagrafica aggiornata");
+    } catch (err) {
+      showToast(networkErrorMessage(err));
+    } finally {
+      setSavingAnagrafica(false);
+    }
+  }
+
+  async function handleAdjustPunti(sign: 1 | -1) {
+    const n = Number(puntiDelta.replace(",", "."));
+    if (!Number.isFinite(n) || n <= 0) {
+      showToast("Scrivi prima quanti punti, nel campo qui accanto");
+      return;
+    }
+    setAdjustingPunti(true);
+    try {
+      const res = await fetch("/api/clienti", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nome: client.nome, delta: Math.trunc(n) * sign }),
+      });
+      const body = await readJson(res);
+      if (!res.ok) throw new Error(body.error || "Aggiornamento non riuscito");
+      const updated = (body.clients as ClientRecord[]).find((c) => c.nome === client.nome);
+      if (updated) setClient(updated);
+      setPuntiDelta("");
+      showToast("Punti aggiornati");
+    } catch (err) {
+      showToast(networkErrorMessage(err));
+    } finally {
+      setAdjustingPunti(false);
+    }
+  }
+
+  async function handleAssignTessera() {
+    setAssigningTessera(true);
+    try {
+      const res = await fetch("/api/clienti", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nome: client.nome, azione: "tessera" }),
+      });
+      const body = await readJson(res);
+      if (!res.ok) throw new Error(body.error || "Assegnazione non riuscita");
+      setClient(body.client);
+      showToast(`Tessera n. ${body.client.fidelity} assegnata`);
+    } catch (err) {
+      showToast(networkErrorMessage(err));
+    } finally {
+      setAssigningTessera(false);
+    }
+  }
+
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/clienti?nome=${encodeURIComponent(client.nome)}`, { method: "DELETE" });
+      const body = await readJson(res);
+      if (!res.ok) throw new Error(body.error || "Eliminazione non riuscita");
+      router.push("/clienti");
+    } catch (err) {
+      showToast(networkErrorMessage(err));
+      setDeleting(false);
+    }
+  }
+
+  return (
+    <div className="wrap wide">
+      <header className="page-header">
+        <div className="page-header-text">
+          <h1>{client.nome}</h1>
+          <p className="sub">
+            {client.codiceFiscale ? `CF ${client.codiceFiscale}` : "Codice fiscale non registrato"}
+            {client.fidelity ? ` · Tessera fedeltà n. ${client.fidelity}` : ""}
+          </p>
+        </div>
+      </header>
+
+      {currentDevice ? (
+        <div className="banner" style={{ marginBottom: 16 }}>
+          Noleggio in corso: <b>{currentDevice.codice}</b> — {currentDevice.categoria} {currentDevice.marca}{" "}
+          {currentDevice.modello}
+        </div>
+      ) : null}
+
+      <div className="panel">
+        <div className="page-title-row" style={{ marginBottom: 12 }}>
+          <h2 style={{ margin: 0 }}>Anagrafica</h2>
+          {!editing ? (
+            <button className="btn" type="button" onClick={startEdit}>
+              ✏️ Modifica
+            </button>
+          ) : null}
+        </div>
+
+        {!editing ? (
+          <div className="form-grid">
+            <div className="field">
+              <label>Nome e cognome</label>
+              <div>{[client.nomeProprio, client.cognome].filter(Boolean).join(" ") || client.nome}</div>
+            </div>
+            <div className="field">
+              <label>Codice fiscale</label>
+              <div>{client.codiceFiscale || "—"}</div>
+            </div>
+            <div className="field">
+              <label>Data e luogo di nascita</label>
+              <div>
+                {client.dataNascita ? fmtDate(client.dataNascita) : "—"}
+                {client.luogoNascita ? ` a ${client.luogoNascita}` : ""}
+              </div>
+            </div>
+            <div className="field">
+              <label>Telefono / Cellulare</label>
+              <div>{[client.telefono, client.cellulare].filter(Boolean).join(" · ") || "—"}</div>
+            </div>
+            <div className="field">
+              <label>Email</label>
+              <div>{client.email || "—"}</div>
+            </div>
+            <div className="field" style={{ gridColumn: "1 / -1" }}>
+              <label>Indirizzo</label>
+              <div>
+                {client.indirizzo
+                  ? `${client.indirizzo}${client.localita ? `, ${client.cap ? `${client.cap} ` : ""}${client.localita}${client.provincia ? ` (${client.provincia})` : ""}` : ""}`
+                  : "—"}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={handleSaveAnagrafica}>
+            <div className="form-grid">
+              <div className="field">
+                <label>Nome proprio</label>
+                <input value={form.nomeProprio} onChange={(e) => setForm({ ...form, nomeProprio: e.target.value })} />
+              </div>
+              <div className="field">
+                <label>Cognome</label>
+                <input value={form.cognome} onChange={(e) => setForm({ ...form, cognome: e.target.value })} />
+              </div>
+              <div className="field">
+                <label>Codice fiscale</label>
+                <input
+                  value={form.codiceFiscale}
+                  onChange={(e) => setForm({ ...form, codiceFiscale: e.target.value.toUpperCase() })}
+                />
+              </div>
+              <div className="field">
+                <label>Data di nascita</label>
+                <input type="date" value={form.dataNascita} onChange={(e) => setForm({ ...form, dataNascita: e.target.value })} />
+              </div>
+              <div className="field">
+                <label>Luogo di nascita</label>
+                <input value={form.luogoNascita} onChange={(e) => setForm({ ...form, luogoNascita: e.target.value })} />
+              </div>
+              <div className="field">
+                <label>Telefono</label>
+                <input value={form.telefono} onChange={(e) => setForm({ ...form, telefono: e.target.value })} />
+              </div>
+              <div className="field">
+                <label>Cellulare</label>
+                <input value={form.cellulare} onChange={(e) => setForm({ ...form, cellulare: e.target.value })} />
+              </div>
+              <div className="field">
+                <label>Email</label>
+                <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+              </div>
+              <div className="field" style={{ gridColumn: "1 / -1" }}>
+                <label>Indirizzo</label>
+                <input value={form.indirizzo} onChange={(e) => setForm({ ...form, indirizzo: e.target.value })} />
+              </div>
+              <div className="field">
+                <label>CAP</label>
+                <input value={form.cap} onChange={(e) => setForm({ ...form, cap: e.target.value })} />
+              </div>
+              <div className="field">
+                <label>Comune</label>
+                <input value={form.localita} onChange={(e) => setForm({ ...form, localita: e.target.value })} />
+              </div>
+              <div className="field">
+                <label>Provincia</label>
+                <input value={form.provincia} onChange={(e) => setForm({ ...form, provincia: e.target.value })} />
+              </div>
+            </div>
+            <div className="card-actions">
+              <button className="btn primary" type="submit" disabled={savingAnagrafica}>
+                {savingAnagrafica ? "Salvataggio…" : "Salva anagrafica"}
+              </button>
+              <button className="btn" type="button" disabled={savingAnagrafica} onClick={() => setEditing(false)}>
+                Annulla
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+
+      <div className="panel">
+        <h2>Fidelity</h2>
+        <div className="card-actions" style={{ alignItems: "center" }}>
+          <span className="punti-total">{client.punti} punti fedeltà</span>
+          <input
+            type="number"
+            min={1}
+            placeholder="Quanti punti?"
+            style={{ width: 130 }}
+            value={puntiDelta}
+            onChange={(e) => setPuntiDelta(e.target.value)}
+          />
+          <button className="btn" type="button" disabled={adjustingPunti || !puntiDelta.trim()} onClick={() => handleAdjustPunti(1)}>
+            + Aggiungi
+          </button>
+          <button className="btn" type="button" disabled={adjustingPunti || !puntiDelta.trim()} onClick={() => handleAdjustPunti(-1)}>
+            − Togli
+          </button>
+          {!client.fidelity ? (
+            <button className="btn" type="button" disabled={assigningTessera} onClick={handleAssignTessera}>
+              {assigningTessera ? "…" : "Rilascia tessera fedeltà"}
+            </button>
+          ) : null}
+        </div>
+      </div>
+
+      {fascicoli.length > 0 ? (
+        <div className="panel">
+          <h2>Fascicoli plantari</h2>
+          <ul className="search-result-list">
+            {fascicoli.map((f) => (
+              <li key={f.numero}>
+                <Link href={`/admin/fascicoli/${f.numero}`} className="search-result-item">
+                  <strong>{f.numero}</strong> · creato il {fmtDate(f.dataCreazione)}{" "}
+                  <span className={`pill fascicolo-${f.stato}`}>{FASCICOLO_STATO_LABEL[f.stato]}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      <div className="panel">
+        <h2>Storico</h2>
+        {history.length === 0 ? (
+          <p className="hint" style={{ margin: 0 }}>
+            Nessun evento registrato.
+          </p>
+        ) : (
+          <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Dispositivo</th>
+                  <th>Evento</th>
+                  <th>N. Noleggio</th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.map((e, i) => (
+                  <tr key={i}>
+                    <td>{fmtDate(e.data)}</td>
+                    <td>{e.codice}</td>
+                    <td>
+                      <span
+                        className={`pill ${
+                          e.evento === "noleggio" ? "noleggiato" : e.evento === "restituzione" ? "da_pulire" : "disponibile"
+                        }`}
+                      >
+                        {EVENT_LABEL[e.evento]}
+                      </span>
+                    </td>
+                    <td>{e.contratto ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <div className="danger-zone">
+        {!confirmingDelete ? (
+          <button
+            className="btn danger"
+            type="button"
+            onClick={() => {
+              setDeleteConfirmText("");
+              setConfirmingDelete(true);
+            }}
+          >
+            Elimina cliente dall&apos;anagrafica
+          </button>
+        ) : (
+          <div className="delete-confirm">
+            <p className="hint" style={{ margin: "0 0 8px" }}>
+              Azione irreversibile
+              {currentDevice ? ` — attenzione: ha un noleggio in corso (${currentDevice.codice}), che NON verrà toccato` : ""}.
+              Per confermare, scrivi il nome <b>{client.nome}</b> qui sotto.
+            </p>
+            <div className="card-actions">
+              <input
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder={client.nome}
+                autoFocus
+                style={{ maxWidth: 260 }}
+              />
+              <button className="btn" type="button" onClick={() => setConfirmingDelete(false)} disabled={deleting}>
+                Annulla
+              </button>
+              <button
+                className="btn danger"
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting || deleteConfirmText.trim() !== client.nome}
+              >
+                {deleting ? "Eliminazione…" : "Conferma eliminazione"}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <Toast message={toast} />
+    </div>
+  );
+}

@@ -76,7 +76,7 @@ export function FidelityView({ clients, settings, commesseHref, clientiHref }: F
                 {alPremio.map((c) => (
                   <tr key={c.nome}>
                     <td>
-                      <Link href={`${clientiHref}?q=${encodeURIComponent(c.nome)}`}>{c.nome}</Link>
+                      <Link href={`/clienti/${encodeURIComponent(c.nome)}`}>{c.nome}</Link>
                     </td>
                     <td>{c.fidelity ?? "—"}</td>
                     <td className="punti-cell">{c.punti.toLocaleString("it-IT")}</td>
@@ -108,7 +108,7 @@ export function FidelityView({ clients, settings, commesseHref, clientiHref }: F
                 {conPunti.map((c) => (
                   <tr key={c.nome}>
                     <td>
-                      <Link href={`${clientiHref}?q=${encodeURIComponent(c.nome)}`}>{c.nome}</Link>
+                      <Link href={`/clienti/${encodeURIComponent(c.nome)}`}>{c.nome}</Link>
                     </td>
                     <td>{c.fidelity ?? "—"}</td>
                     <td className="punti-cell">{c.punti.toLocaleString("it-IT")}</td>

@@ -1,5 +1,4 @@
 import { listClients } from "@/lib/clients";
-import { listHistory } from "@/lib/history";
 import { listDevices } from "@/lib/devices";
 import { ClientsClient } from "@/components/ClientsClient";
 
@@ -13,12 +12,11 @@ export default async function ClientiPage({
 }: {
   searchParams: Promise<{ q?: string }>;
 }) {
-  const [{ q }, clients, history, devices] = await Promise.all([
+  const [{ q }, clients, devices] = await Promise.all([
     searchParams,
     listClients().catch(() => []),
-    listHistory().catch(() => []),
     listDevices().catch(() => []),
   ]);
 
-  return <ClientsClient clients={clients} history={history} devices={devices} initialQuery={q} />;
+  return <ClientsClient clients={clients} devices={devices} initialQuery={q} />;
 }

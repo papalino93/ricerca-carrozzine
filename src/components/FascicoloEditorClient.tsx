@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import type { ClientRecord } from "@/lib/clients";
 import {
   calcolaCompletamento,
@@ -406,10 +407,15 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
       <div className="panel">
         {tab === "anagrafica" ? (
           <>
-            <h2>{cliente.nome}</h2>
+            <div className="page-title-row" style={{ marginBottom: 4 }}>
+              <h2 style={{ margin: 0 }}>{cliente.nome}</h2>
+              <Link href={`/clienti/${encodeURIComponent(cliente.nome)}`} className="btn-link">
+                Vedi scheda cliente completa →
+              </Link>
+            </div>
             <p className="hint">
               Questi dati sono quelli dell&apos;anagrafica clienti: modificarli qui li aggiorna ovunque, non solo su
-              questo fascicolo.
+              questo fascicolo. Nella scheda cliente trovi anche lo storico noleggi e gli altri eventuali fascicoli.
             </p>
             <div className="form-grid">
               <Field label="Codice fiscale">
@@ -1128,16 +1134,21 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
         ) : null}
       </div>
 
-      {/* Raggiungibile scorrendo fino in fondo a qualunque sezione, non solo
-          dalla savebar in cima: per riprendere in mano un fascicolo già
-          completato (es. il cliente torna e chiede un'altra copia) senza
-          dover risalire. Non finalizza — stesso comportamento libero di
-          "Anteprima / Stampa". */}
-      <div className="card-actions" style={{ justifyContent: "flex-end", marginTop: 20 }}>
-        <button type="button" className="btn" onClick={handleAnteprima}>
-          🖨️ Ristampa PDF
-        </button>
-      </div>
+      {/* Ha senso solo dopo che il fascicolo è stato generato almeno una
+          volta: "versione" cresce solo alla finalizzazione (documento/route
+          con ?finalizza=1), mai col semplice "Salva" — prima di allora non
+          c'è ancora nulla da ristampare. Raggiungibile scorrendo fino in
+          fondo a qualunque sezione, non solo dalla savebar in cima: per
+          riprendere in mano un fascicolo già completo (es. il cliente torna
+          e chiede un'altra copia) senza dover risalire. Non finalizza a sua
+          volta — stesso comportamento libero di "Anteprima / Stampa". */}
+      {fascicolo.versione > 1 ? (
+        <div className="card-actions" style={{ justifyContent: "flex-end", marginTop: 20 }}>
+          <button type="button" className="btn" onClick={handleAnteprima}>
+            🖨️ Ristampa PDF
+          </button>
+        </div>
+      ) : null}
 
       {/* Isolata dal resto, stesso pattern di DeviceDetailModal: un click qui
           non si annulla, resta a un dito di distanza dalle azioni normali. */}
