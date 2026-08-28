@@ -16,3 +16,13 @@ export function addDaysIso(iso: string, days: number): string {
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
 }
+
+/** Data (yyyy-mm-dd) nel fuso di Scandicci di un timestamp ISO completo con
+ * ora (es. "2026-08-28T00:40:00.000Z"), per confrontarla con un filtro
+ * "dal/al" scelto con un `<input type="date">`. Un semplice `.slice(0, 10)`
+ * userebbe la data UTC del timestamp: stesso problema di todayIso, un
+ * fascicolo creato fra mezzanotte e le due di notte italiane (quando in UTC
+ * è ancora "ieri") risulterebbe filtrabile sul giorno sbagliato. */
+export function localDateFromIso(iso: string): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome" }).format(new Date(iso));
+}

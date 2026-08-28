@@ -52,6 +52,15 @@ Gentile Utente, Medical Center srl con sede in Scandicci CAP 50018 Via di Scandi
 
 export const DICHIARAZIONE_CONFORMITA_TESTO = `Si dichiara che il prodotto sopra indicato è stato realizzato secondo la documentazione tecnica relativa ed è classificato, ai sensi del Regolamento (UE) 2017/745, come dispositivo medico su misura non invasivo di classe I. Non è uno strumento di misura, non è destinato a indagini cliniche, è commercializzato in confezione non sterile e soddisfa i requisiti essenziali e le disposizioni applicabili del Regolamento.`;
 
+// Attestazione fissa di chi realizza e fabbrica il dispositivo (dato
+// aziendale, non per-fascicolo): presente due volte nel documento
+// originale (dichiarazione di conformità e note informative finali), qui
+// un solo posto da tenere aggiornato se cambiano tecnico o codice fabbricante.
+export const ATTESTAZIONE_FABBRICANTE = {
+  tecnico: "Realizzati dai T.O. Amulfi Claudia — Iscrizione Albo TSRM PSTRP n. 9",
+  fabbricante: "Fabbricati da Medical Center s.r.l. (ITCA01058106)",
+};
+
 export const NOTE_INFORMATIVE_USO = {
   descrizione: `Questi presidi hanno lo scopo di migliorare l'appoggio plantare ottimizzando la postura e curando alcune patologie del soggetto. Particolare cura è stata posta nella scelta dei materiali impiegati, caratterizzati da morbidezza e tracciabilità, controllata da apposite procedure per l'individuazione dei lotti di provenienza.`,
   indicazioniUso: `Servono a prevenire e curare patologie a carico dell'apparato scheletrico. 1° giorno: un'ora d'uso. 2°-8° giorno: aumentare l'uso di un'ora al giorno. Dall'8° giorno al 1° controllo: uso quotidiano, seguendo il principio "maggior uso, maggior beneficio".`,

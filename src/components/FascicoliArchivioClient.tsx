@@ -10,6 +10,7 @@ import {
   type FascicoloStato,
 } from "@/lib/fascicoli-types";
 import { matchesQuery } from "@/lib/search-match";
+import { localDateFromIso } from "@/lib/dates";
 
 interface FascicoliArchivioClientProps {
   fascicoli: FascicoloRecord[];
@@ -54,8 +55,8 @@ export function FascicoliArchivioClient({ fascicoli }: FascicoliArchivioClientPr
     return fascicoli.filter((f) => {
       if (statiAttivi.size > 0 && !statiAttivi.has(f.stato)) return false;
       if (operatore && f.operatore !== operatore) return false;
-      if (dataDa && f.dataCreazione.slice(0, 10) < dataDa) return false;
-      if (dataA && f.dataCreazione.slice(0, 10) > dataA) return false;
+      if (dataDa && localDateFromIso(f.dataCreazione) < dataDa) return false;
+      if (dataA && localDateFromIso(f.dataCreazione) > dataA) return false;
       if (q) {
         const haystack = `${f.numero} ${f.clienteNome} ${f.clienteCF ?? ""} ${f.commessa ?? ""}`.toLowerCase();
         if (!matchesQuery(haystack, q)) return false;

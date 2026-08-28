@@ -5,6 +5,7 @@ import type { FascicoloRecord } from "@/lib/fascicoli-types";
 import { FASCICOLO_STATO_LABEL } from "@/lib/fascicoli-types";
 import {
   ALLEGATO_A_FASI,
+  ATTESTAZIONE_FABBRICANTE,
   CONDIZIONI_GENERALI_FORNITURA,
   DICHIARAZIONE_CONFORMITA_TESTO,
   INFORMATIVA_PRIVACY_FASCICOLO,
@@ -322,6 +323,11 @@ export function FascicoloDocument({ settings, cliente, fascicolo }: FascicoloDoc
         <View break>
           <Text style={styles.sectionLabel}>6 · Dichiarazione di conformità — Regolamento (UE) 2017/745</Text>
           <Text style={styles.para}>{DICHIARAZIONE_CONFORMITA_TESTO}</Text>
+          <Text style={[styles.para, { marginTop: 6 }]}>
+            {ATTESTAZIONE_FABBRICANTE.tecnico}
+            {"\n"}
+            {ATTESTAZIONE_FABBRICANTE.fabbricante}
+          </Text>
           <View style={styles.signatureRow}>
             <View style={styles.signatureBlock}>
               <View style={styles.signatureLine} />

@@ -61,7 +61,9 @@ export function FascicoloNuovoClient({ clients, fascicoli, initialClienteNome }:
     const q = query.trim().toLowerCase();
     if (!q) return [];
     return clients
-      .filter((c) => matchesQuery(`${c.nome} ${c.codiceFiscale ?? ""} ${c.telefono ?? c.cellulare ?? ""}`.toLowerCase(), q))
+      .filter((c) =>
+        matchesQuery(`${c.nome} ${c.codiceFiscale ?? ""} ${c.telefono ?? ""} ${c.cellulare ?? ""}`.toLowerCase(), q)
+      )
       .slice(0, 8);
   }, [clients, query]);
 
