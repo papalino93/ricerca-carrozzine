@@ -3134,9 +3134,8 @@ tr.clickable-row {
 
 .fascicolo-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
-  overflow-x: auto;
-  padding-bottom: 6px;
   margin-bottom: 16px;
 }
 
@@ -3245,6 +3244,16 @@ tr.clickable-row {
   width: 16px;
   height: 16px;
   flex-shrink: 0;
+}
+
+/* "Sezione successiva →": in fondo a ogni sezione, per non dover risalire
+   alla barra delle tab dopo aver scorso una scheda lunga. */
+.fascicolo-next-section {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: flex-end;
 }
 
 .fascicolo-fase-row {

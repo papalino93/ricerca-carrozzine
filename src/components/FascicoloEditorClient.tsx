@@ -290,6 +290,11 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
   }
 
   const c = fascicolo.contenuto;
+  // "Sezione successiva": la scheda ha 8 tab e alcune (Esame del piede,
+  // Produzione) sono lunghe da scorrere. Senza questo, passare alla
+  // prossima sezione significa risalire fino alla barra delle tab in cima.
+  const tabIndex = SEZIONI_FASCICOLO.findIndex((s) => s.key === tab);
+  const nextSezione = tabIndex >= 0 && tabIndex < SEZIONI_FASCICOLO.length - 1 ? SEZIONI_FASCICOLO[tabIndex + 1] : null;
   const saveLabel: Record<SaveState, { text: string; className: string }> = {
     idle: { text: "", className: "" },
     saving: { text: "⏳ Salvataggio…", className: "saving" },
@@ -340,6 +345,11 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
           </button>
         </div>
       </div>
+      <p className="hint" style={{ marginTop: -6, marginBottom: 14 }}>
+        &quot;Anteprima / Stampa&quot; è libera, non lascia traccia. &quot;Genera fascicolo&quot; e &quot;Scarica
+        PDF&quot; invece finalizzano: incrementano la versione del fascicolo (oggi alla {fascicolo.versione}ª) e, se
+        configurato, lo archiviano su Drive.
+      </p>
 
       <div className="fascicolo-tabs">
         {SEZIONI_FASCICOLO.map((s) => (
@@ -1064,6 +1074,14 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
               fascicolo: compaiono automaticamente nel PDF, non c&apos;è nulla da scrivere qui.
             </p>
           </>
+        ) : null}
+
+        {nextSezione ? (
+          <div className="fascicolo-next-section">
+            <button type="button" className="btn" onClick={() => setTab(nextSezione.key)}>
+              Sezione successiva: {nextSezione.label} →
+            </button>
+          </div>
         ) : null}
       </div>
 
