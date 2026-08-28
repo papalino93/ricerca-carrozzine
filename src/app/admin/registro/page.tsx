@@ -9,8 +9,13 @@ export const dynamic = "force-dynamic";
 // Storico già usato dalla scheda dispositivo — qui semplicemente filtrato
 // agli eventi "noleggio" e mostrato come registro unico, invece che sparso
 // su decine di schede diverse.
-export default async function RegistroPage() {
-  const [history, devices, documentLog] = await Promise.all([
+export default async function RegistroPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const [{ q }, history, devices, documentLog] = await Promise.all([
+    searchParams,
     listHistory().catch(() => []),
     listDevices().catch(() => []),
     listDocumentLog().catch(() => []),
@@ -22,5 +27,5 @@ export default async function RegistroPage() {
   // portarseli dietro fino al client per un dato che non useranno mai.
   const firmeDrive = documentLog.filter((d) => d.driveUrl);
 
-  return <RegistroClient noleggi={noleggi} devices={devices} firmeDrive={firmeDrive} />;
+  return <RegistroClient noleggi={noleggi} devices={devices} firmeDrive={firmeDrive} initialQuery={q} />;
 }

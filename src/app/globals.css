@@ -810,14 +810,22 @@ h1 {
   display: flex;
   flex-direction: column;
   /* Non deve superare l'altezza naturale delle quattro card (vedi
-     desk-tiles): oltre questa soglia le voci in più stanno dietro "Vedi
-     tutto", non allungano la home rendendola più alta della griglia.
-     Tarato sulle card SENZA statistica sotto (le più basse): con la
-     statistica le card sono più alte e il riquadro resta più corto di
-     loro, mai più lungo — l'unico verso sbagliato è l'altro. */
+     desk-tiles): oltre questa soglia le voci in più scorrono dentro
+     .desk-watch-scroll invece di allungare la home rendendola più alta
+     della griglia. Tarato sulle card SENZA statistica sotto (le più
+     basse): con la statistica le card sono più alte e il riquadro resta
+     più corto di loro, mai più lungo — l'unico verso sbagliato è l'altro. */
   max-height: 572px;
-  overflow: hidden;
-  position: relative;
+}
+
+/* Zona che scorre internamente quando le voci superano l'altezza del
+   riquadro: min-height:0 è necessario perché un figlio flex, senza,
+   ignorerebbe max-height/overflow-y del genitore e crescerebbe oltre. Testa
+   del riquadro e "Vedi tutto" restano fuori, sempre visibili. */
+.desk-watch-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .desk-watch-head {
@@ -983,32 +991,13 @@ h1 {
   font-weight: 700;
 }
 
-/* Sfuma l'ultima riga visibile invece di tagliarla di netto, quando il
-   gruppo continua oltre il bordo del riquadro, e resta piena (non
-   trasparente) nella fascia dove sta "Vedi tutto": senza quella fascia
-   piena il testo della riga sotto trapassava il link, leggibile in
-   controluce sotto le sue lettere. */
-.desk-watch-fade {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 56px;
-  background: linear-gradient(to bottom, transparent, var(--surface) 24px);
-  pointer-events: none;
-}
-
-/* Ancorato in basso con position:absolute, non con margin-top:auto: il
-   contenuto qui sopra supera apposta l'altezza del riquadro (è quello che
-   lo fa comparire), quindi in un normale flusso a colonna flex non ci
-   sarebbe mai spazio "avanzato" da spingere in fondo — "Vedi tutto"
-   finirebbe subito dopo l'ultima riga, oltre il bordo tagliato e quindi
-   invisibile. */
+/* Sotto la zona scrollabile, nel normale flusso della colonna flex: con le
+   voci in eccesso ora dentro .desk-watch-scroll, "Vedi tutto" non deve più
+   restare ancorato in fondo al riquadro con position:absolute — è già
+   l'ultima cosa della colonna. */
 .desk-watch-more {
-  position: absolute;
-  left: 22px;
-  right: 22px;
-  bottom: 14px;
+  flex-shrink: 0;
+  margin-top: 10px;
   text-align: right;
 }
 
@@ -1636,6 +1625,23 @@ h1 {
   color: var(--ink);
   cursor: pointer;
   text-align: left;
+}
+
+/* Nella scheda cliente il tasto "Indietro" della barra in alto resta
+   comunque il più affidabile (torna sempre alla schermata di provenienza),
+   ma lassù è lontano da dove si legge il contenuto: questo lo duplica
+   accanto al titolo, a portata di mano mentre si scorre la pagina. */
+.client-detail-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 10px;
+  font-size: 13.5px;
+  color: var(--accent-ink);
+}
+
+.client-detail-back:hover {
+  text-decoration: underline;
 }
 
 .btn-link:hover {

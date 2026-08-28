@@ -14,6 +14,10 @@ interface RegistroClientProps {
    * maggior parte dei noleggi non ne ha uno, e va bene così — il verbale
    * "di carta" di sempre non viene mai archiviato da nessuna parte. */
   firmeDrive: DocumentLogEntry[];
+  /** Precompila la ricerca, es. dal link "N. Noleggio" nella scheda cliente:
+   * ci si arriva già puntati sul noleggio giusto invece di dover ricercare a
+   * mano il numero appena visto. */
+  initialQuery?: string;
 }
 
 function fmtDate(iso: string): string {
@@ -22,8 +26,8 @@ function fmtDate(iso: string): string {
   return `${d}/${m}/${y}`;
 }
 
-export function RegistroClient({ noleggi, devices, firmeDrive }: RegistroClientProps) {
-  const [query, setQuery] = useState("");
+export function RegistroClient({ noleggi, devices, firmeDrive, initialQuery }: RegistroClientProps) {
+  const [query, setQuery] = useState(initialQuery ?? "");
   const [dal, setDal] = useState("");
   const [al, setAl] = useState("");
 

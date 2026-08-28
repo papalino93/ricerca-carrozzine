@@ -28,17 +28,19 @@ function oraDiScandicci(): { giorno: string; data: string; ora: string } {
   };
 }
 
-/** Quante righe al massimo mostra ogni gruppo in anteprima: il resto sta
- * dietro "Vedi tutto". Il riquadro non deve superare l'altezza delle
- * quattro card (vedi .desk-watch in globals.css), quindi anche le
- * scadenze — che nella pagina dedicata non hanno un tetto — qui ne
- * hanno uno. */
+/** Quante righe al massimo mostra ogni gruppo: il riquadro scorre
+ * internamente (vedi .desk-watch-scroll in globals.css) fino a
+ * quest'altezza, non serve più tagliare aggressivamente per stare
+ * nell'altezza delle quattro card come quando il contenuto in eccesso
+ * spariva del tutto dietro "Vedi tutto". Resta comunque un tetto, non
+ * rimosso, per non renderizzare centinaia di righe in home nel caso
+ * limite di un gruppo enorme. */
 const PREVIEW_CAP: Record<string, number> = {
-  scadenze: 4,
-  guasto: 3,
-  da_verificare: 3,
-  da_pulire: 2,
-  lunghi: 2,
+  scadenze: 30,
+  guasto: 30,
+  da_verificare: 30,
+  da_pulire: 30,
+  lunghi: 30,
 };
 
 export default async function ReceptionPage() {
@@ -221,40 +223,39 @@ export default async function ReceptionPage() {
               </p>
             ) : (
               <>
-                {watchGroups.map((g) => (
-                  <div key={g.key}>
-                    <div className={`desk-watch-group ${g.tone}`}>
-                      <span className="dot" aria-hidden="true" />
-                      {g.label}
-                      <span className="count">{g.total}</span>
-                    </div>
-                    <ul>
-                      {g.rows.map((r, i) => (
-                        <li key={`${r.code}-${i}`}>
-                          <Link href={r.href}>
-                            <span className="desk-watch-code">{r.code}</span>
-                            <span className="desk-watch-who">
-                              <span className="desk-watch-cat">{r.cat}</span>
-                              {r.rest ? <span className="desk-watch-rest">{r.rest}</span> : null}
-                            </span>
-                            {g.showWhen ? (
-                              <span className={`desk-watch-when${r.urgent ? " urgent" : ""}`}>
-                                {r.when}
+                <div className="desk-watch-scroll">
+                  {watchGroups.map((g) => (
+                    <div key={g.key}>
+                      <div className={`desk-watch-group ${g.tone}`}>
+                        <span className="dot" aria-hidden="true" />
+                        {g.label}
+                        <span className="count">{g.total}</span>
+                      </div>
+                      <ul>
+                        {g.rows.map((r, i) => (
+                          <li key={`${r.code}-${i}`}>
+                            <Link href={r.href}>
+                              <span className="desk-watch-code">{r.code}</span>
+                              <span className="desk-watch-who">
+                                <span className="desk-watch-cat">{r.cat}</span>
+                                {r.rest ? <span className="desk-watch-rest">{r.rest}</span> : null}
                               </span>
-                            ) : null}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-                {watchTruncated ? (
-                  <>
-                    <div className="desk-watch-fade" aria-hidden="true" />
-                    <div className="desk-watch-more">
-                      <Link href="/da-tenere-d-occhio">Vedi tutto →</Link>
+                              {g.showWhen ? (
+                                <span className={`desk-watch-when${r.urgent ? " urgent" : ""}`}>
+                                  {r.when}
+                                </span>
+                              ) : null}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-                  </>
+                  ))}
+                </div>
+                {watchTruncated ? (
+                  <div className="desk-watch-more">
+                    <Link href="/da-tenere-d-occhio">Vedi tutto →</Link>
+                  </div>
                 ) : null}
               </>
             )}

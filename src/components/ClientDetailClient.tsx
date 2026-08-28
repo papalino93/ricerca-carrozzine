@@ -31,12 +31,47 @@ function fmtDate(iso: string): string {
   return `${d}/${m}/${y}`;
 }
 
+/**
+ * Nome per la testata e per il campo "Nome e cognome": se l'anagrafica non è
+ * ancora stata separata (cognome/nomeProprio vuoti, il caso più comune per i
+ * clienti creati automaticamente da un noleggio) il nome grezzo è comunque
+ * salvato — per convenzione osservata in tutta l'anagrafica esistente —
+ * "COGNOME Nome", non "Nome Cognome". Qui si inverte solo per la
+ * visualizzazione: il valore usato come identificativo (URL, link, conferma
+ * di eliminazione) resta sempre client.nome così com'è, altrimenti si
+ * romperebbero i confronti con normalizeName.
+ */
+function displayFullName(c: ClientRecord): string {
+  if (c.nomeProprio || c.cognome) {
+    return [c.nomeProprio, c.cognome].filter(Boolean).join(" ") || c.nome;
+  }
+  const words = c.nome.trim().split(/\s+/).filter(Boolean);
+  if (words.length < 2) return c.nome;
+  const [cognome, ...resto] = words;
+  return `${resto.join(" ")} ${cognome}`;
+}
+
+/**
+ * L'anagrafica importata da CSV (fedelta.store) salva la data di nascita
+ * come "GG/MM/AAAA": <input type="date"> capisce solo "AAAA-MM-GG" e senza
+ * conversione il campo si aprirebbe vuoto in modifica, anche se la data è
+ * registrata e ben visibile in visualizzazione — sembrerebbe mancante quando
+ * non lo è.
+ */
+function toIsoDate(s: string): string {
+  if (!s) return "";
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return s;
+  const [, d, mo, y] = m;
+  return `${y}-${mo.padStart(2, "0")}-${d.padStart(2, "0")}`;
+}
+
 function anagraficaFromClient(c: ClientRecord) {
   return {
     cognome: c.cognome ?? "",
     nomeProprio: c.nomeProprio ?? "",
     codiceFiscale: c.codiceFiscale ?? "",
-    dataNascita: c.dataNascita ?? "",
+    dataNascita: toIsoDate(c.dataNascita ?? ""),
     luogoNascita: c.luogoNascita ?? "",
     indirizzo: c.indirizzo ?? "",
     cap: c.cap ?? "",
@@ -170,9 +205,13 @@ export function ClientDetailClient({ initialClient, history, currentDevice, fasc
 
   return (
     <div className="wrap wide">
+      <button type="button" className="btn-link client-detail-back" onClick={() => router.back()}>
+        ← Indietro
+      </button>
+
       <header className="page-header">
         <div className="page-header-text">
-          <h1>{client.nome}</h1>
+          <h1>{displayFullName(client)}</h1>
           <p className="sub">
             {client.codiceFiscale ? `CF ${client.codiceFiscale}` : "Codice fiscale non registrato"}
             {client.fidelity ? ` · Tessera fedeltà n. ${client.fidelity}` : ""}
@@ -201,7 +240,7 @@ export function ClientDetailClient({ initialClient, history, currentDevice, fasc
           <div className="form-grid">
             <div className="field">
               <label>Nome e cognome</label>
-              <div>{[client.nomeProprio, client.cognome].filter(Boolean).join(" ") || client.nome}</div>
+              <div>{displayFullName(client)}</div>
             </div>
             <div className="field">
               <label>Codice fiscale</label>
@@ -371,7 +410,13 @@ export function ClientDetailClient({ initialClient, history, currentDevice, fasc
                         {EVENT_LABEL[e.evento]}
                       </span>
                     </td>
-                    <td>{e.contratto ?? "—"}</td>
+                    <td>
+                      {e.contratto ? (
+                        <Link href={`/admin/registro?q=${encodeURIComponent(e.contratto)}`}>{e.contratto}</Link>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
