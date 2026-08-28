@@ -293,7 +293,9 @@ export function ClientsClient({
                           {c.nome}
                         </Link>
                       </td>
-                      <td>{c.telefono ?? c.cellulare ?? "—"}</td>
+                      <td>
+                        {[...new Set([c.telefono, c.cellulare].filter(Boolean))].join(" · ") || "—"}
+                      </td>
                       <td>{c.fidelity ?? "—"}</td>
                       <td className="punti-cell">{c.punti}</td>
                       <td>{c.ultimoNoleggio ? fmtDate(c.ultimoNoleggio) : "—"}</td>
