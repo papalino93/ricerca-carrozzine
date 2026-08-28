@@ -217,3 +217,18 @@ export async function updateFascicolo(numero: string, patch: UpdateFascicoloInpu
   await writeSheet(TAB, [HEADER, ...fascicoli.map(toRow)]);
   return next;
 }
+
+/** Elimina definitivamente un fascicolo (es. creato per errore o per prova).
+ * A differenza dei dispositivi, qui non c'è un flag "archiviato" separato
+ * da preservare: lo stato "archiviato" (vedi FascicoloStato) è già il modo
+ * per tenere un fascicolo concluso fuori dai filtri attivi restando
+ * consultabile. Questa è la cancellazione vera e propria — irreversibile,
+ * per questo l'interfaccia la protegge con una doppia conferma. */
+export async function deleteFascicolo(numero: string): Promise<void> {
+  const fascicoli = await readFascicoli();
+  const next = fascicoli.filter((f) => f.numero !== numero);
+  if (next.length === fascicoli.length) {
+    throw new Error(`Fascicolo ${numero} non trovato`);
+  }
+  await writeSheet(TAB, [HEADER, ...next.map(toRow)]);
+}

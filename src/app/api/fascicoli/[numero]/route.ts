@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireBasicAuth } from "@/lib/basic-auth";
-import { getFascicolo, updateFascicolo, type UpdateFascicoloInput } from "@/lib/fascicoli";
+import { deleteFascicolo, getFascicolo, updateFascicolo, type UpdateFascicoloInput } from "@/lib/fascicoli";
 
 export const runtime = "nodejs";
 
@@ -33,6 +33,21 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ nu
     const body = (await req.json()) as UpdateFascicoloInput;
     const fascicolo = await updateFascicolo(numero, body);
     return NextResponse.json({ fascicolo });
+  } catch (err) {
+    return NextResponse.json({ error: (err as Error).message }, { status: 400 });
+  }
+}
+
+// Cancellazione definitiva: nessuna scorciatoia dall'archivio, solo dalla
+// scheda del fascicolo (vedi FascicoloEditorClient), con doppia conferma.
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ numero: string }> }) {
+  const unauthorized = await requireBasicAuth(req);
+  if (unauthorized) return unauthorized;
+
+  try {
+    const { numero } = await params;
+    await deleteFascicolo(numero);
+    return NextResponse.json({ ok: true });
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 400 });
   }

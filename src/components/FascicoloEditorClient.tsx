@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { ClientRecord } from "@/lib/clients";
 import {
   calcolaCompletamento,
@@ -93,6 +94,7 @@ function CheckLine({ checked, label, onChange }: { checked: boolean; label: stri
 const DITA_OPTIONS = [1, 2, 3, 4, 5];
 
 export function FascicoloEditorClient({ initialFascicolo, initialCliente }: FascicoloEditorClientProps) {
+  const router = useRouter();
   const [fascicolo, setFascicolo] = useState(initialFascicolo);
   const [cliente, setCliente] = useState(initialCliente);
   const [tab, setTab] = useState<SezioneFascicolo>("anagrafica");
@@ -100,6 +102,11 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
   const [dirty, setDirty] = useState(false);
   const [clienteDirty, setClienteDirty] = useState(false);
   const [clienteSaving, setClienteSaving] = useState(false);
+  // Doppia conferma per l'eliminazione (stesso pattern di DeviceDetailModal):
+  // azione irreversibile, un solo click è troppo facile da premere per sbaglio.
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -266,6 +273,19 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
       showToast(networkErrorMessage(err));
     } finally {
       setClienteSaving(false);
+    }
+  }
+
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/fascicoli/${fascicolo.numero}`, { method: "DELETE" });
+      const body = await readJson(res);
+      if (!res.ok) throw new Error(body.error || "Eliminazione non riuscita");
+      router.push("/admin/fascicoli/archivio");
+    } catch (err) {
+      showToast(networkErrorMessage(err));
+      setDeleting(false);
     }
   }
 
@@ -1045,6 +1065,49 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
             </p>
           </>
         ) : null}
+      </div>
+
+      {/* Isolata dal resto, stesso pattern di DeviceDetailModal: un click qui
+          non si annulla, resta a un dito di distanza dalle azioni normali. */}
+      <div className="danger-zone">
+        {!confirmingDelete ? (
+          <button
+            className="btn danger"
+            type="button"
+            onClick={() => {
+              setDeleteConfirmText("");
+              setConfirmingDelete(true);
+            }}
+          >
+            Elimina fascicolo
+          </button>
+        ) : (
+          <div className="delete-confirm">
+            <p className="hint" style={{ margin: "0 0 8px" }}>
+              Azione irreversibile. Per confermare, scrivi il numero <b>{fascicolo.numero}</b> qui sotto.
+            </p>
+            <div className="card-actions">
+              <input
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder={fascicolo.numero}
+                autoFocus
+                style={{ maxWidth: 200 }}
+              />
+              <button className="btn" type="button" onClick={() => setConfirmingDelete(false)} disabled={deleting}>
+                Annulla
+              </button>
+              <button
+                className="btn danger"
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting || deleteConfirmText.trim() !== fascicolo.numero}
+              >
+                {deleting ? "Eliminazione…" : "Conferma eliminazione definitiva"}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <Toast message={toast} />
