@@ -24,6 +24,10 @@ documenti di noleggio in PDF.
 - **Documento di noleggio** (da ogni scheda, in ricerca e in admin): genera
   un "Verbale di consegna" o "Verbale di restituzione" in PDF, con i campi
   precompilati ma modificabili prima del download.
+- **Fascicoli Plantari** (`/admin/fascicoli`): fascicolo digitale per i
+  plantari su misura (anagrafica, privacy, anamnesi, esame del piede,
+  prescrizione, produzione, conformità, consegna), con generazione del PDF
+  finale pronto per la stampa — vedi la sezione dedicata più sotto.
 
 ## Stack
 
@@ -257,6 +261,74 @@ sulle funzioni serverless di Vercel.
 > integrare da un commercialista o consulente legale prima di usarlo con i
 > clienti reali.
 
+## Fascicoli Plantari
+
+Sostituisce il fascicolo cartaceo "Fascicolazione per i Plantari su
+misura" (10 pagine Word, dati ripetuti a mano più volte) con un fascicolo
+digitale: il cliente si cerca/crea una sola volta, ogni sezione si compila
+una volta sola, il PDF finale recupera automaticamente tutti i dati.
+
+**Dove si trova**: `/admin/fascicoli` (dashboard), `/admin/fascicoli/nuovo`
+(cerca cliente/crea fascicolo), `/admin/fascicoli/archivio` (elenco con
+filtri), `/admin/fascicoli/[numero]` (editor a sezioni).
+
+**Dati**: due nuove tab nel foglio Google Sheets, stesso "database" di
+sempre — nessun servizio nuovo.
+
+- `FascicoliPlantari`: una riga per fascicolo (numero progressivo
+  `PL-<anno>-0001`, cliente, commessa collegata, stato, date, operatore),
+  con l'intero contenuto clinico (anamnesi, esame del piede, prescrizione,
+  produzione, consegna, consensi) in un'unica colonna JSON — evita una tab
+  con decine di colonne per ogni singola checkbox del fascicolo cartaceo.
+- `FascicoliPdf`: registro dei PDF generati (data, versione, operatore,
+  link Drive se archiviato).
+- L'anagrafica cliente resta quella di sempre (tab `Clienti`, vedi sopra):
+  il fascicolo referenzia il cliente per nome, non lo duplica. È stato
+  aggiunto solo il campo `CodiceFiscale`, richiesto dal fascicolo ma
+  assente finora.
+
+**PDF**: generato con lo stesso motore già in uso (`@react-pdf/renderer`),
+template separato dal contenuto (`src/lib/pdf/FascicoloDocument.tsx`) —
+cambiare la grafica in futuro non richiede toccare i dati. Da 10 pagine del
+documento originale a circa 6, eliminando le ripetizioni (header, dati
+cliente, dichiarazione di conformità) senza togliere informazioni. Il
+processo produttivo interno (le 13 fasi della "Scheda Plantari" più il
+flussogramma di progettazione) resta **fuori** dal PDF del cliente — è lo
+stesso identico processo per ogni commessa — ed è stampabile a parte dal
+tab "Produzione" dell'editor.
+
+**Archiviazione**: il PDF generato con "Scarica PDF" o "Genera fascicolo"
+viene archiviato su Google Drive se è impostata
+`GOOGLE_DRIVE_FASCICOLI_FOLDER_ID` (facoltativa; se assente, ricade sulla
+stessa cartella di `GOOGLE_DRIVE_FOLDER_ID` usata per i verbali firmati —
+vedi sopra). Senza nessuna delle due, il PDF resta comunque scaricabile,
+solo non archiviato automaticamente in cloud: nessuna funzione si blocca,
+manca solo il ritrovamento automatico da un altro PC.
+
+**Versione**: ogni fascicolo tiene un numero di versione, incrementato ad
+ogni PDF generato (non ad ogni autosave) — la cronologia dei PDF prodotti
+per un fascicolo è in `FascicoliPdf`. Il salvataggio del contenuto è
+automatico (autosave con qualche secondo di ritardo dopo l'ultima
+modifica, più un pulsante "Salva" esplicito), con un avviso se si prova a
+lasciare la pagina con modifiche non ancora salvate.
+
+**Firma**: il PDF esce sempre con la riga della firma vuota, da firmare a
+penna dopo la stampa — il flusso resta cartaceo per scelta. Il componente
+di firma digitale su schermo già usato per i verbali di noleggio
+(`SignaturePad`) non è collegato qui, ma il modello dati è già predisposto
+(`consensi.firmaClienteUrl`) per attivarla in futuro senza modifiche allo
+schema.
+
+> ⚠️ **Punti da verificare prima dell'uso con dati reali** (segnalati in
+> fase di analisi, non decisi unilateralmente): il modulo introduce per la
+> prima volta dati sanitari nel gestionale, che oggi ha un solo livello di
+> accesso (`/admin` protetto da un'unica Basic Auth, senza ruoli separati)
+> — da valutare con un consulente privacy se serve un accesso più
+> ristretto per questa sezione. I testi legali (informativa privacy,
+> dichiarazione di conformità, condizioni di fornitura) sono trascritti dal
+> fascicolo cartaceo esistente, non testi nuovi — comunque da far
+> confermare a chi segue la parte legale/qualità prima dell'uso reale.
+
 ## Sviluppo locale
 
 ```bash
@@ -287,13 +359,15 @@ src/
     page.tsx                 ricerca pubblica
     admin/page.tsx            elenco/CRUD dispositivi (Basic Auth)
     admin/impostazioni/       dati aziendali + upload logo (Basic Auth)
+    admin/fascicoli/          dashboard, archivio, nuovo, editor (Basic Auth)
     api/dispositivi/          GET pubblico, POST/DELETE riservati
     api/dispositivi/[codice]/eventi/  noleggio/restituzione/sanificazione (riservato)
     api/impostazioni/         GET/POST riservati (protetti dal proxy)
     api/upload-logo/          comprime il logo e lo salva come data URI (riservato)
     api/utenti/                GET/POST/DELETE utenti autorizzati (protetti dal proxy)
     api/documento/            genera il PDF del verbale (pubblico)
-  components/                 componenti React (ricerca, admin, pannello documento)
+    api/fascicoli/            CRUD fascicoli + generazione PDF (riservato)
+  components/                 componenti React (ricerca, admin, pannello documento, fascicoli)
   lib/
     device-types.ts           tipi/costanti condivisi anche dai componenti client
     devices.ts, settings.ts   lettura/scrittura del foglio Google (solo server)
@@ -302,6 +376,12 @@ src/
     sheets.ts                 client Google Sheets (solo server, crea le tab mancanti)
     basic-auth.ts             verifica le credenziali (env oppure tab Utenti)
     pdf/VerbaleDocument.tsx   template del verbale di noleggio
+    fascicoli-types.ts        tipi/costanti dei Fascicoli Plantari (condivisi client/server)
+    fascicoli.ts              lettura/scrittura fascicoli (tab FascicoliPlantari, solo server)
+    fascicoli-testi.ts        testi legali del fascicolo plantare (trascritti dal cartaceo)
+    fascicoli-pdf-log.ts      registro PDF generati (tab FascicoliPdf, solo server)
+    pdf/FascicoloDocument.tsx        template del fascicolo plantare (documentazione cliente)
+    pdf/ProcessoProduttivoDocument.tsx  template del processo produttivo (documentazione interna)
   proxy.ts                    Basic Auth su /admin e sulle API di scrittura (gira su Node.js)
 scripts/
   generate-icons.mjs          favicon/icone PWA dal logo sorgente (sharp)

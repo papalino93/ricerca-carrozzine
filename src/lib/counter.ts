@@ -22,6 +22,12 @@ const START_COMMESSA = 1;
 // lettere+trattino — zero rischio di collisione.
 const START_FIDELITY = 1;
 
+// I fascicoli plantari ripartono da 1 ogni anno solare (PL-2026-0001,
+// PL-2026-0048, poi PL-2027-0001...): la chiave del contatore include
+// l'anno, così nextCounter tiene naturalmente una riga per anno nella tab
+// "Contatori" invece di dover azzerare manualmente qualcosa a capodanno.
+const START_FASCICOLO = 1;
+
 /**
  * Prossimo valore di un contatore condiviso, identificato da `key` (righe
  * multiple nella stessa tab "Contatori", non una tab per contatore).
@@ -63,4 +69,12 @@ export async function nextNumeroCommessa(): Promise<string> {
 export async function nextNumeroFidelity(): Promise<string> {
   const n = await nextCounter(KEY_FIDELITY, START_FIDELITY);
   return `MC-${n.padStart(6, "0")}`;
+}
+
+/** Numero progressivo di fascicolo plantare (es. PL-2026-0001), assegnato
+ * dall'app: mai digitato dall'operatore, evita sia i duplicati sia una
+ * numerazione manuale da tenere a mente. */
+export async function nextNumeroFascicolo(anno: number): Promise<string> {
+  const n = await nextCounter(`numeroFascicolo:${anno}`, START_FASCICOLO);
+  return `PL-${anno}-${n.padStart(4, "0")}`;
 }

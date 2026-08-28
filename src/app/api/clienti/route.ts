@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireBasicAuth } from "@/lib/basic-auth";
-import { adjustClientPunti, assignFidelity, createClient, deleteClient } from "@/lib/clients";
+import {
+  adjustClientPunti,
+  assignFidelity,
+  createClient,
+  deleteClient,
+  updateClientAnagrafica,
+  type ClientRecord,
+} from "@/lib/clients";
 
 export const runtime = "nodejs";
 
 // Crea un nuovo cliente in anagrafica (es. nuova iscrizione fidelity senza
-// che sia già passato da un noleggio o una commessa).
+// che sia già passato da un noleggio o una commessa, oppure un cliente
+// nuovo aperto dal modulo Fascicoli Plantari — che passa anche i campi
+// anagrafici aggiuntivi in un solo giro, vedi createClient).
 export async function POST(req: NextRequest) {
   const unauthorized = await requireBasicAuth(req);
   if (unauthorized) return unauthorized;
@@ -16,6 +25,15 @@ export async function POST(req: NextRequest) {
       cellulare?: string | null;
       email?: string | null;
       indirizzo?: string | null;
+      cognome?: string | null;
+      nomeProprio?: string | null;
+      codiceFiscale?: string | null;
+      dataNascita?: string | null;
+      luogoNascita?: string | null;
+      telefono?: string | null;
+      cap?: string | null;
+      localita?: string | null;
+      provincia?: string | null;
     };
     if (!body.nome || !body.nome.trim()) {
       return NextResponse.json({ error: "Nome obbligatorio" }, { status: 400 });
@@ -25,6 +43,15 @@ export async function POST(req: NextRequest) {
       cellulare: body.cellulare || null,
       email: body.email || null,
       indirizzo: body.indirizzo || null,
+      cognome: body.cognome || null,
+      nomeProprio: body.nomeProprio || null,
+      codiceFiscale: body.codiceFiscale || null,
+      dataNascita: body.dataNascita || null,
+      luogoNascita: body.luogoNascita || null,
+      telefono: body.telefono || null,
+      cap: body.cap || null,
+      localita: body.localita || null,
+      provincia: body.provincia || null,
     });
     return NextResponse.json({ client, clients });
   } catch (err) {
@@ -47,7 +74,8 @@ export async function PATCH(req: NextRequest) {
     const body = (await req.json()) as {
       nome?: string;
       delta?: number;
-      azione?: "tessera";
+      azione?: "tessera" | "anagrafica";
+      patch?: Partial<Omit<ClientRecord, "punti" | "fidelity">>;
     };
     if (!body.nome) {
       return NextResponse.json({ error: "Nome obbligatorio" }, { status: 400 });
@@ -60,6 +88,14 @@ export async function PATCH(req: NextRequest) {
     if (body.azione === "tessera") {
       const { client, clients } = await assignFidelity(body.nome);
       return NextResponse.json({ client, clients });
+    }
+
+    // Correzione/completamento dell'anagrafica di un cliente esistente
+    // (es. si scopre il codice fiscale mentre si compila un fascicolo
+    // plantare): usata dal modulo Fascicoli Plantari, riusabile ovunque.
+    if (body.azione === "anagrafica") {
+      const client = await updateClientAnagrafica(body.nome, body.patch ?? {});
+      return NextResponse.json({ client });
     }
 
     if (!Number.isFinite(body.delta)) {
