@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireBasicAuth } from "@/lib/basic-auth";
-import { deleteFascicolo, getFascicolo, updateFascicolo, type UpdateFascicoloInput } from "@/lib/fascicoli";
+import {
+  deleteFascicolo,
+  FascicoloConflictError,
+  getFascicolo,
+  updateFascicolo,
+  type UpdateFascicoloInput,
+} from "@/lib/fascicoli";
 
 export const runtime = "nodejs";
 
@@ -34,7 +40,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ nu
     const fascicolo = await updateFascicolo(numero, body);
     return NextResponse.json({ fascicolo });
   } catch (err) {
-    return NextResponse.json({ error: (err as Error).message }, { status: 400 });
+    const status = err instanceof FascicoloConflictError ? 409 : 400;
+    return NextResponse.json({ error: (err as Error).message }, { status });
   }
 }
 

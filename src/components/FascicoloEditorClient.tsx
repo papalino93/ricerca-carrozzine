@@ -124,37 +124,80 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
 
   const completamento = useMemo(() => calcolaCompletamento(fascicolo), [fascicolo]);
 
-  const persist = useCallback(
-    async (opts?: { incrementaVersione?: boolean; silent?: boolean }) => {
-      const current = fascicoloRef.current;
-      setSaveState("saving");
-      try {
-        const res = await fetch(`/api/fascicoli/${current.numero}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            stato: current.stato,
-            commessa: current.commessa,
-            tipoDispositivo: current.tipoDispositivo,
-            operatore: current.operatore,
-            contenuto: current.contenuto,
-            incrementaVersione: Boolean(opts?.incrementaVersione),
-          }),
-        });
-        const body = await readJson(res);
-        if (!res.ok) throw new Error(body.error || "Salvataggio non riuscito");
-        setFascicolo(body.fascicolo);
-        setSaveState("saved");
-        setDirty(false);
-        if (!opts?.silent) showToast("Fascicolo salvato");
-        return true;
-      } catch (err) {
+  // Due richieste PATCH sovrapposte sullo stesso fascicolo (l'autosave che
+  // parte mentre "Salva" è ancora in corso, o due tab sullo stesso
+  // fascicolo) leggono lato server lo stesso stato di partenza: l'ultima a
+  // scrivere cancella in silenzio i campi salvati dall'altra, perché
+  // updateFascicolo riscrive l'intero foglio a ogni chiamata. Due difese:
+  // "ifUltimaModifica" fa rifiutare al server una scrittura basata su uno
+  // stato ormai superato (vedi FascicoloConflictError in fascicoli.ts);
+  // inFlightRef impedisce che QUESTA scheda ne generi comunque due in
+  // parallelo, mettendo in coda la richiesta successiva invece di
+  // accavallarla — così una battitura durante l'autosave non genera mai
+  // il conflitto con se stessa.
+  const inFlightRef = useRef<Promise<boolean> | null>(null);
+  const queuedOptsRef = useRef<{ incrementaVersione?: boolean; silent?: boolean } | null>(null);
+
+  const doPersist = useCallback(async (opts?: { incrementaVersione?: boolean; silent?: boolean }) => {
+    const current = fascicoloRef.current;
+    setSaveState("saving");
+    try {
+      const res = await fetch(`/api/fascicoli/${current.numero}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          stato: current.stato,
+          commessa: current.commessa,
+          tipoDispositivo: current.tipoDispositivo,
+          operatore: current.operatore,
+          contenuto: current.contenuto,
+          incrementaVersione: Boolean(opts?.incrementaVersione),
+          ifUltimaModifica: current.ultimaModifica,
+        }),
+      });
+      const body = await readJson(res);
+      if (res.status === 409) {
+        // Non riprovare da solo: il nostro stato locale è basato su una
+        // versione ormai superata, riscrivere sopra rischierebbe di
+        // cancellare a nostra volta il salvataggio dell'altra scheda.
         setSaveState("error");
-        showToast(networkErrorMessage(err));
+        showToast(body.error || "Fascicolo modificato altrove: ricarica la pagina prima di continuare.");
         return false;
       }
+      if (!res.ok) throw new Error(body.error || "Salvataggio non riuscito");
+      setFascicolo(body.fascicolo);
+      setSaveState("saved");
+      setDirty(false);
+      if (!opts?.silent) showToast("Fascicolo salvato");
+      return true;
+    } catch (err) {
+      setSaveState("error");
+      showToast(networkErrorMessage(err));
+      return false;
+    }
+  }, []);
+
+  const persist = useCallback(
+    (opts?: { incrementaVersione?: boolean; silent?: boolean }): Promise<boolean> => {
+      if (inFlightRef.current) {
+        queuedOptsRef.current = opts ?? {};
+        return inFlightRef.current;
+      }
+      const run = async () => {
+        let result = await doPersist(opts);
+        while (queuedOptsRef.current) {
+          const nextOpts = queuedOptsRef.current;
+          queuedOptsRef.current = null;
+          result = await doPersist(nextOpts);
+        }
+        inFlightRef.current = null;
+        return result;
+      };
+      const running = run();
+      inFlightRef.current = running;
+      return running;
     },
-    []
+    [doPersist]
   );
 
   const scheduleAutosave = useCallback(() => {
@@ -221,14 +264,12 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
     window.open(`/api/fascicoli/${fascicolo.numero}/documento?inline=1`, "_blank");
   }
 
-  async function handleGenera() {
-    const ok = await assicuraSalvato();
-    if (!ok) return;
-    window.open(`/api/fascicoli/${fascicolo.numero}/documento?finalizza=1&inline=1`, "_blank");
-    showToast("PDF generato");
-  }
-
-  async function handleScarica() {
+  // Finalizza (incrementa la versione, archivia su Drive se configurato) e
+  // scarica: prima erano due pulsanti separati ("Genera fascicolo" apriva
+  // inline, "Scarica PDF" scaricava) che facevano esattamente la stessa
+  // cosa lato dati — unificati per non lasciar credere che siano due azioni
+  // diverse.
+  async function handleGeneraEScarica() {
     const ok = await assicuraSalvato();
     if (!ok) return;
     window.open(`/api/fascicoli/${fascicolo.numero}/documento?finalizza=1`, "_blank");
@@ -337,18 +378,15 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
           <button type="button" className="btn" onClick={handleAnteprima}>
             👁️ Anteprima / Stampa
           </button>
-          <button type="button" className="btn primary" onClick={handleGenera}>
-            📄 Genera fascicolo
-          </button>
-          <button type="button" className="btn" onClick={handleScarica}>
-            📥 Scarica PDF
+          <button type="button" className="btn primary" onClick={handleGeneraEScarica}>
+            📥 Genera fascicolo e scarica PDF
           </button>
         </div>
       </div>
       <p className="hint" style={{ marginTop: -6, marginBottom: 14 }}>
-        &quot;Anteprima / Stampa&quot; è libera, non lascia traccia. &quot;Genera fascicolo&quot; e &quot;Scarica
-        PDF&quot; invece finalizzano: incrementano la versione del fascicolo (oggi alla {fascicolo.versione}ª) e, se
-        configurato, lo archiviano su Drive.
+        &quot;Anteprima / Stampa&quot; è libera, non lascia traccia. &quot;Genera fascicolo e scarica PDF&quot;
+        invece finalizza: incrementa la versione del fascicolo (oggi alla {fascicolo.versione}ª) e, se configurato,
+        lo archivia su Drive.
       </p>
 
       <div className="fascicolo-tabs">
@@ -532,6 +570,8 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
               <Field label="Altezza (cm)">
                 <input
                   type="number"
+                  min={30}
+                  max={260}
                   value={c.anamnesi.altezzaCm ?? ""}
                   onChange={(e) => updateContenuto("anamnesi", { altezzaCm: e.target.value ? Number(e.target.value) : null })}
                 />
@@ -539,6 +579,8 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
               <Field label="Peso (kg)">
                 <input
                   type="number"
+                  min={1}
+                  max={350}
                   value={c.anamnesi.pesoKg ?? ""}
                   onChange={(e) => updateContenuto("anamnesi", { pesoKg: e.target.value ? Number(e.target.value) : null })}
                 />
@@ -783,6 +825,7 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
                   <input
                     type="number"
                     step="0.01"
+                    min={0}
                     value={c.prescrizione.importo ?? ""}
                     onChange={(e) => updateContenuto("prescrizione", { importo: e.target.value ? Number(e.target.value) : null })}
                   />
@@ -1083,6 +1126,17 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
             </button>
           </div>
         ) : null}
+      </div>
+
+      {/* Raggiungibile scorrendo fino in fondo a qualunque sezione, non solo
+          dalla savebar in cima: per riprendere in mano un fascicolo già
+          completato (es. il cliente torna e chiede un'altra copia) senza
+          dover risalire. Non finalizza — stesso comportamento libero di
+          "Anteprima / Stampa". */}
+      <div className="card-actions" style={{ justifyContent: "flex-end", marginTop: 20 }}>
+        <button type="button" className="btn" onClick={handleAnteprima}>
+          🖨️ Ristampa PDF
+        </button>
       </div>
 
       {/* Isolata dal resto, stesso pattern di DeviceDetailModal: un click qui

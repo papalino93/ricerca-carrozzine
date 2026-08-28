@@ -125,7 +125,11 @@ export function FascicoliArchivioClient({ fascicoli }: FascicoliArchivioClientPr
             Prova a modificare i filtri, oppure crea un nuovo fascicolo.
           </p>
         ) : (
-          <div className="admin-table-wrap">
+          <>
+            <p className="hint" style={{ marginBottom: 10 }}>
+              <span className="mobile-scroll-hint">Scorri la tabella lateralmente per vedere tutte le colonne.</span>
+            </p>
+            <div className="admin-table-wrap">
             <table className="admin-table">
               <thead>
                 <tr>
@@ -163,7 +167,8 @@ export function FascicoliArchivioClient({ fascicoli }: FascicoliArchivioClientPr
                 ))}
               </tbody>
             </table>
-          </div>
+            </div>
+          </>
         )}
       </div>
     </div>

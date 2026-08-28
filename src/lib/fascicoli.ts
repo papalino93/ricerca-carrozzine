@@ -187,6 +187,28 @@ export interface UpdateFascicoloInput {
    * sull'autosave silenzioso o su un semplice cambio di stato — evita di
    * far esplodere il numero di versione a ogni battitura. */
   incrementaVersione?: boolean;
+  /** "ultimaModifica" che il chiamante si aspetta di trovare ancora sul
+   * fascicolo prima di scrivere sopra: senza, due scritture quasi
+   * simultanee (due schede aperte sullo stesso fascicolo, o l'autosave che
+   * parte mentre un salvataggio manuale è ancora in corso) leggono lo
+   * stesso stato di partenza e l'ultima a scrivere cancella in silenzio i
+   * campi cambiati dall'altra — l'intero foglio viene riscritto ad ogni
+   * salvataggio, non solo la riga di questo fascicolo. Se passato e non
+   * coincide più, lancia ConflictError invece di sovrascrivere. Facoltativo
+   * per restare compatibile con chiamate che non lo passano. */
+  ifUltimaModifica?: string;
+}
+
+/** Lanciato da updateFascicolo quando ifUltimaModifica non coincide più:
+ * il chiamante l'ha già distinguibile da un errore di validazione normale
+ * (vedi route API, che lo traduce in HTTP 409). */
+export class FascicoloConflictError extends Error {
+  constructor(numero: string) {
+    super(
+      `Il fascicolo ${numero} è stato modificato nel frattempo (un'altra scheda aperta, o un altro operatore): ricarica la pagina prima di continuare, per non perdere quel salvataggio.`
+    );
+    this.name = "FascicoloConflictError";
+  }
 }
 
 export async function updateFascicolo(numero: string, patch: UpdateFascicoloInput): Promise<FascicoloRecord> {
@@ -195,6 +217,9 @@ export async function updateFascicolo(numero: string, patch: UpdateFascicoloInpu
   if (idx === -1) throw new Error(`Fascicolo ${numero} non trovato`);
 
   const prev = fascicoli[idx];
+  if (patch.ifUltimaModifica != null && patch.ifUltimaModifica !== prev.ultimaModifica) {
+    throw new FascicoloConflictError(numero);
+  }
   const { contenuto, incrementaVersione, ...rest } = patch;
   const next: FascicoloRecord = {
     ...prev,
@@ -212,6 +237,20 @@ export async function updateFascicolo(numero: string, patch: UpdateFascicoloInpu
     ultimaModifica: new Date().toISOString(),
     versione: incrementaVersione ? prev.versione + 1 : prev.versione,
   };
+
+  // Il client ha min/max sugli input, ma quello non impedisce una scrittura
+  // diretta all'API: qui è dove un'altezza o un importo negativo/assurdo
+  // vengono davvero bloccati prima di finire su un documento regolamentare.
+  const { altezzaCm, pesoKg } = next.contenuto.anamnesi;
+  if (altezzaCm != null && (altezzaCm < 30 || altezzaCm > 260)) {
+    throw new Error("Altezza non valida: deve essere tra 30 e 260 cm.");
+  }
+  if (pesoKg != null && (pesoKg < 1 || pesoKg > 350)) {
+    throw new Error("Peso non valido: deve essere tra 1 e 350 kg.");
+  }
+  if (next.contenuto.prescrizione.importo != null && next.contenuto.prescrizione.importo < 0) {
+    throw new Error("L'importo non può essere negativo.");
+  }
 
   fascicoli[idx] = next;
   await writeSheet(TAB, [HEADER, ...fascicoli.map(toRow)]);

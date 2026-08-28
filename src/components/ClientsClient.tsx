@@ -162,7 +162,12 @@ export function ClientsClient({
 
   async function handleAdjustPunti(nome: string, sign: 1 | -1) {
     const n = Number(puntiDelta.replace(",", "."));
-    if (!Number.isFinite(n) || n <= 0) return;
+    if (!Number.isFinite(n) || n <= 0) {
+      // Prima usciva qui senza dire nulla: chi cliccava "+ Aggiungi" col
+      // campo vuoto vedeva il pulsante non fare apparentemente nulla.
+      showToast("Scrivi prima quanti punti, nel campo qui accanto");
+      return;
+    }
     setAdjustingPunti(true);
     try {
       const res = await fetch("/api/clienti", {
@@ -416,7 +421,7 @@ export function ClientsClient({
                                 <button
                                   className="btn"
                                   type="button"
-                                  disabled={adjustingPunti}
+                                  disabled={adjustingPunti || !puntiDelta.trim()}
                                   onClick={() => handleAdjustPunti(c.nome, 1)}
                                 >
                                   + Aggiungi
@@ -424,7 +429,7 @@ export function ClientsClient({
                                 <button
                                   className="btn"
                                   type="button"
-                                  disabled={adjustingPunti}
+                                  disabled={adjustingPunti || !puntiDelta.trim()}
                                   onClick={() => handleAdjustPunti(c.nome, -1)}
                                 >
                                   − Togli
