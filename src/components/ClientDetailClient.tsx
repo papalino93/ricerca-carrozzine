@@ -205,7 +205,7 @@ export function ClientDetailClient({ initialClient, history, currentDevice, fasc
 
   return (
     <div className="wrap wide">
-      <button type="button" className="btn-link client-detail-back" onClick={() => router.back()}>
+      <button type="button" className="btn client-detail-back" onClick={() => router.back()}>
         ← Indietro
       </button>
 

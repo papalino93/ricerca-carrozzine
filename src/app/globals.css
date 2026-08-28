@@ -1630,18 +1630,12 @@ h1 {
 /* Nella scheda cliente il tasto "Indietro" della barra in alto resta
    comunque il più affidabile (torna sempre alla schermata di provenienza),
    ma lassù è lontano da dove si legge il contenuto: questo lo duplica
-   accanto al titolo, a portata di mano mentre si scorre la pagina. */
+   accanto al titolo, a portata di mano mentre si scorre la pagina. Stesso
+   trattamento a bottone dei comandi qui sotto (Modifica, ecc.) invece di un
+   semplice link di testo: un tasto per tornare indietro merita lo stesso
+   peso visivo di un'azione, non deve leggersi come una nota a margine. */
 .client-detail-back {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin-bottom: 10px;
-  font-size: 13.5px;
-  color: var(--accent-ink);
-}
-
-.client-detail-back:hover {
-  text-decoration: underline;
+  margin-bottom: 14px;
 }
 
 .btn-link:hover {
