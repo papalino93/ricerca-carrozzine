@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   IconClienti,
   IconCommessa,
+  IconFascicoli,
   IconFidelity,
   IconImpostazioni,
   IconMagazzino,
@@ -20,6 +21,7 @@ const NAV_ITEMS = [
   { href: "/admin", label: "Magazzino", icon: <IconMagazzino /> },
   { href: "/admin/registro", label: "Registro noleggi", icon: <IconNoleggio /> },
   { href: "/admin/commesse", label: "Commesse", icon: <IconCommessa /> },
+  { href: "/admin/fascicoli", label: "Fascicoli Plantari", icon: <IconFascicoli /> },
   { href: "/admin/clienti", label: "Clienti", icon: <IconClienti /> },
   { href: "/admin/fidelity", label: "Fidelity", icon: <IconFidelity /> },
 ];
@@ -57,7 +59,11 @@ export function AdminSidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`admin-sidebar-link ${pathname === item.href ? "active" : ""}`}
+              className={`admin-sidebar-link ${
+                pathname === item.href || (item.href !== "/admin" && pathname.startsWith(`${item.href}/`))
+                  ? "active"
+                  : ""
+              }`}
               onClick={() => setOpen(false)}
             >
               <span className="admin-sidebar-icon">{item.icon}</span>

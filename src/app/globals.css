@@ -3089,3 +3089,205 @@ tr.clickable-row {
     margin-bottom: 16px;
   }
 }
+
+/* ---------- Fascicoli Plantari ----------
+   Stessi colori/pill/pannelli del resto del gestionale: qui solo le
+   aggiunte specifiche a questo modulo (tab di sezione con indicatore di
+   completamento, barra di stato del salvataggio, layout a due colonne per
+   l'esame del piede sinistro/destro, elenco risultati della ricerca
+   rapida). */
+.pill.fascicolo-bozza {
+  color: var(--clean-fg);
+  background: var(--clean-bg);
+  border-color: var(--clean-line);
+}
+
+.pill.fascicolo-in_lavorazione {
+  color: var(--rent-fg);
+  background: var(--rent-bg);
+  border-color: var(--rent-line);
+}
+
+.pill.fascicolo-completo {
+  color: var(--ok-fg);
+  background: var(--ok-bg);
+  border-color: var(--ok-line);
+}
+
+.pill.fascicolo-prodotto {
+  color: var(--check-fg);
+  background: var(--check-bg);
+  border-color: var(--check-line);
+}
+
+.pill.fascicolo-consegnato {
+  color: var(--accent-ink);
+  background: var(--accent-bg);
+  border-color: var(--accent);
+}
+
+.pill.fascicolo-archiviato {
+  color: var(--ink-soft);
+  background: var(--line);
+  border-color: var(--line);
+}
+
+.fascicolo-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  margin-bottom: 16px;
+}
+
+.fascicolo-tab {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+  padding: 9px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--sans);
+}
+
+.fascicolo-tab.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.fascicolo-tab .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--line);
+  flex-shrink: 0;
+}
+
+.fascicolo-tab .dot.done {
+  background: var(--ok-fg);
+}
+
+.fascicolo-tab.active .dot {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.fascicolo-tab.active .dot.done {
+  background: #fff;
+}
+
+.fascicolo-savebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.fascicolo-savestate {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fascicolo-savestate.saving {
+  color: var(--rent-fg);
+}
+
+.fascicolo-savestate.saved {
+  color: var(--ok-fg);
+}
+
+.fascicolo-savestate.error {
+  color: var(--broken-fg);
+}
+
+.fascicolo-piede-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+@media (max-width: 700px) {
+  .fascicolo-piede-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fascicolo-lato-title {
+  font-family: var(--heading);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 10px;
+}
+
+.fascicolo-checkline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+
+.fascicolo-checkline input {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.fascicolo-fase-row {
+  display: grid;
+  grid-template-columns: 22px 1fr 130px 150px;
+  gap: 10px;
+  align-items: start;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.fascicolo-fase-row:last-child {
+  border-bottom: none;
+}
+
+@media (max-width: 700px) {
+  .fascicolo-fase-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+    padding: 12px 0;
+  }
+}
+
+.search-result-list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.search-result-item {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.search-result-item:hover {
+  background: var(--accent-bg);
+}

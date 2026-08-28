@@ -28,6 +28,12 @@ export interface ClientRecord {
    * 1 punto per ogni euro di saldo su una commessa ritirata, stesso rapporto
    * osservato nel sistema attuale, più eventuali rettifiche manuali. */
   punti: number;
+  /** Codice fiscale: richiesto dai Fascicoli Plantari (dichiarazione di
+   * conformità, detrazione fiscale), facoltativo altrove. Colonna aggiunta
+   * in coda apposta: le righe già scritte nel foglio hanno le colonne
+   * precedenti in quelle posizioni esatte, spostarle romperebbe tutta
+   * l'anagrafica esistente. */
+  codiceFiscale: string | null;
 }
 
 const TAB = "Clienti";
@@ -50,6 +56,7 @@ const HEADER = [
   "Fidelity",
   "Categoria",
   "Punti",
+  "CodiceFiscale",
 ];
 
 function toClient(row: string[]): ClientRecord {
@@ -72,6 +79,7 @@ function toClient(row: string[]): ClientRecord {
     fidelity,
     categoria,
     punti,
+    codiceFiscale,
   ] = row;
   return {
     nome: nome ?? "",
@@ -92,6 +100,7 @@ function toClient(row: string[]): ClientRecord {
     fidelity: fidelity || null,
     categoria: categoria || null,
     punti: Number(punti) || 0,
+    codiceFiscale: codiceFiscale || null,
   };
 }
 
@@ -115,6 +124,7 @@ function toRow(c: ClientRecord): string[] {
     c.fidelity ?? "",
     c.categoria ?? "",
     String(c.punti),
+    c.codiceFiscale ?? "",
   ];
 }
 
@@ -138,6 +148,37 @@ export function normalizeName(nome: string): string {
   return nome.trim().replace(/\s+/g, " ").toLowerCase();
 }
 
+/**
+ * Cliente "segnaposto" con solo nome e CF, usato dalla generazione PDF dei
+ * fascicoli plantari nel raro caso in cui il cliente collegato non venga
+ * più trovato in anagrafica (es. cancellato per errore dopo la creazione
+ * del fascicolo): meglio un PDF con i campi anagrafici vuoti che un errore
+ * che impedisce di generarlo del tutto.
+ */
+export function EMPTY_CLIENT_TEMPLATE(nome: string, codiceFiscale: string | null = null): ClientRecord {
+  return {
+    nome,
+    telefono: null,
+    ultimoContratto: null,
+    ultimoNoleggio: null,
+    cognome: null,
+    nomeProprio: null,
+    sesso: null,
+    indirizzo: null,
+    cap: null,
+    localita: null,
+    provincia: null,
+    cellulare: null,
+    email: null,
+    dataNascita: null,
+    luogoNascita: null,
+    fidelity: null,
+    categoria: null,
+    punti: 0,
+    codiceFiscale,
+  };
+}
+
 /** Anagrafica clienti: popolata automaticamente a ogni noleggio, più i campi
  * aggiuntivi importati da CSV o inseriti a mano (vedi importClientsCsv). */
 export async function listClients(): Promise<ClientRecord[]> {
@@ -155,6 +196,20 @@ export async function createClient(input: {
   cellulare: string | null;
   email: string | null;
   indirizzo: string | null;
+  // Campi anagrafica aggiuntivi, facoltativi: usati dal modulo Fascicoli
+  // Plantari per creare un cliente con l'anagrafica già completa in un solo
+  // passaggio (invece di crearlo "vuoto" e poi correggerlo con
+  // updateClientAnagrafica). Chi non li passa ottiene lo stesso identico
+  // comportamento di sempre.
+  cognome?: string | null;
+  nomeProprio?: string | null;
+  codiceFiscale?: string | null;
+  dataNascita?: string | null;
+  luogoNascita?: string | null;
+  telefono?: string | null;
+  cap?: string | null;
+  localita?: string | null;
+  provincia?: string | null;
 }): Promise<{ client: ClientRecord; clients: ClientRecord[] }> {
   const nome = input.nome.trim();
   if (!nome) throw new Error("Nome obbligatorio");
@@ -167,27 +222,50 @@ export async function createClient(input: {
   const fidelity = await nextNumeroFidelity();
   const client: ClientRecord = {
     nome,
-    telefono: null,
+    telefono: input.telefono || null,
     ultimoContratto: null,
     ultimoNoleggio: null,
-    cognome: null,
-    nomeProprio: null,
+    cognome: input.cognome || null,
+    nomeProprio: input.nomeProprio || null,
     sesso: null,
     indirizzo: input.indirizzo || null,
-    cap: null,
-    localita: null,
-    provincia: null,
+    cap: input.cap || null,
+    localita: input.localita || null,
+    provincia: input.provincia || null,
     cellulare: input.cellulare || null,
     email: input.email || null,
-    dataNascita: null,
-    luogoNascita: null,
+    dataNascita: input.dataNascita || null,
+    luogoNascita: input.luogoNascita || null,
     fidelity,
     categoria: null,
     punti: 0,
+    codiceFiscale: input.codiceFiscale || null,
   };
   clients.push(client);
   await writeSheet(TAB, [HEADER, ...clients.map(toRow)]);
   return { client, clients };
+}
+
+/**
+ * Aggiorna i campi anagrafici di un cliente GIÀ esistente (es. si scopre il
+ * codice fiscale mentre si compila un fascicolo, o si corregge un
+ * indirizzo). A differenza di upsertClient (pensato per i noleggi, che
+ * aggiorna solo nome/telefono/noleggio) qui il chiamante può correggere
+ * qualunque campo anagrafico esplicitamente — usata dal modulo Fascicoli
+ * Plantari e riusabile ovunque serva un "modifica scheda cliente".
+ */
+export async function updateClientAnagrafica(
+  nomeAttuale: string,
+  patch: Partial<Omit<ClientRecord, "punti" | "fidelity">>
+): Promise<ClientRecord> {
+  const clients = await readClients();
+  const idx = clients.findIndex((c) => normalizeName(c.nome) === normalizeName(nomeAttuale));
+  if (idx === -1) throw new Error(`Cliente "${nomeAttuale}" non trovato`);
+  const next: ClientRecord = { ...clients[idx], ...patch };
+  if (!next.nome.trim()) throw new Error("Nome obbligatorio");
+  clients[idx] = next;
+  await writeSheet(TAB, [HEADER, ...clients.map(toRow)]);
+  return next;
 }
 
 /**
@@ -251,6 +329,7 @@ export async function upsertClient(input: {
     fidelity: prev?.fidelity ?? null,
     categoria: prev?.categoria ?? null,
     punti: prev?.punti ?? 0,
+    codiceFiscale: prev?.codiceFiscale ?? null,
   };
   if (idx >= 0) clients[idx] = next;
   else clients.push(next);
@@ -289,6 +368,7 @@ export async function adjustClientPunti(nome: string, delta: number): Promise<Cl
       fidelity: null,
       categoria: null,
       punti: Math.max(0, delta),
+      codiceFiscale: null,
     });
   }
   await writeSheet(TAB, [HEADER, ...clients.map(toRow)]);
@@ -453,6 +533,7 @@ export async function importClientsCsv(
       fidelity: prev?.fidelity || get("fidelity") || null,
       categoria: get("categoria") || prev?.categoria || null,
       punti: prev?.punti ?? 0,
+      codiceFiscale: prev?.codiceFiscale ?? null,
     };
 
     if (prevIdx != null) {

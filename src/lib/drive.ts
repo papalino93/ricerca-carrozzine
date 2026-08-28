@@ -50,11 +50,8 @@ function getFolderId(): string {
   return id;
 }
 
-/** Carica un PDF già pronto nella cartella Drive dedicata, restituendo un link condivisibile. */
-export async function uploadSignedDocument(filename: string, pdf: Buffer): Promise<string> {
+async function uploadToFolder(filename: string, pdf: Buffer, folderId: string): Promise<string> {
   const drive = getDriveApi();
-  const folderId = getFolderId();
-
   const res = await drive.files.create({
     requestBody: { name: filename, parents: [folderId] },
     media: { mimeType: "application/pdf", body: Readable.from(pdf) },
@@ -66,4 +63,38 @@ export async function uploadSignedDocument(filename: string, pdf: Buffer): Promi
     throw new Error("Caricamento su Drive riuscito ma senza link restituito da Google.");
   }
   return url;
+}
+
+/** Carica un PDF già pronto nella cartella Drive dedicata, restituendo un link condivisibile. */
+export async function uploadSignedDocument(filename: string, pdf: Buffer): Promise<string> {
+  return uploadToFolder(filename, pdf, getFolderId());
+}
+
+/**
+ * Cartella Drive usata per archiviare i PDF dei fascicoli plantari.
+ * Facoltativa e distinta da GOOGLE_DRIVE_FOLDER_ID: una cartella dedicata
+ * separa i fascicoli (dati potenzialmente sanitari) dai verbali di
+ * noleggio. Se non impostata, ricade sulla stessa cartella dei verbali
+ * (GOOGLE_DRIVE_FOLDER_ID) invece di richiedere subito una seconda
+ * configurazione — così chi ha già Drive attivo per i verbali lo ottiene
+ * gratis anche qui.
+ */
+export function isFascicoliDriveConfigured(): boolean {
+  return Boolean(process.env.GOOGLE_DRIVE_FASCICOLI_FOLDER_ID || process.env.GOOGLE_DRIVE_FOLDER_ID);
+}
+
+function getFascicoliFolderId(): string {
+  const id = process.env.GOOGLE_DRIVE_FASCICOLI_FOLDER_ID || process.env.GOOGLE_DRIVE_FOLDER_ID;
+  if (!id) {
+    throw new Error(
+      "Google Drive non configurato: imposta GOOGLE_DRIVE_FASCICOLI_FOLDER_ID (o GOOGLE_DRIVE_FOLDER_ID) per archiviare i PDF dei fascicoli (vedi README)."
+    );
+  }
+  return id;
+}
+
+/** Carica il PDF di un fascicolo plantare nella cartella Drive dedicata (o
+ * in quella dei verbali, se non ne è stata configurata una a parte). */
+export async function uploadFascicoloPdf(filename: string, pdf: Buffer): Promise<string> {
+  return uploadToFolder(filename, pdf, getFascicoliFolderId());
 }

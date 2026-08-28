@@ -77,3 +77,15 @@ export function IconImpostazioni() {
     </svg>
   );
 }
+
+/** Cartella con un piccolo appoggio plantare stilizzato: distingue il
+ * fascicolo dal resto dell'archivio (icona Commessa/Magazzino), restando
+ * nella stessa famiglia stroke-only. */
+export function IconFascicoli() {
+  return (
+    <svg viewBox="0 0 24 24" {...SHARED}>
+      <path d="M3.5 7.5c0-1 .8-1.8 1.8-1.8h4l1.6 2h7.8c1 0 1.8.8 1.8 1.8v8.7c0 1-.8 1.8-1.8 1.8H5.3c-1 0-1.8-.8-1.8-1.8z" />
+      <path d="M11.5 11.2c-.5.9-.4 1.7.2 2.1.7.5.6 1.5-.1 1.8-1 .5-1.1 1.6-.3 2.2" />
+    </svg>
+  );
+}
