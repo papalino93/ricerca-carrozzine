@@ -136,7 +136,13 @@ export interface PrescrizioneData {
   descrizioneMateriale: string;
   quantita: string;
   importo: number | null;
+  /** Dispositivo medico detraibile: campo esplicito Sì/No, come nel modello
+   * definitivo del fascicolo (nell'originale era solo una dicitura fissa). */
+  dispositivoDetraibile: boolean;
+  dataOrdine: string | null;
   richiestaMedica: boolean;
+  /** Nome del medico che ha rilasciato la richiesta, se presente. */
+  medicoPrescrittore: string | null;
   dataPrescrizione: string | null;
   documentazioneDiagnostica: boolean;
   /** Pratica autorizzata da un ente terzo (ASL/SSN): quando true, il PDF
@@ -152,7 +158,10 @@ export function emptyPrescrizione(): PrescrizioneData {
     descrizioneMateriale: "Plantari su misura",
     quantita: "01 paia",
     importo: null,
+    dispositivoDetraibile: true,
+    dataOrdine: null,
     richiestaMedica: false,
+    medicoPrescrittore: null,
     dataPrescrizione: null,
     documentazioneDiagnostica: false,
     praticaAsl: false,
@@ -220,24 +229,34 @@ export function emptyFasiProduzione(): FaseProduzione[] {
 export interface ProduzioneData {
   matricola: string | null;
   codice: string | null;
+  /** Di norma il tecnico ortopedico responsabile (es. "T.O. Claudia Amulfi"),
+   * distinto dall'operatore che segue materialmente la commessa. */
+  responsabileProgetto: string | null;
   dataInizioLavori: string | null;
   dataProntaConsegna: string | null;
   noteRiesame: string | null;
   fasi: FaseProduzione[];
   controlloFinale: "conforme" | "non_conforme" | null;
   nonConformitaNumero: string | null;
+  /** Il flussogramma di progettazione (Allegato A) è una procedura aziendale
+   * fissa, identica per ogni commessa: NON entra di default nel PDF del
+   * cliente. Quando true, l'operatore ha scelto di allegarlo come ultima
+   * pagina dello stesso fascicolo (vedi analisi del documento originale). */
+  includiAllegatoA: boolean;
 }
 
 export function emptyProduzione(): ProduzioneData {
   return {
     matricola: null,
     codice: null,
+    responsabileProgetto: "T.O. Claudia Amulfi",
     dataInizioLavori: null,
     dataProntaConsegna: null,
     noteRiesame: null,
     fasi: emptyFasiProduzione(),
     controlloFinale: null,
     nonConformitaNumero: null,
+    includiAllegatoA: false,
   };
 }
 

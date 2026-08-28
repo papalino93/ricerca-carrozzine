@@ -28,44 +28,57 @@ Medical Center srl non accetta reclami trascorsi 10 giorni dalla consegna della 
 
 Il foro competente è quello di Firenze.`;
 
+// Versione allineata al "Fascicolo MODELLO DEFINITIVO" fornito da Medical
+// Center: stesso contenuto giuridico della prima trascrizione (vedi git
+// history), solo riscritto nella forma più snella che l'azienda ha
+// approvato come definitiva.
 export const INFORMATIVA_PRIVACY_FASCICOLO = `Informativa per il trattamento dei dati personali comuni e particolari (artt. 13 e 14 del Regolamento GDPR 679/2016).
 
-Medical Center srl, con sede in Scandicci (FI), Via di Scandicci 55/b, Le rilascia le informazioni relative al trattamento dei Suoi dati personali, ivi compresi quelli particolari idonei a rivelare lo stato di salute.
+Gentile Utente, Medical Center srl con sede in Scandicci CAP 50018 Via di Scandicci 55/b Le rilascia, ai sensi e per gli effetti degli artt. 13 e 14 del Regolamento GDPR 679/2016, le informazioni relative al trattamento dei dati personali Suoi o del soggetto del quale Lei esercita la rappresentanza legale, ivi compresi quelli particolari ed idonei a rivelare lo stato di salute.
 
-Finalità: i dati raccolti sono necessari alle attività di progettazione e realizzazione di dispositivi ortopedici su misura o di serie personalizzati, ai servizi accessori (es. monitoraggio dei dispositivi forniti), agli adempimenti amministrativi e fiscali connessi, incluse le comunicazioni obbligatorie agli enti competenti per l'assistenza protesica verso gli assistiti del SSN (D.Lgs. 46/97 e D.M. 332/99).
+1.1 Finalità del trattamento — a) i dati personali e particolari raccolti sono necessari per le attività di progettazione e realizzazione di dispositivi ortopedici su misura o di serie personalizzati, così come per i servizi accessori quali il monitoraggio dei dispositivi forniti, come richiesto dal D.Lgs. 46/97 e s.m.i.; b) attività professionali, amministrative e di gestione operativa legate ai servizi forniti, ivi comprese quelle connesse alla trasmissione dei dati agli enti competenti, come previsto da norme fiscali e regolamenti vigenti per l'erogazione di assistenza protesica verso gli assistiti del SSN (DM 332/99).
 
-Titolare e Responsabile del trattamento: Amulfi Claudia, contattabile a claudia.amulfi@hotmail.it, tel. 333 9455188.
+1.2 Titolare e responsabile del trattamento — Il Titolare è: Amulfi Claudia, contattabile a: email claudia.amulfi@hotmail.it, tel. 333 945 5188. Il medesimo soggetto è anche Responsabile nominato del trattamento.
 
-Comunicazione e diffusione: i dati non vengono diffusi all'esterno dell'azienda; possono essere comunicati, per le finalità sopra indicate, a soggetti terzi che collaborano con Medical Center per le procedure amministrative e fiscali richieste dalle norme vigenti.
+1.3 Ambito di comunicazione — I dati non verranno diffusi all'esterno dell'azienda ma possono essere comunicati, per le finalità indicate, a soggetti terzi che collaborano con Medical Center per l'esecuzione delle procedure amministrative e fiscali richieste dalle norme vigenti.
 
-Periodo di conservazione: 10 anni per i dati di rilievo fiscale, 5 anni per i dati necessari alla fascicolazione tecnica dei dispositivi e alla sorveglianza post-vendita, salvo termini più lunghi legati a eventuali procedure o contestazioni in corso.
+1.4 Periodo di conservazione — I dati verranno conservati per 10 anni per i dati di rilievo fiscale e per 5 anni per i dati necessari alla fascicolazione tecnica dei dispositivi e alla sorveglianza post-vendita, salvo tempi più lunghi in caso di procedure, accertamenti o contestazioni in corso.
 
-Diritti dell'utente: conferma dell'esistenza dei dati e copia degli stessi (art. 15), cancellazione totale o parziale (art. 17), rettifica, limitazione o opposizione al trattamento (art. 18), portabilità dei dati su supporto digitale (art. 20), reclamo a un'Autorità di controllo.
+1.5 Diritti dell'utente — L'utente ha diritto, ai sensi degli artt. 15-20 del Regolamento, di ottenere conferma dell'esistenza dei propri dati, riceverne copia, chiederne la cancellazione, rettifica, limitazione o opposizione al trattamento, richiedere la portabilità dei dati e proporre reclamo a un'Autorità di controllo. Le richieste vanno indirizzate per iscritto al Titolare, che risponderà entro 1 mese.
 
-Conseguenze del mancato consenso: fatti salvi i casi di urgenza/emergenza sanitaria, il mancato conferimento dei dati o il mancato consenso al trattamento per le finalità sopra indicate rende di fatto impossibile l'accesso alle prestazioni erogate da Medical Center.`;
+1.6 Conseguenze del mancato consenso — Fatti salvi i casi di urgenza/emergenza sanitaria, il mancato conferimento dei dati e il mancato consenso al trattamento per le finalità di cui al punto 1.1 rende di fatto impossibile l'accesso alle prestazioni erogate da Medical Center.
 
-export const DICHIARAZIONE_CONFORMITA_TESTO = `In ottemperanza al Regolamento (UE) 2017/745 sui dispositivi medici del 5 aprile 2017, Medical Center s.r.l. dichiara che il presidio sopra descritto:
+2.1 Modalità ed efficacia del consenso — Il consenso viene manifestato con la sottoscrizione del presente modulo. Solo l'interessato può prestarlo; se minorenne o sotto tutela, lo esprime chi ne ha la potestà legale. Ha validità fino a revoca o modifica; per i minori decade al raggiungimento della maggiore età. Il tutore, per conto dell'utente tutelato, allega la documentazione dell'Autorità Giudiziaria o un'autodichiarazione di potestà tutoria. Chi non può firmare per analfabetismo o impedimento fisico può esprimere il consenso verbalmente o con altri modi inequivocabili, di cui l'operatore dà atto. La consegna del modulo (non l'espressione del consenso in sé) è delegabile a persona munita di documento valido proprio e del delegante.`;
 
-— è stato realizzato secondo la documentazione tecnica relativa;
-— è classificato, secondo quanto previsto dal Regolamento (UE) 2017/745, come dispositivo medico su misura non invasivo, rientrante nella classe 1a;
-— non è uno strumento di misura;
-— non è destinato a indagini cliniche;
-— viene commercializzato in confezione non sterile;
-— soddisfa i requisiti essenziali e le disposizioni applicabili del Regolamento (UE) 2017/745.
-
-Realizzato dal T.O. Amulfi Claudia (iscrizione Albo TSRM-PSTRP n. 9).
-Fabbricato da Medical Center s.r.l. (ITCA01058106).`;
+export const DICHIARAZIONE_CONFORMITA_TESTO = `Si dichiara che il prodotto sopra indicato è stato realizzato secondo la documentazione tecnica relativa ed è classificato, ai sensi del Regolamento (UE) 2017/745, come dispositivo medico su misura non invasivo di classe I. Non è uno strumento di misura, non è destinato a indagini cliniche, è commercializzato in confezione non sterile e soddisfa i requisiti essenziali e le disposizioni applicabili del Regolamento.`;
 
 export const NOTE_INFORMATIVE_USO = {
-  descrizione: `Questi presidi hanno lo scopo di migliorare l'appoggio plantare, ottimizzando la postura e curando alcune patologie del soggetto. Particolare cura è stata posta nella scelta dei materiali impiegati, caratterizzati da una particolare morbidezza, e nell'identificazione e rintracciabilità degli stessi tramite apposite procedure per l'individuazione dei lotti di provenienza, requisito fondamentale per la sicurezza.`,
-  indicazioniUso: `Servono per prevenire e curare le patologie a carico dell'apparato scheletrico. 1° giorno: un'ora d'uso. 2°-8° giorno: aumentare l'uso di un'ora al giorno. Dall'8° giorno al primo controllo: uso quotidiano, seguendo il principio "maggior uso, maggior beneficio".`,
-  comeSiUsano: `L'impronta va rivolta verso l'alto; il plantare sinistro va nella scarpa sinistra, il destro nella scarpa destra.`,
-  controindicazioni: `Trattandosi di dispositivi non invasivi, è sufficiente attenersi alle indicazioni d'uso sopra riportate. L'uso scorretto e improprio (in particolare l'inversione tra plantare destro e sinistro) e il perdurare dell'uso oltre un anno senza controllo da parte del fornitore sono le principali controindicazioni.`,
-  manutenzione: `È sufficiente pulire i dispositivi con una spugna umida, asciugarli prima del riutilizzo, preservarli da fonti di calore e non immergerli in acqua o altri liquidi. Non sono biodegradabili: al termine della vita utile vanno smaltiti come rifiuti indifferenziati, non dispersi nell'ambiente.`,
-  garanzia: `La garanzia ha validità 1 anno dalla data di consegna, a condizione che siano state effettuate le validazioni entro il 2°, il 6° e il 12° mese dalla consegna presso Medical Center. La garanzia non è riconosciuta per l'usura del plantare causata da eccessiva sudorazione del piede o da uso improprio.`,
+  descrizione: `Questi presidi hanno lo scopo di migliorare l'appoggio plantare ottimizzando la postura e curando alcune patologie del soggetto. Particolare cura è stata posta nella scelta dei materiali impiegati, caratterizzati da morbidezza e tracciabilità, controllata da apposite procedure per l'individuazione dei lotti di provenienza.`,
+  indicazioniUso: `Servono a prevenire e curare patologie a carico dell'apparato scheletrico. 1° giorno: un'ora d'uso. 2°-8° giorno: aumentare l'uso di un'ora al giorno. Dall'8° giorno al 1° controllo: uso quotidiano, seguendo il principio "maggior uso, maggior beneficio".`,
+  comeSiUsano: `Indossare con l'impronta rivolta verso l'alto, rispettando il lato sinistro/destro indicato sul dispositivo.`,
+  controindicazioni: `Trattandosi di dispositivi non invasivi, è sufficiente attenersi a quanto indicato al punto precedente. Il perdurare dell'uso oltre un anno senza previo controllo del fornitore è sconsigliato.`,
+  manutenzione: `Pulire con una spugna umida, asciugare prima del riutilizzo, preservare da fonti di calore, non immergere in acqua o altri liquidi. Dispositivi non biodegradabili: a fine vita utile, smaltire come rifiuto indifferenziato.`,
+  garanzia: `Validità 1 anno dalla consegna, subordinata alle validazioni previste entro il 2°, 6° e 12° mese (da effettuarsi presso Medical Center). La garanzia non è riconosciuta per usura causata da eccessiva sudorazione o uso improprio.`,
 };
 
 export const CONTROINDICAZIONI_FORNITORE = [
   "L'uso scorretto ed improprio dei presidi (inversione plantare destro con sinistro).",
   "Il perdurare dell'uso oltre un anno senza previo controllo da parte del fornitore.",
+];
+
+/**
+ * Allegato A — Flussogramma di progettazione (ISO 13485, punti 7.3.1-7.3.7):
+ * procedura aziendale fissa, identica per ogni commessa (vedi analisi del
+ * documento originale). Non è farina di questo modulo: è il piano di
+ * progetto qualità già in uso, qui reso disponibile come allegato
+ * opzionale invece che ristampato manualmente ogni volta.
+ */
+export const ALLEGATO_A_FASI: { fase: string; descrizione: string; documenti: string; responsabile: string }[] = [
+  { fase: "1 — Pianificazione (7.3.1)", descrizione: "Date e responsabili", documenti: "Scheda di commessa · Registro appuntamenti", responsabile: "AC+CA" },
+  { fase: "2 — Elementi in ingresso (7.3.2)", descrizione: "Requisiti", documenti: "Scheda di commessa (Fase 1) · Richiesta medica · Doc. diagnostica", responsabile: "AC+CA" },
+  { fase: "3 — Elementi in uscita (7.3.3)", descrizione: "Dati misurabili per le caratteristiche", documenti: "Rilevazione impronta / schiuma fenolica (Fase 2)", responsabile: "AC+CA" },
+  { fase: "4 — Riesame P&S (7.3.4)", descrizione: "Dei calcoli o del disegno", documenti: "Sui disegni/calcoli (Fasi 1-4) · Scheda di commessa (Fase 5)", responsabile: "AC+CA" },
+  { fase: "5 — Verifica P&S (7.3.5)", descrizione: "Tra prodotto e dati in ingresso", documenti: "Scheda di commessa (Fase 8)", responsabile: "AC+CA" },
+  { fase: "6 — Validazione P&S (7.3.6)", descrizione: "Il prodotto va bene?", documenti: "Alla consegna · Scheda di commessa (Fasi 10 e 13)", responsabile: "AC+CA" },
+  { fase: "7 — Controllo modifiche P&S (7.3.7)", descrizione: "Se ritenute necessarie", documenti: "Scheda di commessa (Fase 12)", responsabile: "AC+CA" },
 ];

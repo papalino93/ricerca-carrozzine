@@ -288,14 +288,18 @@ sempre — nessun servizio nuovo.
   assente finora.
 
 **PDF**: generato con lo stesso motore già in uso (`@react-pdf/renderer`),
-template separato dal contenuto (`src/lib/pdf/FascicoloDocument.tsx`) —
-cambiare la grafica in futuro non richiede toccare i dati. Da 10 pagine del
-documento originale a circa 6, eliminando le ripetizioni (header, dati
-cliente, dichiarazione di conformità) senza togliere informazioni. Il
-processo produttivo interno (le 13 fasi della "Scheda Plantari" più il
-flussogramma di progettazione) resta **fuori** dal PDF del cliente — è lo
-stesso identico processo per ogni commessa — ed è stampabile a parte dal
-tab "Produzione" dell'editor.
+template separato dal contenuto (`src/lib/pdf/FascicoloDocument.tsx`),
+struttura allineata al "Fascicolo MODELLO DEFINITIVO" di Medical Center (11
+sezioni numerate: dati cliente e commessa, anamnesi, documentazione medica,
+scheda rilevazione obiettiva, piano appuntamenti, dichiarazione di
+conformità, scheda di produzione, comunicazione di avvenuta consegna,
+condizioni generali, privacy, note informative/garanzia) — eliminando le
+ripetizioni del documento Word originale (header, dati cliente, doppia
+dichiarazione di conformità) senza togliere informazioni. Il flussogramma
+di progettazione (Allegato A, procedura ISO 13485 fissa e identica per
+ogni commessa) resta **fuori dal PDF per default**: si include come ultima
+pagina solo spuntando "Includi l'Allegato A" nel tab Produzione, oppure si
+stampa a parte con lo stesso pulsante.
 
 **Archiviazione**: il PDF generato con "Scarica PDF" o "Genera fascicolo"
 viene archiviato su Google Drive se è impostata

@@ -1,6 +1,7 @@
 import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 import type { CompanySettings } from "@/lib/settings";
 import type { FascicoloRecord } from "@/lib/fascicoli-types";
+import { ALLEGATO_A_FASI } from "@/lib/fascicoli-testi";
 
 const INK = "#17301b";
 const INK_SOFT = "#5c6b5e";
@@ -18,37 +19,28 @@ const styles = StyleSheet.create({
   logo: { maxWidth: 140, maxHeight: 54, objectFit: "contain" },
   companyName: { fontSize: 13, fontWeight: 700, color: INK },
   title: { fontSize: 15, fontWeight: 700, color: INK, textTransform: "uppercase", marginTop: 18 },
-  sub: { fontSize: 9, color: INK_SOFT, marginTop: 2 },
+  sub: { fontSize: 9, color: INK_SOFT, marginTop: 2, lineHeight: 1.4 },
   accentBar: { height: 2.5, backgroundColor: ACCENT, borderRadius: 2, marginTop: 8, marginBottom: 14 },
   table: { borderWidth: 1, borderColor: LINE, borderRadius: 4 },
   headRow: { flexDirection: "row", backgroundColor: "#f2f5f0", borderBottomWidth: 1, borderBottomColor: LINE },
   row: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: LINE },
   rowLast: { flexDirection: "row" },
-  cN: { width: "6%", padding: 5, fontSize: 8 },
-  cFase: { width: "34%", padding: 5, fontSize: 8, borderLeftWidth: 1, borderLeftColor: LINE },
-  cControlli: { width: "34%", padding: 5, fontSize: 8, borderLeftWidth: 1, borderLeftColor: LINE, color: INK_SOFT },
-  cEsito: { width: "26%", padding: 5, fontSize: 8, borderLeftWidth: 1, borderLeftColor: LINE },
-  headText: { fontSize: 8, fontWeight: 700, color: INK_SOFT, textTransform: "uppercase" },
-  note: { fontSize: 8, color: INK_SOFT, marginTop: 10, lineHeight: 1.4 },
+  headText: { fontSize: 8, fontWeight: 700, color: INK_SOFT, textTransform: "uppercase", padding: 5 },
+  cellFase: { width: "24%", padding: 5, fontSize: 8, fontWeight: 700 },
+  cellDescrizione: { width: "22%", padding: 5, fontSize: 8, borderLeftWidth: 1, borderLeftColor: LINE },
+  cellDocumenti: { width: "42%", padding: 5, fontSize: 8, color: INK_SOFT, borderLeftWidth: 1, borderLeftColor: LINE },
+  cellResp: { width: "12%", padding: 5, fontSize: 8, borderLeftWidth: 1, borderLeftColor: LINE },
 });
 
-function fmtDate(iso: string | null): string {
-  if (!iso) return "—";
-  const [y, m, d] = iso.split("-");
-  if (!y || !m || !d) return iso;
-  return `${d}/${m}/${y}`;
-}
-
 /**
- * Documento interno (non per il cliente): il flussogramma di
- * progettazione/produzione è lo stesso identico processo qualità per ogni
- * commessa, quindi non entra nel fascicolo del cliente (vedi analisi del
- * documento originale) — resta però disponibile qui, stampabile su
- * richiesta, con i dati di avanzamento della singola commessa.
+ * Allegato A — Flussogramma di progettazione, come documento a sé: stessa
+ * procedura fissa (ISO 13485, 7.3.1-7.3.7) che può anche essere allegata
+ * come ultima pagina del fascicolo cliente (vedi FascicoloDocument, flag
+ * "includiAllegatoA") — qui invece stampabile da sola, senza dover aprire
+ * un fascicolo specifico, per affiggerla come procedura interna.
  */
 export function ProcessoProduttivoDocument({ settings, fascicolo }: ProcessoProduttivoDocumentProps) {
   const hasLogo = Boolean(settings.logoUrl);
-  const fasi = fascicolo.contenuto.produzione.fasi;
 
   return (
     <Document>
@@ -61,51 +53,29 @@ export function ProcessoProduttivoDocument({ settings, fascicolo }: ProcessoProd
             <Text style={styles.companyName}>{settings.ragioneSociale || "Ragione sociale non impostata"}</Text>
           )}
         </View>
-        <Text style={styles.title}>Processo produttivo — Scheda plantari</Text>
+        <Text style={styles.title}>Allegato A · Flussogramma di progettazione</Text>
         <Text style={styles.sub}>
-          Commessa {fascicolo.commessa || fascicolo.numero} · Documento interno di controllo qualità, non destinato al cliente
+          Piano di progetto — procedura standard per la progettazione dei dispositivi su misura (ISO 13485, punti
+          7.3.1-7.3.7). Documento fisso: uguale per ogni commessa (rif. Scheda di produzione, commessa {fascicolo.commessa || fascicolo.numero}).
         </Text>
         <View style={styles.accentBar} />
 
         <View style={styles.table}>
           <View style={styles.headRow}>
-            <Text style={[styles.cN, styles.headText]}>N.</Text>
-            <Text style={[styles.cFase, styles.headText]}>Fase</Text>
-            <Text style={[styles.cControlli, styles.headText]}>Controlli</Text>
-            <Text style={[styles.cEsito, styles.headText]}>Data / Operatore</Text>
+            <Text style={[styles.headText, { width: "24%" }]}>Fase</Text>
+            <Text style={[styles.headText, { width: "22%" }]}>Descrizione</Text>
+            <Text style={[styles.headText, { width: "42%" }]}>Documenti</Text>
+            <Text style={[styles.headText, { width: "12%" }]}>Resp.</Text>
           </View>
-          {fasi.map((f, i) => (
-            <View key={f.numero} style={i === fasi.length - 1 ? styles.rowLast : styles.row}>
-              <Text style={styles.cN}>{f.numero}</Text>
-              <Text style={styles.cFase}>
-                {f.nome}
-                {f.note ? ` — ${f.note}` : ""}
-              </Text>
-              <Text style={styles.cControlli}>{f.controlli}</Text>
-              <Text style={styles.cEsito}>
-                {f.completata ? "✓ " : "— "}
-                {fmtDate(f.data)}
-                {f.operatore ? ` · ${f.operatore}` : ""}
-              </Text>
+          {ALLEGATO_A_FASI.map((r, i) => (
+            <View key={r.fase} style={i === ALLEGATO_A_FASI.length - 1 ? styles.rowLast : styles.row}>
+              <Text style={styles.cellFase}>{r.fase}</Text>
+              <Text style={styles.cellDescrizione}>{r.descrizione}</Text>
+              <Text style={styles.cellDocumenti}>{r.documenti}</Text>
+              <Text style={styles.cellResp}>{r.responsabile}</Text>
             </View>
           ))}
         </View>
-
-        <Text style={styles.note}>
-          Controllo finale:{" "}
-          {fascicolo.contenuto.produzione.controlloFinale === "conforme"
-            ? "Conforme"
-            : fascicolo.contenuto.produzione.controlloFinale === "non_conforme"
-              ? `Non conforme (N. ${fascicolo.contenuto.produzione.nonConformitaNumero || "—"})`
-              : "Non ancora effettuato"}
-        </Text>
-        {fascicolo.contenuto.produzione.noteRiesame ? (
-          <Text style={styles.note}>Note per riesame: {fascicolo.contenuto.produzione.noteRiesame}</Text>
-        ) : null}
-        <Text style={styles.note}>
-          Riferimento norma qualità: fasi 7.3.1-7.3.7 del piano di progetto (pianificazione, elementi in ingresso/uscita,
-          riesame, verifica e validazione P&S) — processo aziendale unico, non variabile da commessa a commessa.
-        </Text>
       </Page>
     </Document>
   );

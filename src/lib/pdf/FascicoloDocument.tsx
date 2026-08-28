@@ -4,6 +4,7 @@ import type { ClientRecord } from "@/lib/clients";
 import type { FascicoloRecord } from "@/lib/fascicoli-types";
 import { FASCICOLO_STATO_LABEL } from "@/lib/fascicoli-types";
 import {
+  ALLEGATO_A_FASI,
   CONDIZIONI_GENERALI_FORNITURA,
   DICHIARAZIONE_CONFORMITA_TESTO,
   INFORMATIVA_PRIVACY_FASCICOLO,
@@ -75,20 +76,6 @@ const styles = StyleSheet.create({
   signatureLine: { borderTopWidth: 1, borderTopColor: INK, marginBottom: 5, height: 30 },
   signatureImage: { height: 30, marginBottom: 5, objectFit: "contain" },
   signatureLabel: { fontSize: 8, color: INK_SOFT, textAlign: "center" },
-  copiaBadge: {
-    alignSelf: "flex-start",
-    fontSize: 7.5,
-    fontWeight: 700,
-    color: ACCENT,
-    borderWidth: 1,
-    borderColor: ACCENT,
-    borderRadius: 3,
-    paddingVertical: 2,
-    paddingHorizontal: 6,
-    marginBottom: 8,
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
-  },
   footer: {
     position: "absolute",
     bottom: 20,
@@ -102,6 +89,12 @@ const styles = StyleSheet.create({
     borderTopColor: LINE,
     paddingTop: 4,
   },
+  allegatoHeadRow: { flexDirection: "row", backgroundColor: "#f2f5f0", borderBottomWidth: 1, borderBottomColor: LINE },
+  allegatoHeadText: { fontSize: 7.5, fontWeight: 700, color: INK_SOFT, textTransform: "uppercase", padding: 5 },
+  allegatoCellFase: { width: "24%", padding: 5, fontSize: 7.5, fontWeight: 700 },
+  allegatoCellDescrizione: { width: "22%", padding: 5, fontSize: 7.5, borderLeftWidth: 1, borderLeftColor: LINE },
+  allegatoCellDocumenti: { width: "42%", padding: 5, fontSize: 7.5, color: INK_SOFT, borderLeftWidth: 1, borderLeftColor: LINE },
+  allegatoCellResp: { width: "12%", padding: 5, fontSize: 7.5, borderLeftWidth: 1, borderLeftColor: LINE },
 });
 
 function fmtDate(iso: string | null | undefined): string {
@@ -176,7 +169,7 @@ function Footer({ fascicolo, cliente }: { fascicolo: FascicoloRecord; cliente: C
   return (
     <View style={styles.footer} fixed>
       <Text>
-        Fascicolo {fascicolo.numero} — {cliente.nome}
+        Commessa {fascicolo.commessa || fascicolo.numero} · {cliente.nome} · Rev. {fascicolo.versione}
       </Text>
       <Text render={({ pageNumber, totalPages }) => `Pag. ${pageNumber} di ${totalPages}`} />
     </View>
@@ -190,29 +183,6 @@ export function FascicoloDocument({ settings, cliente, fascicolo }: FascicoloDoc
     .filter(Boolean)
     .join(", ");
   const telefono = [cliente.telefono, cliente.cellulare].filter(Boolean).join(" · ");
-
-  const conformitaBlock = (etichetta: string) => (
-    <View break>
-      <Text style={styles.copiaBadge}>{etichetta}</Text>
-      <Text style={styles.sectionLabel}>Dichiarazione di conformità</Text>
-      <Text style={styles.para}>{DICHIARAZIONE_CONFORMITA_TESTO}</Text>
-      <View style={[styles.table, { marginTop: 8 }]}>
-        <Field label="Nome dispositivo" value={fascicolo.tipoDispositivo} />
-        <Field label="Codice" value={c.produzione.codice || "—"} />
-        <Field label="Matricola" value={c.produzione.matricola || "—"} />
-        <FieldLast label="Commessa" value={fascicolo.commessa || fascicolo.numero} />
-      </View>
-      <View style={styles.signatureRow}>
-        <View style={styles.signatureBlock}>
-          <View style={styles.signatureLine} />
-          <Text style={styles.signatureLabel}>Firma della direzione</Text>
-        </View>
-        <View style={styles.signatureBlock}>
-          <Text style={[styles.metaValue, { textAlign: "center" }]}>Scandicci, {fmtDate(fascicolo.ultimaModifica)}</Text>
-        </View>
-      </View>
-    </View>
-  );
 
   return (
     <Document>
@@ -231,66 +201,60 @@ export function FascicoloDocument({ settings, cliente, fascicolo }: FascicoloDoc
         </View>
         <View style={styles.accentBar} />
 
-        {/* ANAGRAFICA — dati recuperati dalla scheda cliente, mai ridigitati */}
-        <Text style={styles.sectionLabel}>Dati anagrafici</Text>
+        {/* 1 · ANAGRAFICA E COMMESSA — dati recuperati dalla scheda cliente, mai ridigitati */}
+        <Text style={styles.sectionLabel}>1 · Dati cliente e commessa</Text>
         <View style={styles.table}>
           <Field label="Nome e cognome" value={nomeCompleto} />
           <Field label="Codice fiscale" value={cliente.codiceFiscale || "—"} />
           <Field label="Residente in" value={indirizzoCompleto || "—"} />
           <Field label="Nato/a il" value={fmtDate(cliente.dataNascita)} />
-          <FieldLast label="Recapiti" value={telefono || "—"} />
+          <Field label="Recapiti" value={telefono || "—"} />
+          <Field label="N. commessa" value={fascicolo.commessa || fascicolo.numero} />
+          <FieldLast label="Data ordine" value={fmtDate(c.prescrizione.dataOrdine)} />
+        </View>
+        <View style={[styles.table, { marginTop: 8 }]}>
+          <Field label="Materiale richiesto" value={`${c.prescrizione.quantita} — ${c.prescrizione.descrizioneMateriale}`} />
+          <FieldLast label="Importo (IVA inclusa)" value={fmtEuro(c.prescrizione.importo)} />
+        </View>
+        <Check checked={c.prescrizione.dispositivoDetraibile} label="Dispositivo medico detraibile" />
+
+        {/* 2 · ANAMNESI */}
+        <Text style={styles.sectionLabel}>2 · Anamnesi e caratteristiche somatiche</Text>
+        <View style={styles.table}>
+          <Field label="Altezza / Peso" value={`${c.anamnesi.altezzaCm ?? "—"} cm · ${c.anamnesi.pesoKg ?? "—"} kg`} />
+          <Field label="Patologia correlata al dispositivo" value={c.anamnesi.patologiaCorrelata || "—"} />
+          <Field label="Altre patologie" value={c.anamnesi.altrePatologie || "—"} />
+          <Field
+            label="Allergie"
+            value={c.anamnesi.nessunaAllergia ? "Dichiara di non averne" : c.anamnesi.allergie || "—"}
+          />
+          <FieldLast
+            label="Capacità psicofisica"
+            value={
+              c.anamnesi.capacitaPsicofisica === "totale"
+                ? "Totale"
+                : c.anamnesi.capacitaPsicofisica === "parziale"
+                  ? "Parziale"
+                  : c.anamnesi.capacitaPsicofisica === "assistenza"
+                    ? "Necessità di assistente"
+                    : "—"
+            }
+          />
         </View>
 
-        {/* PRIVACY E CONSENSI */}
-        <Text style={styles.sectionLabel}>Privacy e consensi</Text>
-        <Text style={styles.para}>{INFORMATIVA_PRIVACY_FASCICOLO}</Text>
-        <Check checked={c.consensi.consensoTrattamentoDati} label="Acconsento al trattamento dei miei dati personali e particolari alle condizioni previste nell'informativa" />
-        <Check checked={c.consensi.presaVisioneInformativa} label="Presa visione dell'informativa privacy" />
-        <Check checked={c.consensi.consensoDocumentazione} label="Consenso alla documentazione tecnica del dispositivo" />
-        <View style={styles.signatureRow}>
-          <View style={styles.signatureBlock}>
-            {c.consensi.firmaClienteUrl ? (
-              // eslint-disable-next-line jsx-a11y/alt-text
-              <Image style={styles.signatureImage} src={c.consensi.firmaClienteUrl} />
-            ) : (
-              <View style={styles.signatureLine} />
-            )}
-            <Text style={styles.signatureLabel}>Firma del cliente</Text>
-          </View>
-          <View style={styles.signatureBlock}>
-            <Text style={[styles.metaValue, { textAlign: "center" }]}>Data {fmtDate(c.consensi.dataConsenso)}</Text>
-          </View>
-        </View>
+        {/* 3 · DOCUMENTAZIONE MEDICA */}
+        <Text style={styles.sectionLabel}>3 · Documentazione medica presentata</Text>
+        <Check checked={c.prescrizione.richiestaMedica} label={`Richiesta medica${c.prescrizione.medicoPrescrittore ? ` — ${c.prescrizione.medicoPrescrittore}` : ""}`} />
+        <Check checked={c.prescrizione.documentazioneDiagnostica} label="Documentazione diagnostica presentata" />
+        {c.prescrizione.praticaAsl ? (
+          <Check checked label={`Pratica ASL/SSN — autorizzazione n. ${c.prescrizione.autorizzazioneAslNumero || "—"}`} />
+        ) : null}
+        {c.prescrizione.note ? <Text style={styles.para}>Note: {c.prescrizione.note}</Text> : null}
 
-        {/* ANAMNESI */}
+        {/* 4 · ESAME DEL PIEDE */}
         <View break>
-          <Text style={styles.sectionLabel}>Anamnesi</Text>
-          <View style={styles.table}>
-            <Field label="Altezza / Peso" value={`${c.anamnesi.altezzaCm ?? "—"} cm · ${c.anamnesi.pesoKg ?? "—"} kg`} />
-            <Field label="Patologia correlata al dispositivo" value={c.anamnesi.patologiaCorrelata || "—"} />
-            <Field label="Altre patologie" value={c.anamnesi.altrePatologie || "—"} />
-            <Field
-              label="Allergie"
-              value={c.anamnesi.nessunaAllergia ? "Dichiara di non averne" : c.anamnesi.allergie || "—"}
-            />
-            <FieldLast
-              label="Capacità psicofisica"
-              value={
-                c.anamnesi.capacitaPsicofisica === "totale"
-                  ? "Totale"
-                  : c.anamnesi.capacitaPsicofisica === "parziale"
-                    ? "Parziale"
-                    : c.anamnesi.capacitaPsicofisica === "assistenza"
-                      ? "Necessità di assistente"
-                      : "—"
-              }
-            />
-          </View>
-        </View>
-
-        {/* ESAME DEL PIEDE */}
-        <Text style={styles.sectionLabel}>Esame del piede</Text>
-        {c.esamePiede.motivoVisita ? <Text style={styles.para}>Motivo della visita: {c.esamePiede.motivoVisita}</Text> : null}
+          <Text style={styles.sectionLabel}>4 · Scheda rilevazione obiettiva</Text>
+          {c.esamePiede.motivoVisita ? <Text style={styles.para}>Motivo della visita: {c.esamePiede.motivoVisita}</Text> : null}
         <View style={styles.twoCol}>
           {(["sinistro", "destro"] as const).map((lato) => {
             const l = c.esamePiede[lato];
@@ -324,72 +288,190 @@ export function FascicoloDocument({ settings, cliente, fascicolo }: FascicoloDoc
               </View>
             );
           })}
+          </View>
+          <Text style={[styles.legalTitle, { marginTop: 6 }]}>Destinazione d&apos;uso e calzatura</Text>
+          <Text style={styles.para}>
+            {[
+              c.esamePiede.destinazioneUso.attivitaLavorativa && `Lavorativa: ${c.esamePiede.destinazioneUso.attivitaLavorativa}`,
+              c.esamePiede.destinazioneUso.attivitaSportiva && `Sportiva: ${c.esamePiede.destinazioneUso.attivitaSportiva}`,
+              c.esamePiede.destinazioneUso.attivitaTempoLibero && `Tempo libero: ${c.esamePiede.destinazioneUso.attivitaTempoLibero}`,
+              c.esamePiede.calzaturaCollegamento.ciabattaPredisposta && "ciabatta predisposta",
+              c.esamePiede.calzaturaCollegamento.scarpaPredisposta && "scarpa predisposta",
+              c.esamePiede.calzaturaCollegamento.antinfortunistica && "antinfortunistica",
+              c.esamePiede.calzaturaCollegamento.scarpaGinnastica && "scarpa da ginnastica",
+            ]
+              .filter(Boolean)
+              .join(" · ") || "Non specificata"}
+          </Text>
         </View>
 
-        {/* PRESCRIZIONE */}
-        <Text style={styles.sectionLabel}>Prescrizione</Text>
+        {/* 5 · PIANO APPUNTAMENTI */}
+        <Text style={styles.sectionLabel}>5 · Piano appuntamenti</Text>
         <View style={styles.table}>
-          <Field label="Materiale richiesto" value={`${c.prescrizione.quantita} — ${c.prescrizione.descrizioneMateriale}`} />
-          <FieldLast label="Importo (IVA inclusa)" value={fmtEuro(c.prescrizione.importo)} />
+          <Field label="1° appuntamento (baropodometria+calco)" value={fmtDate(c.consegna.dataPrimoAppuntamento)} />
+          <Field
+            label="Prova/consegna prevista"
+            value={`${fmtDate(c.consegna.dataConsegnaPrevista)}${c.consegna.oraConsegna ? ` alle ${c.consegna.oraConsegna}` : ""}`}
+          />
+          <Field label="Consegna effettiva" value={fmtDate(c.consegna.dataConsegnaEffettiva)} />
+          <Field label="Follow-up a 2 mesi" value={fmtDate(c.consegna.dataFollowUp)} />
+          <FieldLast label="Luogo" value={c.consegna.luogoConsegna || "—"} />
         </View>
-        <Check checked={c.prescrizione.richiestaMedica} label="Richiesta medica presentata" />
-        <Check checked={c.prescrizione.documentazioneDiagnostica} label="Documentazione diagnostica presentata" />
-        {c.prescrizione.praticaAsl ? (
-          <Check checked label={`Pratica ASL/SSN — autorizzazione n. ${c.prescrizione.autorizzazioneAslNumero || "—"}`} />
-        ) : null}
-        {c.prescrizione.note ? <Text style={styles.para}>Note: {c.prescrizione.note}</Text> : null}
 
-        {/* CONFORMITÀ — due copie identiche, come da fascicolo originale */}
-        {conformitaBlock("Copia archivio interno")}
-        {conformitaBlock("Copia cliente")}
-
-        {/* CONSEGNA / ISTRUZIONI */}
+        {/* 6 · DICHIARAZIONE DI CONFORMITÀ — una sola copia, come da modello definitivo */}
         <View break>
-          <Text style={styles.sectionLabel}>Consegna</Text>
-          <View style={styles.table}>
-            <Field label="Data 1° appuntamento" value={fmtDate(c.consegna.dataPrimoAppuntamento)} />
-            <Field
-              label="Prova adattamento e consegna"
-              value={`${fmtDate(c.consegna.dataConsegnaPrevista)}${c.consegna.oraConsegna ? ` alle ${c.consegna.oraConsegna}` : ""}${c.consegna.luogoConsegna ? ` — ${c.consegna.luogoConsegna}` : ""}`}
-            />
-            <Field label="Data consegna effettiva" value={fmtDate(c.consegna.dataConsegnaEffettiva)} />
-            <FieldLast label="Controllo follow-up" value={fmtDate(c.consegna.dataFollowUp)} />
+          <Text style={styles.sectionLabel}>6 · Dichiarazione di conformità — Regolamento (UE) 2017/745</Text>
+          <Text style={styles.para}>{DICHIARAZIONE_CONFORMITA_TESTO}</Text>
+          <View style={styles.signatureRow}>
+            <View style={styles.signatureBlock}>
+              <View style={styles.signatureLine} />
+              <Text style={styles.signatureLabel}>Firma della direzione</Text>
+            </View>
+            <View style={styles.signatureBlock}>
+              <Text style={[styles.metaValue, { textAlign: "center" }]}>Scandicci, {fmtDate(c.prescrizione.dataOrdine)}</Text>
+            </View>
           </View>
 
-          {fascicolo.contenuto.prescrizione.praticaAsl ? (
-            <View style={{ marginTop: 10 }}>
-              <Text style={styles.legalTitle}>Comunicazione avvenuta consegna</Text>
-              <Text style={styles.para}>
-                Spett.le {c.consegna.comunicazioneAslDestinatario || "___________________"}, con la presente
-                comunichiamo che in data odierna abbiamo consegnato a {nomeCompleto} il materiale da Voi
-                autorizzato con pratica n. {c.consegna.comunicazioneAslPraticaNumero || c.prescrizione.autorizzazioneAslNumero || "—"}.
-              </Text>
-              <View style={styles.signatureRow}>
-                <View style={styles.signatureBlock}>
-                  <View style={styles.signatureLine} />
-                  <Text style={styles.signatureLabel}>Firma per ricevuta</Text>
-                </View>
-              </View>
+          {/* 7 · SCHEDA DI PRODUZIONE */}
+          <Text style={styles.sectionLabel}>7 · Scheda di produzione — Commessa</Text>
+          <View style={styles.table}>
+            <Field label="Nome dispositivo" value={fascicolo.tipoDispositivo} />
+            <Field label="Codice" value={c.produzione.codice || "—"} />
+            <Field label="Matricola" value={c.produzione.matricola || "—"} />
+            <Field label="Prescritto dal dottore" value={c.prescrizione.medicoPrescrittore || "—"} />
+            <Field label="Data prescrizione" value={fmtDate(c.prescrizione.dataPrescrizione)} />
+            <Field label="Responsabile di progetto" value={c.produzione.responsabileProgetto || "—"} />
+            <Field label="Operatore" value={fascicolo.operatore || "—"} />
+            <Field label="Data inizio lavori" value={fmtDate(c.produzione.dataInizioLavori)} />
+            <FieldLast label="Data pronta consegna" value={fmtDate(c.produzione.dataProntaConsegna)} />
+          </View>
+          <View style={[styles.table, { marginTop: 8 }]}>
+            <View style={styles.allegatoHeadRow}>
+              <Text style={[styles.allegatoHeadText, { width: "6%" }]}>N.</Text>
+              <Text style={[styles.allegatoHeadText, { width: "34%" }]}>Fase</Text>
+              <Text style={[styles.allegatoHeadText, { width: "34%" }]}>Controlli</Text>
+              <Text style={[styles.allegatoHeadText, { width: "26%" }]}>Data / Operatore</Text>
             </View>
-          ) : null}
-
-          <Text style={styles.sectionLabel}>Note informative e istruzioni per l&apos;uso</Text>
-          <Text style={styles.legalTitle}>1. Descrizione</Text>
-          <Text style={styles.para}>{NOTE_INFORMATIVE_USO.descrizione}</Text>
-          <Text style={styles.legalTitle}>2. Indicazioni d&apos;uso</Text>
-          <Text style={styles.para}>{NOTE_INFORMATIVE_USO.indicazioniUso}</Text>
-          <Text style={styles.legalTitle}>3. Come si usano</Text>
-          <Text style={styles.para}>{NOTE_INFORMATIVE_USO.comeSiUsano}</Text>
-          <Text style={styles.legalTitle}>4. Controindicazioni ed effetti collaterali</Text>
-          <Text style={styles.para}>{NOTE_INFORMATIVE_USO.controindicazioni}</Text>
-          <Text style={styles.legalTitle}>5. Manutenzione e conservazione</Text>
-          <Text style={styles.para}>{NOTE_INFORMATIVE_USO.manutenzione}</Text>
-          <Text style={styles.legalTitle}>6. Garanzia</Text>
-          <Text style={styles.para}>{NOTE_INFORMATIVE_USO.garanzia}</Text>
+            {c.produzione.fasi.map((f, i) => (
+              <View key={f.numero} style={i === c.produzione.fasi.length - 1 ? styles.rowLast : styles.row}>
+                <Text style={{ width: "6%", padding: 5, fontSize: 7.5 }}>{f.numero}</Text>
+                <Text style={{ width: "34%", padding: 5, fontSize: 7.5 }}>
+                  {f.nome}
+                  {f.note ? ` — ${f.note}` : ""}
+                </Text>
+                <Text style={{ width: "34%", padding: 5, fontSize: 7.5, color: INK_SOFT }}>{f.controlli}</Text>
+                <Text style={{ width: "26%", padding: 5, fontSize: 7.5 }}>
+                  {f.completata ? "✓ " : "— "}
+                  {fmtDate(f.data)}
+                  {f.operatore ? ` · ${f.operatore}` : ""}
+                </Text>
+              </View>
+            ))}
+          </View>
+          <Text style={[styles.para, { marginTop: 6 }]}>
+            Controllo finale:{" "}
+            {c.produzione.controlloFinale === "conforme"
+              ? "Conforme"
+              : c.produzione.controlloFinale === "non_conforme"
+                ? `Non conforme (N.C. n. ${c.produzione.nonConformitaNumero || "—"})`
+                : "Non ancora effettuato"}
+            {c.produzione.noteRiesame ? ` — Note per riesame: ${c.produzione.noteRiesame}` : ""}
+          </Text>
         </View>
 
-        <Text style={[styles.sectionLabel, { marginTop: 16 }]}>Condizioni generali di fornitura</Text>
-        <Text style={[styles.para, { fontSize: 7 }]}>{CONDIZIONI_GENERALI_FORNITURA}</Text>
+        {/* 8 · COMUNICAZIONE AVVENUTA CONSEGNA — solo per pratiche ASL/SSN */}
+        {c.prescrizione.praticaAsl ? (
+          <View break>
+            <Text style={styles.sectionLabel}>8 · Comunicazione di avvenuta consegna</Text>
+            <Text style={styles.para}>
+              Con la presente si comunica che in data odierna è stato consegnato alla/al Sig.ra/Sig.{" "}
+              {nomeCompleto}
+              {c.consegna.comunicazioneAslDestinatario ? `, per conto di ${c.consegna.comunicazioneAslDestinatario},` : ""} il
+              materiale autorizzato con pratica n.{" "}
+              {c.consegna.comunicazioneAslPraticaNumero || c.prescrizione.autorizzazioneAslNumero || "—"}.
+            </Text>
+            <View style={styles.signatureRow}>
+              <View style={styles.signatureBlock}>
+                <View style={styles.signatureLine} />
+                <Text style={styles.signatureLabel}>Firma per ricevuta</Text>
+              </View>
+              <View style={styles.signatureBlock}>
+                <Text style={[styles.metaValue, { textAlign: "center" }]}>Data {fmtDate(c.consegna.dataConsegnaEffettiva)}</Text>
+              </View>
+            </View>
+          </View>
+        ) : null}
+
+        {/* 9 · CONDIZIONI GENERALI DI FORNITURA */}
+        <View break>
+          <Text style={styles.sectionLabel}>9 · Condizioni generali di fornitura</Text>
+          <Text style={styles.para}>{CONDIZIONI_GENERALI_FORNITURA}</Text>
+        </View>
+
+        {/* 10 · PRIVACY E CONSENSI */}
+        <View break>
+          <Text style={styles.sectionLabel}>10 · Informativa privacy e consenso al trattamento dati</Text>
+          <Text style={styles.para}>{INFORMATIVA_PRIVACY_FASCICOLO}</Text>
+          <Check checked={c.consensi.consensoTrattamentoDati} label="Acconsento al trattamento dei miei dati personali e particolari alle condizioni previste nell'informativa" />
+          <Check checked={c.consensi.presaVisioneInformativa} label="Presa visione dell'informativa privacy" />
+          <Check checked={c.consensi.consensoDocumentazione} label="Consenso alla documentazione tecnica del dispositivo" />
+          <View style={styles.signatureRow}>
+            <View style={styles.signatureBlock}>
+              {c.consensi.firmaClienteUrl ? (
+                // eslint-disable-next-line jsx-a11y/alt-text
+                <Image style={styles.signatureImage} src={c.consensi.firmaClienteUrl} />
+              ) : (
+                <View style={styles.signatureLine} />
+              )}
+              <Text style={styles.signatureLabel}>Firma del cliente</Text>
+            </View>
+            <View style={styles.signatureBlock}>
+              <Text style={[styles.metaValue, { textAlign: "center" }]}>Data {fmtDate(c.consensi.dataConsenso)}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* 11 · NOTE INFORMATIVE / GARANZIA */}
+        <Text style={styles.sectionLabel}>11 · Note informative, istruzioni per l&apos;uso e garanzia</Text>
+        <Text style={styles.legalTitle}>1 — Descrizione</Text>
+        <Text style={styles.para}>{NOTE_INFORMATIVE_USO.descrizione}</Text>
+        <Text style={styles.legalTitle}>2 — Indicazioni d&apos;uso</Text>
+        <Text style={styles.para}>{NOTE_INFORMATIVE_USO.indicazioniUso}</Text>
+        <Text style={styles.legalTitle}>3 — Come si usano</Text>
+        <Text style={styles.para}>{NOTE_INFORMATIVE_USO.comeSiUsano}</Text>
+        <Text style={styles.legalTitle}>4 — Controindicazioni</Text>
+        <Text style={styles.para}>{NOTE_INFORMATIVE_USO.controindicazioni}</Text>
+        <Text style={styles.legalTitle}>5 — Manutenzione e conservazione</Text>
+        <Text style={styles.para}>{NOTE_INFORMATIVE_USO.manutenzione}</Text>
+        <Text style={styles.legalTitle}>6 — Garanzia</Text>
+        <Text style={styles.para}>{NOTE_INFORMATIVE_USO.garanzia}</Text>
+
+        {/* ALLEGATO A — procedura aziendale fissa: solo se richiesto esplicitamente */}
+        {c.produzione.includiAllegatoA ? (
+          <View break>
+            <Text style={styles.sectionLabel}>Allegato A · Flussogramma di progettazione</Text>
+            <Text style={styles.para}>
+              Piano di progetto — procedura standard per la progettazione dei dispositivi su misura (ISO 13485, punti
+              7.3.1-7.3.7). Documento fisso: uguale per ogni commessa.
+            </Text>
+            <View style={[styles.table, { marginTop: 6 }]}>
+              <View style={styles.allegatoHeadRow}>
+                <Text style={[styles.allegatoHeadText, styles.allegatoCellFase]}>Fase</Text>
+                <Text style={[styles.allegatoHeadText, styles.allegatoCellDescrizione]}>Descrizione</Text>
+                <Text style={[styles.allegatoHeadText, styles.allegatoCellDocumenti]}>Documenti</Text>
+                <Text style={[styles.allegatoHeadText, styles.allegatoCellResp]}>Resp.</Text>
+              </View>
+              {ALLEGATO_A_FASI.map((r, i) => (
+                <View key={r.fase} style={i === ALLEGATO_A_FASI.length - 1 ? styles.rowLast : styles.row}>
+                  <Text style={styles.allegatoCellFase}>{r.fase}</Text>
+                  <Text style={styles.allegatoCellDescrizione}>{r.descrizione}</Text>
+                  <Text style={styles.allegatoCellDocumenti}>{r.documenti}</Text>
+                  <Text style={styles.allegatoCellResp}>{r.responsabile}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        ) : null}
       </Page>
     </Document>
   );

@@ -7,9 +7,10 @@ import { ProcessoProduttivoDocument } from "@/lib/pdf/ProcessoProduttivoDocument
 
 export const runtime = "nodejs";
 
-// Documento interno (processo qualità), stampabile su richiesta: non entra
-// mai automaticamente nel fascicolo del cliente (vedi analisi del
-// documento originale — è lo stesso processo per ogni commessa).
+// Allegato A (flussogramma di progettazione ISO 13485) come documento a
+// sé, stampabile su richiesta senza toccare il fascicolo: la stessa
+// procedura fissa può anche essere allegata come ultima pagina del
+// fascicolo cliente (vedi flag "includiAllegatoA" nel tab Produzione).
 export async function GET(req: NextRequest, { params }: { params: Promise<{ numero: string }> }) {
   const unauthorized = await requireBasicAuth(req);
   if (unauthorized) return unauthorized;

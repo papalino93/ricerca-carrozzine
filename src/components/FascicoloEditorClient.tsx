@@ -758,20 +758,40 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
                   />
                 </div>
               </Field>
+              <Field label="Data ordine">
+                <input
+                  type="date"
+                  value={c.prescrizione.dataOrdine ?? ""}
+                  onChange={(e) => updateContenuto("prescrizione", { dataOrdine: e.target.value || null })}
+                />
+              </Field>
             </div>
+            <CheckLine
+              checked={c.prescrizione.dispositivoDetraibile}
+              label="Dispositivo medico detraibile"
+              onChange={(v) => updateContenuto("prescrizione", { dispositivoDetraibile: v })}
+            />
             <CheckLine
               checked={c.prescrizione.richiestaMedica}
               label="Richiesta medica presentata"
               onChange={(v) => updateContenuto("prescrizione", { richiestaMedica: v })}
             />
             {c.prescrizione.richiestaMedica ? (
-              <Field label="Data prescrizione">
-                <input
-                  type="date"
-                  value={c.prescrizione.dataPrescrizione ?? ""}
-                  onChange={(e) => updateContenuto("prescrizione", { dataPrescrizione: e.target.value || null })}
-                />
-              </Field>
+              <div className="form-grid">
+                <Field label="Medico prescrittore">
+                  <input
+                    value={c.prescrizione.medicoPrescrittore ?? ""}
+                    onChange={(e) => updateContenuto("prescrizione", { medicoPrescrittore: e.target.value || null })}
+                  />
+                </Field>
+                <Field label="Data prescrizione">
+                  <input
+                    type="date"
+                    value={c.prescrizione.dataPrescrizione ?? ""}
+                    onChange={(e) => updateContenuto("prescrizione", { dataPrescrizione: e.target.value || null })}
+                  />
+                </Field>
+              </div>
             ) : null}
             <CheckLine
               checked={c.prescrizione.documentazioneDiagnostica}
@@ -806,6 +826,12 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
               </Field>
               <Field label="Codice">
                 <input value={c.produzione.codice ?? ""} onChange={(e) => updateContenuto("produzione", { codice: e.target.value || null })} />
+              </Field>
+              <Field label="Responsabile di progetto">
+                <input
+                  value={c.produzione.responsabileProgetto ?? ""}
+                  onChange={(e) => updateContenuto("produzione", { responsabileProgetto: e.target.value || null })}
+                />
               </Field>
               <Field label="Data inizio lavori">
                 <input
@@ -886,14 +912,22 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
               </Field>
             ) : null}
 
+            <h3 className="fascicolo-lato-title" style={{ marginTop: 16 }}>
+              Allegato A · Flussogramma di progettazione
+            </h3>
+            <CheckLine
+              checked={c.produzione.includiAllegatoA}
+              label="Includi l'Allegato A come ultima pagina del fascicolo"
+              onChange={(v) => updateContenuto("produzione", { includiAllegatoA: v })}
+            />
             <div className="card-actions">
               <a className="btn" href={`/api/fascicoli/${fascicolo.numero}/processo-produttivo`} target="_blank" rel="noreferrer">
-                🖨️ Stampa processo produttivo
+                🖨️ Stampa Allegato A a parte
               </a>
             </div>
             <p className="hint">
-              Documento interno di controllo qualità: non entra automaticamente nel fascicolo del cliente, è lo stesso
-              processo per ogni commessa.
+              Procedura aziendale fissa (uguale per ogni commessa): puoi allegarla al fascicolo con la casella qui
+              sopra, oppure stamparla da sola senza toccare il fascicolo.
             </p>
           </>
         ) : null}
@@ -903,8 +937,8 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
             <h2>Dichiarazione di conformità</h2>
             <p className="hint">
               Generata automaticamente da Medical Center in base ai dati di questo fascicolo (dispositivo, codice,
-              matricola, cliente): compare due volte nel PDF finale, come nel fascicolo cartaceo — una copia per
-              l&apos;archivio interno, una per il cliente.
+              matricola, responsabile di progetto): una sola volta nel PDF finale, come nel modello definitivo del
+              fascicolo.
             </p>
             <div className="admin-table-wrap">
               <table className="admin-table">
