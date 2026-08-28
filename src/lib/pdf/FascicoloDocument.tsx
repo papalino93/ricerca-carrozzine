@@ -7,6 +7,7 @@ import {
   ALLEGATO_A_FASI,
   ATTESTAZIONE_FABBRICANTE,
   CONDIZIONI_GENERALI_FORNITURA,
+  CONTROINDICAZIONI_FORNITORE,
   DICHIARAZIONE_CONFORMITA_TESTO,
   INFORMATIVA_PRIVACY_FASCICOLO,
   NOTE_INFORMATIVE_USO,
@@ -251,6 +252,14 @@ export function FascicoloDocument({ settings, cliente, fascicolo }: FascicoloDoc
           <Check checked label={`Pratica ASL/SSN — autorizzazione n. ${c.prescrizione.autorizzazioneAslNumero || "—"}`} />
         ) : null}
         {c.prescrizione.note ? <Text style={styles.para}>Note: {c.prescrizione.note}</Text> : null}
+        <Text style={[styles.legalTitle, { fontSize: 8, marginTop: 8, marginBottom: 2 }]}>
+          Controindicazioni indicate dal fornitore
+        </Text>
+        {CONTROINDICAZIONI_FORNITORE.map((riga, i) => (
+          <Text key={i} style={styles.para}>
+            • {riga}
+          </Text>
+        ))}
 
         {/* 4 · ESAME DEL PIEDE */}
         <View break>
@@ -264,12 +273,13 @@ export function FascicoloDocument({ settings, cliente, fascicolo }: FascicoloDoc
               l.piedeCavo && `Piede cavo ${l.piedeCavo}`,
               l.pronazione && `Pronazione ${l.pronazione}`,
               l.alluce && `Alluce ${l.alluce}`,
-              l.ditaAGriffe.length > 0 && `Dita a griffe: ${l.ditaAGriffe.join(", ")}°`,
+              l.ditaAGriffe.length > 0 && `Dita a griffe: ${l.ditaAGriffe.map((n) => `${n}°`).join(", ")}`,
               (l.tallone.talalgie || l.tallone.spinaCalcaneare) &&
                 `Tallone: ${[l.tallone.talalgie && "talalgie", l.tallone.spinaCalcaneare && "spina calcaneare"].filter(Boolean).join(", ")}`,
               l.ginocchio && `Ginocchio ${l.ginocchio}`,
               l.tibiaVara && "Tibia vara",
-              l.sovraccaricoMetatarsali.length > 0 && `Sovraccarico metatarsale: ${l.sovraccaricoMetatarsali.join(", ")}°`,
+              l.sovraccaricoMetatarsali.length > 0 &&
+                `Sovraccarico metatarsale: ${l.sovraccaricoMetatarsali.map((n) => `${n}°`).join(", ")}`,
               (l.ulcerazioni.dorsali || l.ulcerazioni.plantari || l.ulcerazioni.calcaneari) &&
                 `Ulcerazioni: ${[l.ulcerazioni.dorsali && "dorsali", l.ulcerazioni.plantari && "plantari", l.ulcerazioni.calcaneari && "calcaneari"].filter(Boolean).join(", ")}`,
               l.traumi && `Traumi: ${l.traumi}`,
