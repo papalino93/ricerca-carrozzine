@@ -6,10 +6,7 @@ import type { DocumentoTipo } from "@/lib/pdf/VerbaleDocument";
 import { calcolaTotale, fmtEuro, giorniTra } from "@/lib/tariffe-types";
 import { SignaturePad } from "./SignaturePad";
 import { networkErrorMessage } from "@/lib/fetch-json";
-
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
-}
+import { todayIso } from "@/lib/dates";
 
 interface DocumentPanelProps {
   device: Device;

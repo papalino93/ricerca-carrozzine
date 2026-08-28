@@ -7,6 +7,7 @@ import { nextNumeroNoleggio } from "./counter";
 import { removeAllDevicePhotos } from "./photos";
 import { STATUS_OPTIONS, type ArchiveStatus, type Device, type DeviceStatus } from "./device-types";
 import type { TariffaUnita } from "./tariffe-types";
+import { todayIso } from "./dates";
 
 export type { Device, DeviceStatus, ArchiveStatus } from "./device-types";
 export { STATUS_COLOR, STATUS_LABEL, STATUS_OPTIONS, ARCHIVE_LABEL } from "./device-types";
@@ -143,10 +144,6 @@ function findOrThrow(devices: Device[], codice: string): { idx: number; device: 
   const idx = devices.findIndex((d) => d.codice === codice);
   if (idx < 0) throw new Error(`Dispositivo ${codice} non trovato`);
   return { idx, device: devices[idx] };
-}
-
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
 }
 
 export async function upsertDevice(device: Device): Promise<Device[]> {

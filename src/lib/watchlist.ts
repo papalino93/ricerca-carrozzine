@@ -1,13 +1,6 @@
 import type { Device } from "./devices";
 import type { CommessaRecord } from "./commesse";
-
-/** "Oggi" nel fuso di Scandicci, non del server (che gira su UTC): fra
- * mezzanotte e le due di notte l'ora italiana è già il giorno dopo di
- * quella UTC, e senza questo una consegna prevista per oggi risulterebbe
- * "in ritardo" o "domani" a seconda dell'ora. */
-function todayIso(): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome" }).format(new Date());
-}
+import { todayIso } from "./dates";
 
 function fmtDate(iso: string): string {
   const [y, m, d] = iso.split("-");

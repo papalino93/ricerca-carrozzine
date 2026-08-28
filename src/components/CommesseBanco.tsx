@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { COMMESSA_STATUS_LABEL, type CommessaRecord } from "@/lib/commesse-types";
 import { matchesQuery } from "@/lib/search-match";
 import { networkErrorMessage, readJson } from "@/lib/fetch-json";
+import { todayIso } from "@/lib/dates";
 import { Toast } from "./Toast";
 
 interface CommesseBancoProps {
@@ -18,10 +19,6 @@ const STATUS_PILL: Record<CommessaRecord["stato"], string> = {
   pronta: "disponibile",
   ritirata: "archiviato",
 };
-
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 function fmtDate(iso: string | null): string {
   if (!iso) return "—";

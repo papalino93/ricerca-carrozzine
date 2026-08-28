@@ -4,6 +4,7 @@ import { Fragment, useMemo, useRef, useState } from "react";
 import { COMMESSA_STATUS_LABEL, type CommessaRecord } from "@/lib/commesse-types";
 import { matchesQuery } from "@/lib/search-match";
 import { networkErrorMessage, readJson } from "@/lib/fetch-json";
+import { todayIso } from "@/lib/dates";
 import { Toast } from "./Toast";
 
 interface CommesseClientProps {
@@ -20,10 +21,6 @@ const STATUS_PILL: Record<CommessaRecord["stato"], string> = {
   pronta: "disponibile",
   ritirata: "archiviato",
 };
-
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 // Data ordine e data ricezione coincidono nella maggior parte dei casi (un
 // prodotto venduto o ritirato lì per lì): precompilarle a oggi invece di
