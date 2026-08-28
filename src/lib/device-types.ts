@@ -82,6 +82,11 @@ export interface Device {
   prezzoVendita: number | null;
   /** Non null se il dispositivo è stato archiviato come venduto o rottamato. */
   archiviato: ArchiveStatus | null;
+  /** Data in cui l'ausilio è stato noleggiato per la prima volta in assoluto,
+   * ISO yyyy-mm-dd. Fissa per tutta la vita dell'ausilio: a differenza di
+   * `dal` (che è la data di inizio del noleggio IN CORSO e si azzera a ogni
+   * rientro), questa non cambia mai una volta impostata. */
+  dataPrimoNoleggio: string | null;
 }
 
 /* Qui viveva toPublicDevice, che nella pagina di ricerca azzerava telefono,

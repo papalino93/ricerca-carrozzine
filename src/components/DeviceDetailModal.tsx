@@ -784,6 +784,21 @@ export function DeviceDetailModal({
         </div>
         <div className="field-row">
           <div className="field">
+            <label>Data primo noleggio (ausilio nuovo)</label>
+            <input
+              type="date"
+              value={form.dataPrimoNoleggio ?? ""}
+              onChange={(e) => setForm({ ...form, dataPrimoNoleggio: e.target.value || null })}
+            />
+            <p className="hint" style={{ margin: "4px 0 0" }}>
+              Quando l&apos;ausilio è stato noleggiato per la prima volta in assoluto. Diversa
+              dalla data del noleggio in corso (quella si vede più sotto, tra i dati del cliente
+              attuale, e si aggiorna a ogni nuovo noleggio).
+            </p>
+          </div>
+        </div>
+        <div className="field-row">
+          <div className="field">
             <label>Prezzo di acquisto (€)</label>
             <input
               type="number"
@@ -819,7 +834,7 @@ export function DeviceDetailModal({
               {form.cliente || "—"}
               {form.telefono ? ` · ${form.telefono}` : ""}
               {form.contratto ? ` · n. noleggio ${form.contratto}` : ""}
-              {form.dal ? ` · dal ${fmtDate(form.dal)}` : ""}
+              {form.dal ? ` · dal ${fmtDate(form.dal)} (noleggio attuale)` : ""}
             </div>
             <p className="hint" style={{ margin: "6px 0 0" }}>
               Per correggere questi dati, usa &quot;Segna restituito&quot; e poi

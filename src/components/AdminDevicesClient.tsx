@@ -33,6 +33,7 @@ const EMPTY_FORM: Device = {
   archiviato: null,
   tariffaApplicata: null,
   tariffaUnita: null,
+  dataPrimoNoleggio: null,
 };
 
 type IssueFilter = "stale" | "incomplete" | "overdue" | "duesoon" | "longrental" | null;

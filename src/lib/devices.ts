@@ -39,6 +39,7 @@ const HEADER = [
   "Archiviato",
   "TariffaApplicata",
   "TariffaUnita",
+  "DataPrimoNoleggio",
 ];
 
 const VALID_ARCHIVE_STATUSES = ["venduto", "rottamato"];
@@ -70,6 +71,7 @@ function toDevice(row: string[]): Device {
     archiviato,
     tariffaApplicata,
     tariffaUnita,
+    dataPrimoNoleggio,
   ] = row;
 
   return {
@@ -95,6 +97,7 @@ function toDevice(row: string[]): Device {
     archiviato: VALID_ARCHIVE_STATUSES.includes(archiviato) ? (archiviato as ArchiveStatus) : null,
     tariffaApplicata: numOrNull(tariffaApplicata),
     tariffaUnita: tariffaUnita === "settimana" ? "settimana" : tariffaUnita === "giorno" ? "giorno" : null,
+    dataPrimoNoleggio: dataPrimoNoleggio || null,
   };
 }
 
@@ -120,6 +123,7 @@ function toRow(d: Device): string[] {
     d.archiviato ?? "",
     d.tariffaApplicata != null ? String(d.tariffaApplicata) : "",
     d.tariffaUnita ?? "",
+    d.dataPrimoNoleggio ?? "",
   ];
 }
 
