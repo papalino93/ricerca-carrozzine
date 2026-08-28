@@ -1,7 +1,8 @@
 "use client";
 
 import { networkErrorMessage, readJson } from "@/lib/fetch-json";
-import { useState } from "react";
+import { Fragment, useState } from "react";
+import { SottocategorieManager } from "./SottocategorieManager";
 
 interface CategoriesManagerProps {
   initialCategories: string[];
@@ -12,6 +13,10 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
   const [nome, setNome] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Sottocategorie aperte per una sola categoria alla volta: mostrarne due
+  // insieme (ognuna con la propria tariffa da caricare) confonderebbe più
+  // che aiutare, in un pannello già denso.
+  const [expanded, setExpanded] = useState<string | null>(null);
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -59,7 +64,8 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
         Ogni dispositivo appartiene a una di queste categorie (carrozzine, rollatori,
         stampelle, magnetoterapia, ecc.): compaiono come filtro nella ricerca e
         nella scelta della categoria quando aggiungi o modifichi un dispositivo. Non puoi
-        eliminare una categoria ancora usata da qualche dispositivo.
+        eliminare una categoria ancora usata da qualche dispositivo. Clicca su una categoria
+        per vedere e gestire le sue sottocategorie.
       </p>
 
       {error ? <div className="banner error">{error}</div> : null}
@@ -77,21 +83,39 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
           </thead>
           <tbody>
             {categories.map((c) => (
-              <tr key={c}>
-                <td>{c}</td>
-                <td>
-                  <div className="card-actions" style={{ marginTop: 0 }}>
+              <Fragment key={c}>
+                <tr>
+                  <td>
                     <button
-                      className="btn danger"
+                      className="btn-link"
                       type="button"
-                      onClick={() => handleRemove(c)}
-                      disabled={saving}
+                      onClick={() => setExpanded(expanded === c ? null : c)}
+                      aria-expanded={expanded === c}
                     >
-                      Elimina
+                      {expanded === c ? "▾" : "▸"} {c}
                     </button>
-                  </div>
-                </td>
-              </tr>
+                  </td>
+                  <td>
+                    <div className="card-actions" style={{ marginTop: 0 }}>
+                      <button
+                        className="btn danger"
+                        type="button"
+                        onClick={() => handleRemove(c)}
+                        disabled={saving}
+                      >
+                        Elimina
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                {expanded === c ? (
+                  <tr>
+                    <td colSpan={2}>
+                      <SottocategorieManager categoria={c} />
+                    </td>
+                  </tr>
+                ) : null}
+              </Fragment>
             ))}
           </tbody>
         </table>

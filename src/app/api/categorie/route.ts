@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireBasicAuth } from "@/lib/basic-auth";
 import { addCategory, listCategories, removeCategory } from "@/lib/categories";
 import { listDevices } from "@/lib/devices";
+import { listSottocategorie, removeSottocategoria } from "@/lib/sottocategorie";
+import { removeTariffa } from "@/lib/tariffe";
 
 export const runtime = "nodejs";
 
@@ -51,6 +53,16 @@ export async function DELETE(req: NextRequest) {
       );
     }
     const categories = await removeCategory(nome);
+    // Nessun ausilio usa più questa categoria (controllato sopra): le sue
+    // sottocategorie e le loro eventuali tariffe dedicate diventerebbero
+    // altrimenti voci orfane, agganciate a una categoria che da Impostazioni
+    // risulta non esistere più.
+    const sottocategorie = await listSottocategorie(nome);
+    for (const s of sottocategorie) {
+      await removeSottocategoria(s.categoria, s.nome);
+      await removeTariffa(s.categoria, s.nome);
+    }
+    await removeTariffa(nome, null);
     return NextResponse.json({ categories });
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });

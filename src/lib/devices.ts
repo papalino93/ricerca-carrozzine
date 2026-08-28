@@ -165,6 +165,41 @@ export async function upsertDevice(device: Device): Promise<Device[]> {
   return devices;
 }
 
+/** Quanti ausili (archiviati inclusi, come per il controllo analogo sulle
+ * categorie) usano oggi questa coppia categoria/sottocategoria: serve a
+ * impedire di eliminare una sottocategoria ancora in uso. */
+export async function countDevicesBySottocategoria(categoria: string, nome: string): Promise<number> {
+  const devices = await listDevices();
+  const cat = categoria.trim().toLowerCase();
+  const sub = nome.trim().toLowerCase();
+  return devices.filter(
+    (d) => d.categoria.trim().toLowerCase() === cat && (d.sottocategoria ?? "").trim().toLowerCase() === sub
+  ).length;
+}
+
+/** Rinomina una sottocategoria su tutti gli ausili che la usano, quando la
+ * si rinomina da Impostazioni → Categorie (vedi renameSottocategoria in
+ * sottocategorie.ts, che rinomina solo la voce dell'elenco). Ritorna
+ * quanti ausili sono stati aggiornati. */
+export async function renameDeviceSottocategoria(
+  categoria: string,
+  vecchioNome: string,
+  nuovoNome: string
+): Promise<number> {
+  const devices = await listDevices();
+  const cat = categoria.trim().toLowerCase();
+  const sub = vecchioNome.trim().toLowerCase();
+  let count = 0;
+  for (const d of devices) {
+    if (d.categoria.trim().toLowerCase() === cat && (d.sottocategoria ?? "").trim().toLowerCase() === sub) {
+      d.sottocategoria = nuovoNome.trim();
+      count++;
+    }
+  }
+  if (count > 0) await saveAllDevices(devices);
+  return count;
+}
+
 export async function setDevicePhoto(codice: string, foto: string | null): Promise<Device[]> {
   const devices = await listDevices();
   const { idx } = findOrThrow(devices, codice);

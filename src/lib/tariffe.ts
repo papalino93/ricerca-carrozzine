@@ -88,6 +88,23 @@ export async function upsertTariffa(t: Tariffa): Promise<Tariffa[]> {
   return tariffe;
 }
 
+/** Segue la tariffa dedicata di una sottocategoria quando questa viene
+ * rinominata da Impostazioni → Categorie (vedi renameSottocategoria in
+ * sottocategorie.ts). Se non esiste una tariffa per quella sottocategoria
+ * non fa nulla: non tutte le sottocategorie ne hanno una. */
+export async function renameTariffaSottocategoria(
+  categoria: string,
+  vecchioNome: string,
+  nuovoNome: string
+): Promise<Tariffa[]> {
+  const tariffe = await listTariffe();
+  const idx = tariffe.findIndex((t) => sameKey(t, { categoria, sottocategoria: vecchioNome }));
+  if (idx < 0) return tariffe;
+  tariffe[idx] = { ...tariffe[idx], sottocategoria: nuovoNome.trim() };
+  await saveAllTariffe(tariffe);
+  return tariffe;
+}
+
 export async function removeTariffa(categoria: string, sottocategoria: string | null): Promise<Tariffa[]> {
   const tariffe = await listTariffe();
   const next = tariffe.filter((x) => !sameKey(x, { categoria, sottocategoria }));
