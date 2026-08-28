@@ -14,6 +14,7 @@ import { DocumentPanel } from "./DocumentPanel";
 import type { DocumentoTipo } from "@/lib/pdf/VerbaleDocument";
 import type { DevicePhotoMeta } from "@/lib/photos";
 import { calcolaTotale, findTariffa, fmtEuro, giorniTra, type Tariffa } from "@/lib/tariffe-types";
+import { parseNumero } from "@/lib/importo";
 import { Toast } from "./Toast";
 
 // Deve combaciare con MAX_PHOTOS_PER_DEVICE in src/lib/photos.ts (server-only,
@@ -41,6 +42,12 @@ function fmtDate(iso: string): string {
   const [y, m, d] = iso.split("-");
   if (!y || !m || !d) return iso;
   return `${d}/${m}/${y}`;
+}
+
+/** "199,00", non "199 €": il simbolo lo mostra il prefisso fisso accanto al campo. */
+function fmtEuroInput(n: number | null): string {
+  if (n == null) return "";
+  return n.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 type ModalTab = "dati" | "galleria" | "storico";
@@ -128,6 +135,12 @@ export function DeviceDetailModal({
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [alPrevistoDraft, setAlPrevistoDraft] = useState(device.alPrevisto ?? "");
   const [savingAlPrevisto, setSavingAlPrevisto] = useState(false);
+  // Testo mostrato nei campi prezzo: "199,00" invece del grezzo "199" del
+  // tipo number, che tra l'altro non permetterebbe comunque la virgola
+  // italiana. Riformattato al blur, per non scombinare il cursore mentre
+  // si digita.
+  const [prezzoAcquistoText, setPrezzoAcquistoText] = useState(() => fmtEuroInput(device.prezzoAcquisto));
+  const [prezzoVenditaText, setPrezzoVenditaText] = useState(() => fmtEuroInput(device.prezzoVendita));
   // Sincronizzato con `current` (non con `form`, che può contenere una bozza
   // non salvata): dopo un noleggio/restituzione o un aggiornamento riuscito
   // qui sotto, il campo deve rispecchiare il dato realmente persistito.
@@ -799,26 +812,36 @@ export function DeviceDetailModal({
         </div>
         <div className="field-row">
           <div className="field">
-            <label>Prezzo di acquisto (€)</label>
-            <input
-              type="number"
-              step="0.01"
-              value={form.prezzoAcquisto ?? ""}
-              onChange={(e) =>
-                setForm({ ...form, prezzoAcquisto: e.target.value ? Number(e.target.value) : null })
-              }
-            />
+            <label>Prezzo di acquisto</label>
+            <div className="field-euro">
+              <span className="field-euro-sign" aria-hidden="true">€</span>
+              <input
+                type="text"
+                inputMode="decimal"
+                value={prezzoAcquistoText}
+                onChange={(e) => {
+                  setPrezzoAcquistoText(e.target.value);
+                  setForm({ ...form, prezzoAcquisto: parseNumero(e.target.value) });
+                }}
+                onBlur={() => setPrezzoAcquistoText(fmtEuroInput(parseNumero(prezzoAcquistoText)))}
+              />
+            </div>
           </div>
           <div className="field">
-            <label>Prezzo di vendita stimato (€)</label>
-            <input
-              type="number"
-              step="0.01"
-              value={form.prezzoVendita ?? ""}
-              onChange={(e) =>
-                setForm({ ...form, prezzoVendita: e.target.value ? Number(e.target.value) : null })
-              }
-            />
+            <label>Prezzo di vendita stimato</label>
+            <div className="field-euro">
+              <span className="field-euro-sign" aria-hidden="true">€</span>
+              <input
+                type="text"
+                inputMode="decimal"
+                value={prezzoVenditaText}
+                onChange={(e) => {
+                  setPrezzoVenditaText(e.target.value);
+                  setForm({ ...form, prezzoVendita: parseNumero(e.target.value) });
+                }}
+                onBlur={() => setPrezzoVenditaText(fmtEuroInput(parseNumero(prezzoVenditaText)))}
+              />
+            </div>
           </div>
         </div>
         {current.stato === "noleggiato" ? (

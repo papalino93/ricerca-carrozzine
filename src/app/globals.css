@@ -1573,6 +1573,25 @@ h1 {
   outline-offset: 1px;
 }
 
+/* Campo prezzo: "€" fisso a sinistra, il numero digitato non lo spinge via. */
+.field-euro {
+  position: relative;
+}
+
+.field-euro-sign {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink-soft);
+  font-size: 14px;
+  pointer-events: none;
+}
+
+.field-euro input {
+  padding-left: 30px;
+}
+
 .hero-search {
   padding: 18px;
 }
