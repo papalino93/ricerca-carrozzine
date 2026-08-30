@@ -15,7 +15,7 @@ const EMPTY_FORM = {
   importo: "",
   unita: "giorno" as TariffaUnita,
   nota: "",
-  consegnaRitiro: "",
+  costoConsegna: "",
 };
 
 export function TariffeManager({ initialTariffe, categories }: TariffeManagerProps) {
@@ -38,7 +38,7 @@ export function TariffeManager({ initialTariffe, categories }: TariffeManagerPro
       importo: String(t.importo).replace(".", ","),
       unita: t.unita,
       nota: t.nota ?? "",
-      consegnaRitiro: t.consegnaRitiro != null ? String(t.consegnaRitiro).replace(".", ",") : "",
+      costoConsegna: t.costoConsegna != null ? String(t.costoConsegna).replace(".", ",") : "",
     });
   }
 
@@ -61,7 +61,7 @@ export function TariffeManager({ initialTariffe, categories }: TariffeManagerPro
           importo: Number(form.importo.replace(",", ".")),
           unita: form.unita,
           nota: form.nota || null,
-          consegnaRitiro: form.consegnaRitiro ? Number(form.consegnaRitiro.replace(",", ".")) : null,
+          costoConsegna: form.costoConsegna ? Number(form.costoConsegna.replace(",", ".")) : null,
         }),
       });
       const body = await readJson(res);
@@ -132,7 +132,7 @@ export function TariffeManager({ initialTariffe, categories }: TariffeManagerPro
                 <td>{t.categoria}</td>
                 <td>{t.sottocategoria ?? "—"}</td>
                 <td>{fmtTariffa(t)}</td>
-                <td>{t.consegnaRitiro != null ? fmtEuro(t.consegnaRitiro) : "—"}</td>
+                <td>{t.costoConsegna != null ? fmtEuro(t.costoConsegna) : "—"}</td>
                 <td>{t.nota ?? "—"}</td>
                 <td>
                   <div className="card-actions" style={{ marginTop: 0 }}>
@@ -208,10 +208,10 @@ export function TariffeManager({ initialTariffe, categories }: TariffeManagerPro
         </div>
         <div className="field-row">
           <div className="field">
-            <label>Consegna e ritiro (€, facoltativa)</label>
+            <label>Costo consegna (€, facoltativo)</label>
             <input
-              value={form.consegnaRitiro}
-              onChange={(e) => setForm({ ...form, consegnaRitiro: e.target.value })}
+              value={form.costoConsegna}
+              onChange={(e) => setForm({ ...form, costoConsegna: e.target.value })}
               inputMode="decimal"
               placeholder="es. 25 — vuoto se non si applica"
             />

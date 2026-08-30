@@ -21,7 +21,7 @@ export interface TariffaDocumento {
    * spesa che potrebbe cambiare. */
   totale?: number;
   /** Tariffa fissa di consegna e ritiro per questo noleggio, se presente. */
-  consegnaRitiro?: number | null;
+  costoConsegna?: number | null;
 }
 
 export interface VerbaleDocumentProps {
@@ -337,7 +337,7 @@ export function VerbaleDocument({
             <View style={styles.table}>
               <View
                 style={
-                  tariffa.consegnaRitiro != null || tariffa.totale != null ? styles.row : styles.rowLast
+                  tariffa.costoConsegna != null || tariffa.totale != null ? styles.row : styles.rowLast
                 }
               >
                 <Text style={styles.cellLabel}>Tariffa applicata</Text>
@@ -345,10 +345,10 @@ export function VerbaleDocument({
                   {fmtEuro(tariffa.importo)} al {tariffa.unita === "settimana" ? "settimana" : "giorno"}
                 </Text>
               </View>
-              {tariffa.consegnaRitiro != null ? (
+              {tariffa.costoConsegna != null ? (
                 <View style={tariffa.totale != null ? styles.row : styles.rowLast}>
-                  <Text style={styles.cellLabel}>Consegna e ritiro</Text>
-                  <Text style={styles.cellValue}>{fmtEuro(tariffa.consegnaRitiro)}</Text>
+                  <Text style={styles.cellLabel}>Costo consegna</Text>
+                  <Text style={styles.cellValue}>{fmtEuro(tariffa.costoConsegna)}</Text>
                 </View>
               ) : null}
               {/* Solo sul verbale di restituzione: vedi TariffaDocumento.totale. */}

@@ -59,7 +59,7 @@ async function syncTariffa(categoria: string, nome: string, input: TariffaInput)
       importo: input.importo,
       unita: input.unita === "settimana" ? "settimana" : "giorno",
       nota: input.nota || null,
-      consegnaRitiro: existing?.consegnaRitiro ?? null,
+      costoConsegna: existing?.costoConsegna ?? null,
     });
   } else {
     await removeTariffa(categoria, nome);

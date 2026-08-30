@@ -117,9 +117,9 @@ export function DeviceDetailModal({
     const t = findTariffa(tariffe, current.categoria, current.sottocategoria);
     return t ? String(t.importo).replace(".", ",") : "";
   });
-  const [rentConsegnaRitiro, setRentConsegnaRitiro] = useState(() => {
+  const [rentCostoConsegna, setRentCostoConsegna] = useState(() => {
     const t = findTariffa(tariffe, current.categoria, current.sottocategoria);
-    return t?.consegnaRitiro != null ? String(t.consegnaRitiro).replace(".", ",") : "";
+    return t?.costoConsegna != null ? String(t.costoConsegna).replace(".", ",") : "";
   });
   const [showDoc, setShowDoc] = useState(false);
   const [docForcedTipo, setDocForcedTipo] = useState<DocumentoTipo | undefined>(undefined);
@@ -284,7 +284,7 @@ export function DeviceDetailModal({
 
   const tariffa = findTariffa(tariffe, current.categoria, current.sottocategoria);
   const rentPrezzoNum = Number(rentPrezzo.replace(",", "."));
-  const rentConsegnaRitiroNum = rentConsegnaRitiro ? Number(rentConsegnaRitiro.replace(",", ".")) : null;
+  const rentCostoConsegnaNum = rentCostoConsegna ? Number(rentCostoConsegna.replace(",", ".")) : null;
   const rentTotaleStimato =
     tariffa && rentAlPrevisto && rentPrezzoNum > 0
       ? calcolaTotale(rentPrezzoNum, tariffa.unita, giorniTra(rentDal, rentAlPrevisto))
@@ -296,7 +296,7 @@ export function DeviceDetailModal({
     setRentDal(todayIso());
     setRentAlPrevisto(addDaysIso(todayIso(), 30));
     setRentPrezzo(tariffa ? String(tariffa.importo).replace(".", ",") : "");
-    setRentConsegnaRitiro(tariffa?.consegnaRitiro != null ? String(tariffa.consegnaRitiro).replace(".", ",") : "");
+    setRentCostoConsegna(tariffa?.costoConsegna != null ? String(tariffa.costoConsegna).replace(".", ",") : "");
   }
 
   function openRent() {
@@ -324,7 +324,7 @@ export function DeviceDetailModal({
           alPrevisto: rentAlPrevisto || null,
           tariffaApplicata: tariffa && rentPrezzoNum > 0 ? rentPrezzoNum : null,
           tariffaUnita: tariffa && rentPrezzoNum > 0 ? tariffa.unita : null,
-          consegnaRitiro: rentConsegnaRitiroNum,
+          costoConsegna: rentCostoConsegnaNum,
         }),
       });
       const body = await readJson(res);
@@ -601,10 +601,10 @@ export function DeviceDetailModal({
                 <input value={rentPrezzo} onChange={(e) => setRentPrezzo(e.target.value)} inputMode="decimal" />
               </div>
               <div className="field">
-                <label>Consegna e ritiro (€, facoltativa)</label>
+                <label>Costo consegna (€, facoltativo)</label>
                 <input
-                  value={rentConsegnaRitiro}
-                  onChange={(e) => setRentConsegnaRitiro(e.target.value)}
+                  value={rentCostoConsegna}
+                  onChange={(e) => setRentCostoConsegna(e.target.value)}
                   inputMode="decimal"
                   placeholder="es. 25"
                 />

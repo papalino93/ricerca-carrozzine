@@ -16,7 +16,7 @@ export interface Tariffa {
    * un vero importo (mostrabile e sommabile sul contratto), non un testo
    * come `nota`. Null se per questa categoria consegna e ritiro non si
    * applicano o non hanno un costo fisso. */
-  consegnaRitiro: number | null;
+  costoConsegna: number | null;
   /** Costi accessori a testo libero (es. "+ 35€ materassino"), non
    * calcolati automaticamente: l'operatore li applica a mano. */
   nota: string | null;

@@ -38,15 +38,15 @@ export function QuickRentModal({ device, tariffe, onClose, onRented }: QuickRent
   // Stessa idea del prezzo: prefillata dal tariffario di categoria, ma
   // modificabile per questo singolo noleggio (es. consegna gratuita per un
   // cliente abituale).
-  const [consegnaRitiro, setConsegnaRitiro] = useState(
-    tariffa?.consegnaRitiro != null ? String(tariffa.consegnaRitiro).replace(".", ",") : ""
+  const [costoConsegna, setCostoConsegna] = useState(
+    tariffa?.costoConsegna != null ? String(tariffa.costoConsegna).replace(".", ",") : ""
   );
   const [alPrevisto, setAlPrevisto] = useState(addDaysIso(todayIso(), 30));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const prezzoNum = Number(prezzo.replace(",", "."));
-  const consegnaRitiroNum = consegnaRitiro ? Number(consegnaRitiro.replace(",", ".")) : null;
+  const costoConsegnaNum = costoConsegna ? Number(costoConsegna.replace(",", ".")) : null;
   const totaleStimato =
     tariffa && alPrevisto && prezzoNum > 0
       ? calcolaTotale(prezzoNum, tariffa.unita, giorniTra(dal, alPrevisto))
@@ -72,7 +72,7 @@ export function QuickRentModal({ device, tariffe, onClose, onRented }: QuickRent
           alPrevisto: alPrevisto || null,
           tariffaApplicata: tariffa && prezzoNum > 0 ? prezzoNum : null,
           tariffaUnita: tariffa && prezzoNum > 0 ? tariffa.unita : null,
-          consegnaRitiro: consegnaRitiroNum,
+          costoConsegna: costoConsegnaNum,
         }),
       });
       const body = await readJson(res);
@@ -104,10 +104,10 @@ export function QuickRentModal({ device, tariffe, onClose, onRented }: QuickRent
               <input value={prezzo} onChange={(e) => setPrezzo(e.target.value)} inputMode="decimal" />
             </div>
             <div className="field">
-              <label>Consegna e ritiro (€, facoltativa)</label>
+              <label>Costo consegna (€, facoltativo)</label>
               <input
-                value={consegnaRitiro}
-                onChange={(e) => setConsegnaRitiro(e.target.value)}
+                value={costoConsegna}
+                onChange={(e) => setCostoConsegna(e.target.value)}
                 inputMode="decimal"
                 placeholder="es. 25"
               />

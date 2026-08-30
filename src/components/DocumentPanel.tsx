@@ -89,7 +89,7 @@ export function DocumentPanel({ device, onClose, forcedTipo }: DocumentPanelProp
                 importo: device.tariffaApplicata,
                 unita: device.tariffaUnita,
                 totale: totale ?? undefined,
-                consegnaRitiro: device.consegnaRitiro ?? null,
+                costoConsegna: device.costoConsegna ?? null,
               }
             : null,
           firmaCliente: driveConfigured ? firmaCliente : null,
@@ -173,10 +173,10 @@ export function DocumentPanel({ device, onClose, forcedTipo }: DocumentPanelProp
           <div className="internal-note">
             <b>Tariffa applicata</b>: {fmtEuro(device.tariffaApplicata!)} al{" "}
             {device.tariffaUnita === "settimana" ? "settimana" : "giorno"}
-            {device.consegnaRitiro != null ? (
+            {device.costoConsegna != null ? (
               <>
                 <br />
-                <b>Consegna e ritiro</b>: {fmtEuro(device.consegnaRitiro)}
+                <b>Costo consegna</b>: {fmtEuro(device.costoConsegna)}
               </>
             ) : null}
             {totale != null ? (
