@@ -71,7 +71,7 @@ function toEditForm(c: CommessaRecord): EditForm {
 
 function fmtDate(iso: string | null): string {
   if (!iso) return "—";
-  const [y, m, d] = iso.split("-");
+  const [y, m, d] = (iso.includes("T") ? iso.slice(0, 10) : iso).split("-");
   if (!y || !m || !d) return iso;
   return `${d}/${m}/${y}`;
 }
