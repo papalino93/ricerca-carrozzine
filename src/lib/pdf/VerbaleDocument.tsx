@@ -9,17 +9,19 @@ const LINE = "#e1e7df";
 export type DocumentoTipo = "consegna" | "restituzione";
 
 /** Tariffa applicata al noleggio, calcolata lato client (DocumentPanel):
- * il PDF si limita a stamparla, se l'operatore ha scelto di includerla. */
+ * il PDF si limita a stamparla. Sempre inclusa quando il noleggio ha una
+ * tariffa applicata: niente più interruttore per nasconderla. */
 export interface TariffaDocumento {
   importo: number;
   unita: "giorno" | "settimana";
-  /** Assente quando manca una data di riferimento per calcolarlo (es.
-   * consegna senza rientro previsto): resta solo la tariffa giornaliera,
-   * nessuna riga "Totale" sul documento. */
+  /** Presente solo sul verbale di restituzione, calcolato sui giorni
+   * effettivi (dal → data di restituzione): mai una stima. Il verbale di
+   * consegna non riporta un totale — non c'è ancora una data di rientro
+   * certa su cui basarlo, e il cliente non deve firmare un impegno di
+   * spesa che potrebbe cambiare. */
   totale?: number;
-  /** true sul verbale di consegna (si stima fino al rientro previsto),
-   * false su quello di restituzione (giorni effettivi già trascorsi). */
-  stimato: boolean;
+  /** Tariffa fissa di consegna e ritiro per questo noleggio, se presente. */
+  costoConsegna?: number | null;
 }
 
 export interface VerbaleDocumentProps {
@@ -39,11 +41,8 @@ export interface VerbaleDocumentProps {
     telefono: string;
   };
   note: string;
-  /** Data di rientro prevista del noleggio, ISO yyyy-mm-dd, facoltativa: se
-   * assente la riga non compare affatto (nessun campo vuoto sul verbale). */
-  alPrevisto?: string | null;
-  /** Assente per scelta esplicita dell'operatore (vedi DocumentPanel): niente
-   * riquadro tariffa/totale sul documento se non è stato spuntato. */
+  /** Assente quando il noleggio non ha una tariffa applicata: niente
+   * riquadro tariffa sul documento. */
   tariffa?: TariffaDocumento | null;
   /** Firme come PNG data URI (vedi SignaturePad): assenti finché il Drive di
    * archiviazione non è configurato, o se non si è firmato su schermo — in
@@ -243,7 +242,6 @@ export function VerbaleDocument({
   dispositivo,
   cliente,
   note,
-  alPrevisto,
   tariffa,
   firmaClienteUrl,
   firmaOperatoreUrl,
@@ -327,36 +325,36 @@ export function VerbaleDocument({
               <Text style={styles.cellValue}>{dispositivo.larghezza} cm</Text>
             </View>
           ) : null}
-          <View style={tipo === "consegna" && alPrevisto ? styles.row : styles.rowLast}>
+          <View style={styles.rowLast}>
             <Text style={styles.cellLabel}>{DATE_LABEL[tipo]}</Text>
             <Text style={styles.cellValue}>{fmtDate(data)}</Text>
           </View>
-          {/* Solo sulla consegna, e solo se impostata: sulla restituzione il
-              rientro è già avvenuto, e un campo vuoto sul verbale firmato
-              dal cliente è peggio che ometterlo del tutto. */}
-          {tipo === "consegna" && alPrevisto ? (
-            <View style={styles.rowLast}>
-              <Text style={styles.cellLabel}>Rientro previsto</Text>
-              <Text style={styles.cellValue}>{fmtDate(alPrevisto)}</Text>
-            </View>
-          ) : null}
         </View>
 
         {tariffa ? (
           <>
             <Text style={styles.sectionLabel}>Tariffa</Text>
             <View style={styles.table}>
-              <View style={tariffa.totale != null ? styles.row : styles.rowLast}>
+              <View
+                style={
+                  tariffa.costoConsegna != null || tariffa.totale != null ? styles.row : styles.rowLast
+                }
+              >
                 <Text style={styles.cellLabel}>Tariffa applicata</Text>
                 <Text style={styles.cellValue}>
                   {fmtEuro(tariffa.importo)} al {tariffa.unita === "settimana" ? "settimana" : "giorno"}
                 </Text>
               </View>
-              {/* Assente senza una data di riferimento per calcolarlo (es.
-                  consegna senza rientro previsto): niente riga vuota. */}
+              {tariffa.costoConsegna != null ? (
+                <View style={tariffa.totale != null ? styles.row : styles.rowLast}>
+                  <Text style={styles.cellLabel}>Costo consegna</Text>
+                  <Text style={styles.cellValue}>{fmtEuro(tariffa.costoConsegna)}</Text>
+                </View>
+              ) : null}
+              {/* Solo sul verbale di restituzione: vedi TariffaDocumento.totale. */}
               {tariffa.totale != null ? (
                 <View style={styles.rowLast}>
-                  <Text style={styles.cellLabel}>{tariffa.stimato ? "Totale stimato" : "Totale"}</Text>
+                  <Text style={styles.cellLabel}>Totale</Text>
                   <Text style={styles.cellValue}>{fmtEuro(tariffa.totale)}</Text>
                 </View>
               ) : null}

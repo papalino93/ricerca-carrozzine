@@ -46,12 +46,20 @@ interface TariffaInput {
 // svuotato = "usa la tariffa della categoria", non "lascia quella vecchia").
 async function syncTariffa(categoria: string, nome: string, input: TariffaInput): Promise<void> {
   if (input.importo != null && input.importo > 0) {
+    // Questo form non gestisce consegna/ritiro (si imposta da Impostazioni →
+    // Tariffe): va preservato com'era, non azzerato dal salvataggio qui.
+    const existing = (await listTariffe()).find(
+      (t) =>
+        t.categoria.trim().toLowerCase() === categoria.trim().toLowerCase() &&
+        (t.sottocategoria ?? "").trim().toLowerCase() === nome.trim().toLowerCase()
+    );
     await upsertTariffa({
       categoria: categoria.trim(),
       sottocategoria: nome.trim(),
       importo: input.importo,
       unita: input.unita === "settimana" ? "settimana" : "giorno",
       nota: input.nota || null,
+      costoConsegna: existing?.costoConsegna ?? null,
     });
   } else {
     await removeTariffa(categoria, nome);

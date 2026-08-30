@@ -117,6 +117,10 @@ export function DeviceDetailModal({
     const t = findTariffa(tariffe, current.categoria, current.sottocategoria);
     return t ? String(t.importo).replace(".", ",") : "";
   });
+  const [rentCostoConsegna, setRentCostoConsegna] = useState(() => {
+    const t = findTariffa(tariffe, current.categoria, current.sottocategoria);
+    return t?.costoConsegna != null ? String(t.costoConsegna).replace(".", ",") : "";
+  });
   const [showDoc, setShowDoc] = useState(false);
   const [docForcedTipo, setDocForcedTipo] = useState<DocumentoTipo | undefined>(undefined);
   const [docDevice, setDocDevice] = useState<Device>(device);
@@ -280,6 +284,7 @@ export function DeviceDetailModal({
 
   const tariffa = findTariffa(tariffe, current.categoria, current.sottocategoria);
   const rentPrezzoNum = Number(rentPrezzo.replace(",", "."));
+  const rentCostoConsegnaNum = rentCostoConsegna ? Number(rentCostoConsegna.replace(",", ".")) : null;
   const rentTotaleStimato =
     tariffa && rentAlPrevisto && rentPrezzoNum > 0
       ? calcolaTotale(rentPrezzoNum, tariffa.unita, giorniTra(rentDal, rentAlPrevisto))
@@ -291,6 +296,7 @@ export function DeviceDetailModal({
     setRentDal(todayIso());
     setRentAlPrevisto(addDaysIso(todayIso(), 30));
     setRentPrezzo(tariffa ? String(tariffa.importo).replace(".", ",") : "");
+    setRentCostoConsegna(tariffa?.costoConsegna != null ? String(tariffa.costoConsegna).replace(".", ",") : "");
   }
 
   function openRent() {
@@ -318,6 +324,7 @@ export function DeviceDetailModal({
           alPrevisto: rentAlPrevisto || null,
           tariffaApplicata: tariffa && rentPrezzoNum > 0 ? rentPrezzoNum : null,
           tariffaUnita: tariffa && rentPrezzoNum > 0 ? tariffa.unita : null,
+          costoConsegna: rentCostoConsegnaNum,
         }),
       });
       const body = await readJson(res);
@@ -593,9 +600,18 @@ export function DeviceDetailModal({
                 <label>Tariffa applicata (€ {tariffa.unita === "settimana" ? "a settimana" : "al giorno"})</label>
                 <input value={rentPrezzo} onChange={(e) => setRentPrezzo(e.target.value)} inputMode="decimal" />
               </div>
-              <p className="hint" style={{ margin: "0 0 10px" }}>
-                {tariffa.nota ? tariffa.nota : "Modificabile solo per questo noleggio"}
-              </p>
+              <div className="field">
+                <label>Costo consegna (€, facoltativo)</label>
+                <input
+                  value={rentCostoConsegna}
+                  onChange={(e) => setRentCostoConsegna(e.target.value)}
+                  inputMode="decimal"
+                  placeholder="es. 25"
+                />
+              </div>
+              {tariffa.nota ? (
+                <p className="hint" style={{ margin: "0 0 10px" }}>{tariffa.nota}</p>
+              ) : null}
             </div>
           ) : null}
           {rentTotaleStimato != null ? (

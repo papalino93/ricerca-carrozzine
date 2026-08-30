@@ -24,7 +24,6 @@ interface DocumentoRequestBody {
     nome: string;
     telefono: string;
   };
-  alPrevisto?: string | null;
   tariffa?: TariffaDocumento | null;
   /** PNG data URI dal riquadro di firma (vedi SignaturePad): assenti sul
    * verbale "di carta" di sempre, presenti solo quando si è firmato sullo
@@ -43,7 +42,6 @@ function buildDocument(body: DocumentoRequestBody, settings: CompanySettings) {
       dispositivo={body.dispositivo}
       cliente={{ nome: body.cliente?.nome ?? "", telefono: body.cliente?.telefono ?? "" }}
       note={body.note ?? ""}
-      alPrevisto={body.alPrevisto ?? null}
       tariffa={body.tariffa ?? null}
       firmaClienteUrl={body.firmaCliente ?? null}
       firmaOperatoreUrl={body.firmaOperatore ?? null}

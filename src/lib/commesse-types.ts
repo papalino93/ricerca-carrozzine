@@ -11,6 +11,13 @@ export interface CommessaRecord {
   vendita: boolean;
   riparazione: boolean;
   operatore: string | null;
+  /** Fornitore da cui si ordina (facoltativo): permette di filtrare le
+   * commesse per fornitore, oltre che per cliente/numero. */
+  fornitore: string | null;
+  /** Numero d'ordine usato dal cliente/azienda nei propri sistemi
+   * (facoltativo): diverso da `richiesteParticolari` (cosa ordina), serve
+   * solo a riconciliare l'ordine con la loro contabilità. */
+  numeroOrdineCliente: string | null;
   richiesteParticolari: string | null;
   dataOrdine: string | null;
   consegnaPrevista: string | null;

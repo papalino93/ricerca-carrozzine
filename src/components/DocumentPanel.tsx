@@ -30,16 +30,11 @@ export function DocumentPanel({ device, onClose, forcedTipo }: DocumentPanelProp
   );
   const [clienteNome, setClienteNome] = useState(device.cliente ?? "");
   const [clienteTelefono, setClienteTelefono] = useState(device.telefono ?? "");
-  const [alPrevisto, setAlPrevisto] = useState(device.alPrevisto ?? "");
   // Parte VUOTO di proposito. La nota della scheda è un'annotazione interna
   // di magazzino ("ruota da sostituire", "cliente moroso"): pre-riempirla
   // qui la faceva finire stampata sul verbale che il cliente firma e porta
   // via. La nota resta consultabile qui sotto, ma va copiata a mano.
   const [note, setNote] = useState("");
-  // Il totale, quando c'è una tariffa applicata al noleggio, è solo un
-  // promemoria per l'operatore: di default NON finisce sul documento
-  // stampato, va deciso ogni volta con questo interruttore.
-  const [includiTariffa, setIncludiTariffa] = useState(false);
   // Sezione firma digitale nascosta finché non sappiamo se c'è una cartella
   // Drive dove archiviare il PDF firmato (vedi drive.ts): senza, mostrare i
   // riquadri di firma sarebbe una funzione che sembra esserci ma non salva
@@ -59,17 +54,14 @@ export function DocumentPanel({ device, onClose, forcedTipo }: DocumentPanelProp
   }, []);
 
   const hasTariffa = device.tariffaApplicata != null && device.tariffaUnita != null;
-  // Sul verbale di restituzione, "data" è il rientro reale: il totale è
-  // quello effettivo. Su quello di consegna serve un rientro previsto
-  // (quello nel form qui sotto, non quello — eventualmente diverso — già
-  // salvato sul dispositivo) per sapere quanti giorni contare: è una stima,
-  // e senza resta solo la tariffa giornaliera, senza nessun totale.
-  const dataFine = tipo === "restituzione" ? data : alPrevisto || null;
+  // Il totale ha senso solo sul verbale di restituzione, calcolato sui
+  // giorni effettivi (dal → data di restituzione): sulla consegna non c'è
+  // ancora una data di rientro certa, quindi niente totale — solo la
+  // tariffa giornaliera/settimanale ed eventuale consegna e ritiro.
   const totale =
-    hasTariffa && device.dal && dataFine
-      ? calcolaTotale(device.tariffaApplicata!, device.tariffaUnita!, giorniTra(device.dal, dataFine))
+    tipo === "restituzione" && hasTariffa && device.dal
+      ? calcolaTotale(device.tariffaApplicata!, device.tariffaUnita!, giorniTra(device.dal, data))
       : null;
-  const totaleStimato = tipo === "consegna";
 
   async function handleDownload() {
     setLoading(true);
@@ -92,16 +84,14 @@ export function DocumentPanel({ device, onClose, forcedTipo }: DocumentPanelProp
             larghezza: device.larghezza,
           },
           cliente: { nome: clienteNome, telefono: clienteTelefono },
-          alPrevisto: tipo === "consegna" ? alPrevisto || null : null,
-          tariffa:
-            includiTariffa && hasTariffa
-              ? {
-                  importo: device.tariffaApplicata,
-                  unita: device.tariffaUnita,
-                  totale: totale ?? undefined,
-                  stimato: totaleStimato,
-                }
-              : null,
+          tariffa: hasTariffa
+            ? {
+                importo: device.tariffaApplicata,
+                unita: device.tariffaUnita,
+                totale: totale ?? undefined,
+                costoConsegna: device.costoConsegna ?? null,
+              }
+            : null,
           firmaCliente: driveConfigured ? firmaCliente : null,
           firmaOperatore: driveConfigured ? firmaOperatore : null,
         }),
@@ -179,44 +169,24 @@ export function DocumentPanel({ device, onClose, forcedTipo }: DocumentPanelProp
           </div>
         </div>
 
-        {tipo === "consegna" ? (
-          <div className="field">
-            <label>Rientro previsto (facoltativo)</label>
-            <input type="date" value={alPrevisto} onChange={(e) => setAlPrevisto(e.target.value)} />
-            <p className="hint" style={{ margin: "4px 0 0" }}>
-              Se compilato, compare sul verbale; se lasciato vuoto non viene stampato.
-            </p>
-          </div>
-        ) : null}
-
         {hasTariffa ? (
           <div className="internal-note">
             <b>Tariffa applicata</b>: {fmtEuro(device.tariffaApplicata!)} al{" "}
             {device.tariffaUnita === "settimana" ? "settimana" : "giorno"}
+            {device.costoConsegna != null ? (
+              <>
+                <br />
+                <b>Costo consegna</b>: {fmtEuro(device.costoConsegna)}
+              </>
+            ) : null}
             {totale != null ? (
               <>
                 <br />
-                <b>{totaleStimato ? "Totale stimato" : "Totale"}</b>
-                {totaleStimato ? " (fino al rientro previsto)" : ""}: <b>{fmtEuro(totale)}</b>
+                <b>Totale</b>: <b>{fmtEuro(totale)}</b>
               </>
-            ) : (
-              <>
-                <br />
-                <span className="hint">
-                  {totaleStimato
-                    ? "Imposta un rientro previsto qui sopra per vedere anche una stima del totale."
-                    : ""}
-                </span>
-              </>
-            )}
-            <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
-              <input
-                type="checkbox"
-                checked={includiTariffa}
-                onChange={(e) => setIncludiTariffa(e.target.checked)}
-              />
-              Includi {totale != null ? "tariffa e totale" : "la tariffa"} sul documento
-            </label>
+            ) : null}
+            <br />
+            <span className="hint">Compare sempre sul documento stampato.</span>
           </div>
         ) : null}
 

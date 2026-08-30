@@ -35,11 +35,18 @@ export function QuickRentModal({ device, tariffe, onClose, onRented }: QuickRent
   // (es. uno sconto concordato): l'unità (giorno/settimana) resta invece
   // quella della categoria, non ha senso cambiarla per un solo noleggio.
   const [prezzo, setPrezzo] = useState(tariffa ? String(tariffa.importo).replace(".", ",") : "");
+  // Stessa idea del prezzo: prefillata dal tariffario di categoria, ma
+  // modificabile per questo singolo noleggio (es. consegna gratuita per un
+  // cliente abituale).
+  const [costoConsegna, setCostoConsegna] = useState(
+    tariffa?.costoConsegna != null ? String(tariffa.costoConsegna).replace(".", ",") : ""
+  );
   const [alPrevisto, setAlPrevisto] = useState(addDaysIso(todayIso(), 30));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const prezzoNum = Number(prezzo.replace(",", "."));
+  const costoConsegnaNum = costoConsegna ? Number(costoConsegna.replace(",", ".")) : null;
   const totaleStimato =
     tariffa && alPrevisto && prezzoNum > 0
       ? calcolaTotale(prezzoNum, tariffa.unita, giorniTra(dal, alPrevisto))
@@ -65,6 +72,7 @@ export function QuickRentModal({ device, tariffe, onClose, onRented }: QuickRent
           alPrevisto: alPrevisto || null,
           tariffaApplicata: tariffa && prezzoNum > 0 ? prezzoNum : null,
           tariffaUnita: tariffa && prezzoNum > 0 ? tariffa.unita : null,
+          costoConsegna: costoConsegnaNum,
         }),
       });
       const body = await readJson(res);
@@ -95,9 +103,18 @@ export function QuickRentModal({ device, tariffe, onClose, onRented }: QuickRent
               <label>Tariffa applicata (€ {tariffa.unita === "settimana" ? "a settimana" : "al giorno"})</label>
               <input value={prezzo} onChange={(e) => setPrezzo(e.target.value)} inputMode="decimal" />
             </div>
-            <p className="hint" style={{ margin: "0 0 10px" }}>
-              {tariffa.nota ? tariffa.nota : "Modificabile solo per questo noleggio"}
-            </p>
+            <div className="field">
+              <label>Costo consegna (€, facoltativo)</label>
+              <input
+                value={costoConsegna}
+                onChange={(e) => setCostoConsegna(e.target.value)}
+                inputMode="decimal"
+                placeholder="es. 25"
+              />
+            </div>
+            {tariffa.nota ? (
+              <p className="hint" style={{ margin: "0 0 10px" }}>{tariffa.nota}</p>
+            ) : null}
           </div>
         ) : null}
         {totaleStimato != null ? (
