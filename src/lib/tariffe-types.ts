@@ -12,8 +12,13 @@ export interface Tariffa {
   sottocategoria: string | null;
   importo: number;
   unita: TariffaUnita;
-  /** Costi accessori a testo libero (es. "+ ritiro e consegna 20/30€"),
-   * non calcolati automaticamente: l'operatore li applica a mano. */
+  /** Tariffa fissa di consegna e ritiro per questa categoria, in euro:
+   * un vero importo (mostrabile e sommabile sul contratto), non un testo
+   * come `nota`. Null se per questa categoria consegna e ritiro non si
+   * applicano o non hanno un costo fisso. */
+  consegnaRitiro: number | null;
+  /** Costi accessori a testo libero (es. "+ 35€ materassino"), non
+   * calcolati automaticamente: l'operatore li applica a mano. */
   nota: string | null;
 }
 

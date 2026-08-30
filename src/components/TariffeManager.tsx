@@ -2,7 +2,7 @@
 
 import { networkErrorMessage, readJson } from "@/lib/fetch-json";
 import { useState } from "react";
-import { fmtTariffa, type Tariffa, type TariffaUnita } from "@/lib/tariffe-types";
+import { fmtEuro, fmtTariffa, type Tariffa, type TariffaUnita } from "@/lib/tariffe-types";
 
 interface TariffeManagerProps {
   initialTariffe: Tariffa[];
@@ -15,6 +15,7 @@ const EMPTY_FORM = {
   importo: "",
   unita: "giorno" as TariffaUnita,
   nota: "",
+  consegnaRitiro: "",
 };
 
 export function TariffeManager({ initialTariffe, categories }: TariffeManagerProps) {
@@ -37,6 +38,7 @@ export function TariffeManager({ initialTariffe, categories }: TariffeManagerPro
       importo: String(t.importo).replace(".", ","),
       unita: t.unita,
       nota: t.nota ?? "",
+      consegnaRitiro: t.consegnaRitiro != null ? String(t.consegnaRitiro).replace(".", ",") : "",
     });
   }
 
@@ -59,6 +61,7 @@ export function TariffeManager({ initialTariffe, categories }: TariffeManagerPro
           importo: Number(form.importo.replace(",", ".")),
           unita: form.unita,
           nota: form.nota || null,
+          consegnaRitiro: form.consegnaRitiro ? Number(form.consegnaRitiro.replace(",", ".")) : null,
         }),
       });
       const body = await readJson(res);
@@ -101,8 +104,9 @@ export function TariffeManager({ initialTariffe, categories }: TariffeManagerPro
       <p className="hint" style={{ marginBottom: 12 }}>
         Una tariffa per categoria, con un&apos;eventuale sottocategoria più specifica (es.
         &quot;Carrozzine · Elettrica&quot; a un prezzo diverso da &quot;Carrozzine&quot; in
-        generale). Compare come promemoria nel form di noleggio: le spese di consegna e
-        ritiro restano a inserimento manuale dell&apos;operatore, non calcolate qui.
+        generale). Compare come promemoria nel form di noleggio, con l&apos;eventuale
+        tariffa di consegna e ritiro: entrambe modificabili per il singolo noleggio e
+        stampate sul contratto.
       </p>
 
       {error ? <div className="banner error">{error}</div> : null}
@@ -117,6 +121,7 @@ export function TariffeManager({ initialTariffe, categories }: TariffeManagerPro
               <th>Categoria</th>
               <th>Sottocategoria</th>
               <th>Tariffa</th>
+              <th>Consegna/ritiro</th>
               <th>Note</th>
               <th></th>
             </tr>
@@ -127,6 +132,7 @@ export function TariffeManager({ initialTariffe, categories }: TariffeManagerPro
                 <td>{t.categoria}</td>
                 <td>{t.sottocategoria ?? "—"}</td>
                 <td>{fmtTariffa(t)}</td>
+                <td>{t.consegnaRitiro != null ? fmtEuro(t.consegnaRitiro) : "—"}</td>
                 <td>{t.nota ?? "—"}</td>
                 <td>
                   <div className="card-actions" style={{ marginTop: 0 }}>
@@ -200,13 +206,24 @@ export function TariffeManager({ initialTariffe, categories }: TariffeManagerPro
             </select>
           </div>
         </div>
-        <div className="field">
-          <label>Note (facoltative)</label>
-          <input
-            value={form.nota}
-            onChange={(e) => setForm({ ...form, nota: e.target.value })}
-            placeholder="es. + ritiro e consegna 20/30€"
-          />
+        <div className="field-row">
+          <div className="field">
+            <label>Consegna e ritiro (€, facoltativa)</label>
+            <input
+              value={form.consegnaRitiro}
+              onChange={(e) => setForm({ ...form, consegnaRitiro: e.target.value })}
+              inputMode="decimal"
+              placeholder="es. 25 — vuoto se non si applica"
+            />
+          </div>
+          <div className="field">
+            <label>Note (facoltative)</label>
+            <input
+              value={form.nota}
+              onChange={(e) => setForm({ ...form, nota: e.target.value })}
+              placeholder="es. + 35€ materassino"
+            />
+          </div>
         </div>
         <div className="card-actions">
           <button className="btn primary" type="submit" disabled={saving}>

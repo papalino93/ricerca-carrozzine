@@ -11,6 +11,13 @@ export interface CommessaRecord {
   vendita: boolean;
   riparazione: boolean;
   operatore: string | null;
+  /** Azienda per conto della quale si ordina (facoltativa): permette di
+   * filtrare le commesse per azienda, oltre che per cliente/numero. */
+  azienda: string | null;
+  /** Numero d'ordine usato dal cliente/azienda nei propri sistemi
+   * (facoltativo): diverso da `richiesteParticolari` (cosa ordina), serve
+   * solo a riconciliare l'ordine con la loro contabilità. */
+  numeroOrdineCliente: string | null;
   richiesteParticolari: string | null;
   dataOrdine: string | null;
   consegnaPrevista: string | null;

@@ -71,6 +71,10 @@ export interface Device {
    * verbale di restituzione. */
   tariffaApplicata: number | null;
   tariffaUnita: TariffaUnita | null;
+  /** Tariffa di consegna e ritiro per il noleggio in corso: prefillata dal
+   * tariffario alla conferma, ma modificabile per quel singolo noleggio,
+   * come tariffaApplicata. Stampata sul verbale come voce separata. */
+  consegnaRitiro: number | null;
   /** Data ultima sanificazione, ISO yyyy-mm-dd. */
   sanificazione: string | null;
   nota: string | null;

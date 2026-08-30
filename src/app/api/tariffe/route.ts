@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
       importo: Number(body.importo),
       unita: body.unita === "settimana" ? "settimana" : "giorno",
       nota: body.nota || null,
+      consegnaRitiro: body.consegnaRitiro != null ? Number(body.consegnaRitiro) : null,
     });
     return NextResponse.json({ tariffe });
   } catch (err) {
