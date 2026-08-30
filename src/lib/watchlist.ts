@@ -3,7 +3,7 @@ import type { CommessaRecord } from "./commesse";
 import { todayIso } from "./dates";
 
 function fmtDate(iso: string): string {
-  const [y, m, d] = iso.split("-");
+  const [y, m, d] = (iso.includes("T") ? iso.slice(0, 10) : iso).split("-");
   if (!y || !m || !d) return iso;
   return `${d}/${m}`;
 }
