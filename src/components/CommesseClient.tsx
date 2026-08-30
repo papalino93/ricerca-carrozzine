@@ -35,7 +35,7 @@ function emptyForm() {
     vendita: false,
     riparazione: false,
     operatore: "",
-    azienda: "",
+    fornitore: "",
     numeroOrdineCliente: "",
     richiesteParticolari: "",
     dataOrdine: todayIso(),
@@ -104,7 +104,7 @@ export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery }: 
       ? esatte
       : initialCommesse.filter((c) =>
           matchesQuery(
-            [c.numero, c.cliente, c.telefono, c.cellulare, c.azienda, c.numeroOrdineCliente]
+            [c.numero, c.cliente, c.telefono, c.cellulare, c.fornitore, c.numeroOrdineCliente]
               .filter(Boolean)
               .join(" ")
               .toLowerCase(),
@@ -145,7 +145,7 @@ export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery }: 
     if (esatte.length) return esatte;
     return commesse.filter((c) =>
       matchesQuery(
-        [c.numero, c.cliente, c.telefono, c.cellulare, c.azienda, c.numeroOrdineCliente]
+        [c.numero, c.cliente, c.telefono, c.cellulare, c.fornitore, c.numeroOrdineCliente]
           .filter(Boolean)
           .join(" ")
           .toLowerCase(),
@@ -186,7 +186,7 @@ export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery }: 
           telefono: form.telefono || null,
           cellulare: form.cellulare || null,
           operatore: form.operatore || null,
-          azienda: form.azienda || null,
+          fornitore: form.fornitore || null,
           numeroOrdineCliente: form.numeroOrdineCliente || null,
           richiesteParticolari: form.richiesteParticolari || null,
           dataOrdine: form.dataOrdine || null,
@@ -394,11 +394,11 @@ export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery }: 
             </div>
             <div className="field-row">
               <div className="field">
-                <label>Azienda (facoltativa)</label>
+                <label>Fornitore (facoltativo)</label>
                 <input
-                  value={form.azienda}
-                  onChange={(e) => setForm({ ...form, azienda: e.target.value })}
-                  placeholder="Per conto di chi si ordina"
+                  value={form.fornitore}
+                  onChange={(e) => setForm({ ...form, fornitore: e.target.value })}
+                  placeholder="Da chi si ordina"
                 />
               </div>
               <div className="field">
@@ -406,7 +406,7 @@ export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery }: 
                 <input
                   value={form.numeroOrdineCliente}
                   onChange={(e) => setForm({ ...form, numeroOrdineCliente: e.target.value })}
-                  placeholder="Numero usato dal cliente/azienda"
+                  placeholder="Numero usato dal cliente nei loro sistemi"
                 />
               </div>
             </div>
@@ -492,7 +492,7 @@ export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery }: 
       <div className="panel">
         <input
           className="searchbox"
-          placeholder="Cerca per numero, cliente, telefono, azienda…"
+          placeholder="Cerca per numero, cliente, telefono, fornitore…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
@@ -532,7 +532,7 @@ export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery }: 
                   <th></th>
                   <th>N.</th>
                   <th>Cliente</th>
-                  <th>Azienda</th>
+                  <th>Fornitore</th>
                   <th>Tipo</th>
                   <th>Consegna prevista</th>
                   <th>Saldo</th>
@@ -548,7 +548,7 @@ export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery }: 
                         <td>{isOpen ? "▾" : "▸"}</td>
                         <td>{c.numero}</td>
                         <td>{c.cliente}</td>
-                        <td>{c.azienda ?? "—"}</td>
+                        <td>{c.fornitore ?? "—"}</td>
                         <td>{[c.vendita && "Vendita", c.riparazione && "Riparazione"].filter(Boolean).join(" + ") || "—"}</td>
                         <td>{fmtDate(c.consegnaPrevista)}</td>
                         <td>{fmtEuro(c.saldo)}</td>
@@ -565,7 +565,7 @@ export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery }: 
                                 {c.telefono ? `Tel. ${c.telefono} · ` : ""}
                                 {c.cellulare ? `Cell. ${c.cellulare} · ` : ""}
                                 {c.operatore ? `A cura di: ${c.operatore} · ` : ""}
-                                {c.azienda ? `Azienda: ${c.azienda} · ` : ""}
+                                {c.fornitore ? `Fornitore: ${c.fornitore} · ` : ""}
                                 {c.numeroOrdineCliente ? `N. ordine cliente: ${c.numeroOrdineCliente} · ` : ""}
                                 Ordinato il {fmtDate(c.dataOrdine)}
                                 {c.consegnaPrevista ? ` · Consegna prevista il ${fmtDate(c.consegnaPrevista)}` : ""}

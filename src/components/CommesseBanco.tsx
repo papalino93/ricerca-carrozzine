@@ -46,6 +46,7 @@ function emptyForm() {
     telefono: "",
     vendita: false,
     riparazione: false,
+    fornitore: "",
     consegnaPrevista: "",
     acconto: "",
     saldo: "",
@@ -91,6 +92,8 @@ export function CommesseBanco({ initialCommesse, initialQuery }: CommesseBancoPr
   const cercate = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return commesse;
+    // Il fornitore si cerca solo da Amministrazione → Commesse: qui al banco
+    // resta la ricerca di sempre (numero, cliente, telefono/cellulare).
     return commesse.filter((c) =>
       matchesQuery([c.numero, c.cliente, c.telefono, c.cellulare].filter(Boolean).join(" ").toLowerCase(), q)
     );
@@ -141,6 +144,8 @@ export function CommesseBanco({ initialCommesse, initialQuery }: CommesseBancoPr
           vendita: form.vendita,
           riparazione: form.riparazione,
           operatore: null,
+          fornitore: form.fornitore.trim() || null,
+          numeroOrdineCliente: null,
           richiesteParticolari: form.richiesteParticolari.trim() || null,
           dataOrdine: todayIso(),
           consegnaPrevista: form.consegnaPrevista || null,
@@ -237,6 +242,15 @@ export function CommesseBanco({ initialCommesse, initialQuery }: CommesseBancoPr
                   placeholder="Modello, misura, colore, quantità…"
                   value={form.richiesteParticolari}
                   onChange={(e) => setForm({ ...form, richiesteParticolari: e.target.value })}
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="banco-fornitore">Fornitore</label>
+                <input
+                  id="banco-fornitore"
+                  value={form.fornitore}
+                  onChange={(e) => setForm({ ...form, fornitore: e.target.value })}
+                  placeholder="Da chi si ordina"
                 />
               </div>
               <div className="field">
@@ -348,6 +362,7 @@ export function CommesseBanco({ initialCommesse, initialQuery }: CommesseBancoPr
                     <span className="banco-meta">
                       {tipo}
                       {c.telefono ? ` · ${c.telefono}` : ""}
+                      {c.fornitore ? ` · da ${c.fornitore}` : ""}
                       {c.stato === "ritirata"
                         ? ` · ritirata il ${fmtDate(c.ritirataIl)}`
                         : c.consegnaPrevista
