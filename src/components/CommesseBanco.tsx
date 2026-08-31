@@ -49,6 +49,7 @@ function emptyForm() {
     vendita: false,
     riparazione: false,
     fornitore: "",
+    dataOrdine: todayIso(),
     consegnaPrevista: "",
     acconto: "",
     saldo: "",
@@ -153,7 +154,7 @@ export function CommesseBanco({ initialCommesse, initialQuery }: CommesseBancoPr
           fornitore: form.fornitore.trim() || null,
           numeroOrdineCliente: null,
           richiesteParticolari: form.richiesteParticolari.trim() || null,
-          dataOrdine: todayIso(),
+          dataOrdine: form.dataOrdine || todayIso(),
           consegnaPrevista: form.consegnaPrevista || null,
           acconto,
           saldo,
@@ -190,6 +191,7 @@ export function CommesseBanco({ initialCommesse, initialQuery }: CommesseBancoPr
       vendita: c.vendita,
       riparazione: c.riparazione,
       fornitore: c.fornitore ?? "",
+      dataOrdine: c.dataOrdine ?? "",
       consegnaPrevista: c.consegnaPrevista ?? "",
       acconto: c.acconto != null ? String(c.acconto).replace(".", ",") : "",
       saldo: c.saldo != null ? String(c.saldo).replace(".", ",") : "",
@@ -216,6 +218,7 @@ export function CommesseBanco({ initialCommesse, initialQuery }: CommesseBancoPr
         vendita: editForm.vendita,
         riparazione: editForm.riparazione,
         fornitore: editForm.fornitore.trim() || null,
+        dataOrdine: editForm.dataOrdine || null,
         consegnaPrevista: editForm.consegnaPrevista || null,
         acconto,
         saldo,
@@ -279,6 +282,23 @@ export function CommesseBanco({ initialCommesse, initialQuery }: CommesseBancoPr
         <div className="panel" style={{ marginBottom: 16 }}>
           <h2>Nuova commessa</h2>
           <form onSubmit={handleCreate}>
+            <div className="chips" style={{ marginBottom: 12 }}>
+              {(
+                [
+                  ["vendita", "Vendita"],
+                  ["riparazione", "Riparazione"],
+                ] as const
+              ).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  className={`chip ${form[key] ? "active" : ""}`}
+                  onClick={() => setForm({ ...form, [key]: !form[key] })}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
             <div className="form-grid">
               <div className="field">
                 <label htmlFor="banco-cliente">Cliente</label>
@@ -323,6 +343,15 @@ export function CommesseBanco({ initialCommesse, initialQuery }: CommesseBancoPr
                 />
               </div>
               <div className="field">
+                <label htmlFor="banco-data-ordine">Data ordine</label>
+                <input
+                  id="banco-data-ordine"
+                  type="date"
+                  value={form.dataOrdine}
+                  onChange={(e) => setForm({ ...form, dataOrdine: e.target.value })}
+                />
+              </div>
+              <div className="field">
                 <label htmlFor="banco-consegna">Consegna prevista</label>
                 <input
                   id="banco-consegna"
@@ -351,23 +380,6 @@ export function CommesseBanco({ initialCommesse, initialQuery }: CommesseBancoPr
                   onChange={(e) => setForm({ ...form, saldo: e.target.value })}
                 />
               </div>
-            </div>
-            <div className="chips" style={{ marginTop: 12 }}>
-              {(
-                [
-                  ["vendita", "Vendita"],
-                  ["riparazione", "Riparazione"],
-                ] as const
-              ).map(([key, label]) => (
-                <button
-                  key={key}
-                  type="button"
-                  className={`chip ${form[key] ? "active" : ""}`}
-                  onClick={() => setForm({ ...form, [key]: !form[key] })}
-                >
-                  {label}
-                </button>
-              ))}
             </div>
             <div className="card-actions" style={{ marginTop: 16 }}>
               <button className="btn primary" type="submit" disabled={saving}>
@@ -518,6 +530,15 @@ export function CommesseBanco({ initialCommesse, initialQuery }: CommesseBancoPr
                             id={`edit-fornitore-${c.numero}`}
                             value={editForm.fornitore}
                             onChange={(e) => setEditForm({ ...editForm, fornitore: e.target.value })}
+                          />
+                        </div>
+                        <div className="field">
+                          <label htmlFor={`edit-data-ordine-${c.numero}`}>Data ordine</label>
+                          <input
+                            id={`edit-data-ordine-${c.numero}`}
+                            type="date"
+                            value={editForm.dataOrdine}
+                            onChange={(e) => setEditForm({ ...editForm, dataOrdine: e.target.value })}
                           />
                         </div>
                         <div className="field">
