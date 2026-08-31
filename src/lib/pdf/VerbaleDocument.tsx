@@ -53,7 +53,7 @@ export interface VerbaleDocumentProps {
 
 const styles = StyleSheet.create({
   page: {
-    padding: 48,
+    padding: 40,
     fontSize: 10,
     color: INK,
     fontFamily: "Helvetica",
@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-end",
-    marginTop: 26,
+    marginTop: 18,
   },
   title: {
     fontSize: 17,
@@ -114,8 +114,8 @@ const styles = StyleSheet.create({
     height: 3,
     backgroundColor: ACCENT,
     borderRadius: 2,
-    marginTop: 10,
-    marginBottom: 22,
+    marginTop: 8,
+    marginBottom: 14,
   },
   sectionLabel: {
     fontSize: 9,
@@ -123,8 +123,8 @@ const styles = StyleSheet.create({
     color: INK_SOFT,
     textTransform: "uppercase",
     letterSpacing: 0.5,
-    marginBottom: 6,
-    marginTop: 16,
+    marginBottom: 4,
+    marginTop: 10,
   },
   table: {
     borderWidth: 1,
@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
     fontWeight: 700,
   },
   noteBox: {
-    marginTop: 20,
+    marginTop: 12,
     borderWidth: 1,
     borderColor: ACCENT,
     borderRadius: 4,
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
   signatureRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 60,
+    marginTop: 30,
   },
   signatureBlock: {
     width: "45%",
@@ -200,16 +200,16 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   conditions: {
-    marginTop: 28,
-    fontSize: 7.5,
+    marginTop: 14,
+    fontSize: 7,
     color: INK_SOFT,
-    lineHeight: 1.4,
+    lineHeight: 1.25,
   },
   privacy: {
-    marginTop: 10,
-    fontSize: 7.5,
+    marginTop: 6,
+    fontSize: 7,
     color: INK_SOFT,
-    lineHeight: 1.4,
+    lineHeight: 1.25,
   },
 });
 
