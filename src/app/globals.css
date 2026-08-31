@@ -1293,7 +1293,8 @@ h1 {
 .front-bar-links {
   display: flex;
   align-items: center;
-  gap: 18px;
+  flex-wrap: wrap;
+  gap: 10px 18px;
 }
 
 /* Il tasto per tornare alla home: pieno e scuro, non verde.
