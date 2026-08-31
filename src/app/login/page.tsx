@@ -22,9 +22,8 @@ export default async function LoginPage({
   return (
     <main className="login-page">
       <section className="login-card" aria-labelledby="login-title">
-        <div className="login-brand" aria-label="Medical Center">
-          <Image src="/logo.png" alt="" width={56} height={56} priority />
-          <span>Medical<br />Center</span>
+        <div className="login-brand">
+          <Image src="/medical-center-brand.png" alt="Medical Center" width={318} height={111} priority />
         </div>
         <div className="login-heading">
           <p className="eyebrow">Area riservata</p>

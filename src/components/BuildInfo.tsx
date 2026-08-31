@@ -22,8 +22,8 @@ function fmt(iso: string): string {
 }
 
 export function BuildInfo() {
+  const version = process.env.NEXT_PUBLIC_APP_VERSION ?? "1.0.0";
   const sha = process.env.NEXT_PUBLIC_BUILD_SHA;
-  if (!sha) return null;
   const time = fmt(process.env.NEXT_PUBLIC_BUILD_TIME ?? "");
   return (
     <div
@@ -41,7 +41,8 @@ export function BuildInfo() {
         fontFamily: "monospace",
       }}
     >
-      {sha}
+      v{version}
+      {sha ? ` · ${sha}` : ""}
       {time ? ` · ${time}` : ""}
     </div>
   );
