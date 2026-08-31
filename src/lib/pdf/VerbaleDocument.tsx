@@ -14,12 +14,6 @@ export type DocumentoTipo = "consegna" | "restituzione";
 export interface TariffaDocumento {
   importo: number;
   unita: "giorno" | "settimana";
-  /** Presente solo sul verbale di restituzione, calcolato sui giorni
-   * effettivi (dal → data di restituzione): mai una stima. Il verbale di
-   * consegna non riporta un totale — non c'è ancora una data di rientro
-   * certa su cui basarlo, e il cliente non deve firmare un impegno di
-   * spesa che potrebbe cambiare. */
-  totale?: number;
   /** Tariffa fissa di consegna e ritiro per questo noleggio, se presente. */
   costoConsegna?: number | null;
   /** Nota accessoria della tariffa (es. "+ 35€ materassino"): testo libero,
@@ -337,36 +331,30 @@ export function VerbaleDocument({
         {tariffa ? (() => {
           const hasCostoConsegna = tariffa.costoConsegna != null;
           const hasNota = Boolean(tariffa.nota);
-          const hasTotale = tariffa.totale != null;
           return (
             <>
               <Text style={styles.sectionLabel}>Tariffa</Text>
               <View style={styles.table}>
-                <View style={hasCostoConsegna || hasNota || hasTotale ? styles.row : styles.rowLast}>
+                <View style={hasCostoConsegna || hasNota ? styles.row : styles.rowLast}>
                   <Text style={styles.cellLabel}>Tariffa applicata</Text>
                   <Text style={styles.cellValue}>
                     {`${fmtEuro(tariffa.importo)} al ${tariffa.unita === "settimana" ? "settimana" : "giorno"}`}
                   </Text>
                 </View>
                 {hasCostoConsegna ? (
-                  <View style={hasNota || hasTotale ? styles.row : styles.rowLast}>
+                  <View style={hasNota ? styles.row : styles.rowLast}>
                     <Text style={styles.cellLabel}>Costo consegna</Text>
                     <Text style={styles.cellValue}>{fmtEuro(tariffa.costoConsegna!)}</Text>
                   </View>
                 ) : null}
-                {/* Testo libero (es. "+ 35€ materassino"): mai sommato al
-                    totale, solo un promemoria per l'operatore e il cliente. */}
+                {/* Testo libero (es. "+ 35€ materassino"): mai sommato,
+                    solo un promemoria per l'operatore e il cliente. Il
+                    verbale non riporta mai un totale calcolato: solo le
+                    tariffe così come sono. */}
                 {hasNota ? (
-                  <View style={hasTotale ? styles.row : styles.rowLast}>
+                  <View style={styles.rowLast}>
                     <Text style={styles.cellLabel}>Nota</Text>
                     <Text style={styles.cellValue}>{tariffa.nota}</Text>
-                  </View>
-                ) : null}
-                {/* Solo sul verbale di restituzione: vedi TariffaDocumento.totale. */}
-                {hasTotale ? (
-                  <View style={styles.rowLast}>
-                    <Text style={styles.cellLabel}>Totale</Text>
-                    <Text style={styles.cellValue}>{fmtEuro(tariffa.totale!)}</Text>
                   </View>
                 ) : null}
               </View>
