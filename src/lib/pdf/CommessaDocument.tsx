@@ -138,24 +138,17 @@ export function CommessaDocument({ settings, commessa: c }: CommessaDocumentProp
               <Text style={styles.cellValue}>{extra}</Text>
             </View>
           ) : null}
-          <View style={styles.row}>
+          <View style={c.consegnaPrevista ? styles.row : styles.rowLast}>
             <Text style={styles.cellLabel}>Data ordine</Text>
             <Text style={styles.cellValue}>{fmtDate(c.dataOrdine)}</Text>
           </View>
-          <View style={c.prontaIl || c.ritirataIl ? styles.row : styles.rowLast}>
-            <Text style={styles.cellLabel}>Consegna prevista</Text>
-            <Text style={styles.cellValue}>{fmtDate(c.consegnaPrevista)}</Text>
-          </View>
-          {c.prontaIl ? (
-            <View style={c.ritirataIl ? styles.row : styles.rowLast}>
-              <Text style={styles.cellLabel}>Pronto il</Text>
-              <Text style={styles.cellValue}>{fmtDate(c.prontaIl)}</Text>
-            </View>
-          ) : null}
-          {c.ritirataIl ? (
+          {/* Facoltativa: solo una data sul documento stampato, "Pronto il" e
+              "Ritirato il" sono avanzamento interno del lavoro, non qualcosa
+              che il cliente deve vedere sulla sua copia. */}
+          {c.consegnaPrevista ? (
             <View style={styles.rowLast}>
-              <Text style={styles.cellLabel}>Ritirato il</Text>
-              <Text style={styles.cellValue}>{fmtDate(c.ritirataIl)}</Text>
+              <Text style={styles.cellLabel}>Consegna prevista</Text>
+              <Text style={styles.cellValue}>{fmtDate(c.consegnaPrevista)}</Text>
             </View>
           ) : null}
         </View>
