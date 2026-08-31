@@ -520,6 +520,23 @@ export function CommesseBanco({ initialCommesse, initialQuery, clienti }: Commes
 
                   {editing === c.numero ? (
                     <div className="panel" style={{ marginTop: 10 }}>
+                      <div className="chips" style={{ marginBottom: 12 }}>
+                        {(
+                          [
+                            ["vendita", "Vendita"],
+                            ["riparazione", "Riparazione"],
+                          ] as const
+                        ).map(([key, label]) => (
+                          <button
+                            key={key}
+                            type="button"
+                            className={`chip ${editForm[key] ? "active" : ""}`}
+                            onClick={() => setEditForm({ ...editForm, [key]: !editForm[key] })}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
                       <div className="form-grid">
                         <div className="field">
                           <label htmlFor={`edit-cliente-${c.numero}`}>Cliente</label>
@@ -591,23 +608,6 @@ export function CommesseBanco({ initialCommesse, initialQuery, clienti }: Commes
                             onChange={(e) => setEditForm({ ...editForm, saldo: e.target.value })}
                           />
                         </div>
-                      </div>
-                      <div className="chips" style={{ marginTop: 12 }}>
-                        {(
-                          [
-                            ["vendita", "Vendita"],
-                            ["riparazione", "Riparazione"],
-                          ] as const
-                        ).map(([key, label]) => (
-                          <button
-                            key={key}
-                            type="button"
-                            className={`chip ${editForm[key] ? "active" : ""}`}
-                            onClick={() => setEditForm({ ...editForm, [key]: !editForm[key] })}
-                          >
-                            {label}
-                          </button>
-                        ))}
                       </div>
                       <div className="card-actions" style={{ marginTop: 16 }}>
                         <button className="btn primary" type="button" disabled={inCorso} onClick={() => saveEdit(c)}>
