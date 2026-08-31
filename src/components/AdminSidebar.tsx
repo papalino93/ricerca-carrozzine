@@ -14,6 +14,7 @@ import {
   IconMenu,
   IconNoleggio,
 } from "./ReceptionIcons";
+import { LogoutButton } from "./LogoutButton";
 
 // Gestione e configurazione (il "dietro le quinte"): il lavoro di ogni
 // giorno al banco vive altrove, vedi il link "Operatore banco" più sotto —
@@ -90,6 +91,10 @@ export function AdminSidebar() {
           </span>
           Impostazioni
         </Link>
+        <LogoutButton
+          className="admin-sidebar-link muted admin-sidebar-logout"
+          onLogout={() => setOpen(false)}
+        />
       </div>
     </aside>
   );

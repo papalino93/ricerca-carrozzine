@@ -77,6 +77,76 @@ a {
   color: inherit;
 }
 
+/* ---------- Accesso ---------- */
+.login-page {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 28px 16px;
+  background:
+    radial-gradient(760px 420px at 50% -10%, var(--accent-bg) 0%, transparent 68%),
+    var(--bg);
+}
+
+.login-card {
+  width: min(100%, 440px);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  padding: 34px;
+  box-shadow: 0 18px 55px rgba(23, 48, 27, 0.12);
+}
+
+.login-card > img {
+  display: block;
+  width: auto;
+  height: 56px;
+  max-width: 100%;
+  margin-bottom: 30px;
+}
+
+.login-heading {
+  margin-bottom: 24px;
+}
+
+.login-heading h1 {
+  margin-bottom: 7px;
+}
+
+.login-form .field {
+  margin-bottom: 16px;
+}
+
+.login-submit {
+  width: 100%;
+  min-height: 48px;
+  margin-top: 4px;
+}
+
+.desk-logout,
+.admin-sidebar-logout {
+  font: inherit;
+  cursor: pointer;
+}
+
+.desk-logout {
+  appearance: none;
+}
+
+.admin-sidebar-logout {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+
+@media (max-width: 480px) {
+  .login-card {
+    padding: 26px 20px;
+    border-radius: 20px;
+  }
+}
+
 .wrap {
   max-width: 780px;
   margin: 0 auto;

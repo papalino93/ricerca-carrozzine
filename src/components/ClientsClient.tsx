@@ -31,7 +31,7 @@ function fmtDate(iso: string): string {
 }
 
 function emptyNewClientForm() {
-  return { nome: "", cellulare: "", email: "", indirizzo: "" };
+  return { nome: "", codiceFiscale: "", cellulare: "", email: "", indirizzo: "" };
 }
 
 export function ClientsClient({
@@ -88,6 +88,7 @@ export function ClientsClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           nome: newClientForm.nome,
+          codiceFiscale: newClientForm.codiceFiscale || null,
           cellulare: newClientForm.cellulare || null,
           email: newClientForm.email || null,
           indirizzo: newClientForm.indirizzo || null,
@@ -121,7 +122,10 @@ export function ClientsClient({
     if (esatti.length) return esatti;
     return sorted.filter((c) =>
       matchesQuery(
-        [c.nome, c.telefono, c.cellulare, c.email, c.fidelity].filter(Boolean).join(" ").toLowerCase(),
+        [c.nome, c.codiceFiscale, c.telefono, c.cellulare, c.email, c.fidelity]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase(),
         q
       )
     );
@@ -176,7 +180,7 @@ export function ClientsClient({
           // l'import CSV nascosto, lascerebbe una striscia vuota in fondo al
           // riquadro di ricerca.
           style={banco ? undefined : { marginBottom: 14 }}
-          placeholder="Cerca per nome, telefono, email…"
+          placeholder="Cerca per nome, codice fiscale, telefono, email…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
@@ -217,6 +221,18 @@ export function ClientsClient({
                 autoFocus
               />
             </div>
+            <div className="field">
+              <label>Codice fiscale</label>
+              <input
+                value={newClientForm.codiceFiscale}
+                onChange={(e) =>
+                  setNewClientForm({ ...newClientForm, codiceFiscale: e.target.value.toUpperCase() })
+                }
+                autoCapitalize="characters"
+                autoComplete="off"
+                maxLength={16}
+              />
+            </div>
             <div className="field-row">
               <div className="field">
                 <label>Cellulare</label>
@@ -243,8 +259,8 @@ export function ClientsClient({
             </div>
             <p className="hint" style={{ marginTop: -6, marginBottom: 14 }}>
               Il numero di tessera fedeltà viene assegnato automaticamente alla creazione, per
-              garantire che sia sempre univoco. Codice fiscale, data e luogo di nascita si aggiungono
-              dopo, dalla scheda del cliente.
+              garantire che sia sempre univoco. Data e luogo di nascita si possono aggiungere dopo,
+              dalla scheda del cliente.
             </p>
             <div className="card-actions">
               <button className="btn primary" type="submit" disabled={savingNewClient}>
@@ -274,6 +290,7 @@ export function ClientsClient({
               <thead>
                 <tr>
                   <th>Nome</th>
+                  <th>Codice fiscale</th>
                   <th>Telefono</th>
                   <th>Fidelity</th>
                   <th>Punti</th>
@@ -293,6 +310,7 @@ export function ClientsClient({
                           {c.nome}
                         </Link>
                       </td>
+                      <td>{c.codiceFiscale ?? "—"}</td>
                       <td>
                         {[...new Set([c.telefono, c.cellulare].filter(Boolean))].join(" · ") || "—"}
                       </td>

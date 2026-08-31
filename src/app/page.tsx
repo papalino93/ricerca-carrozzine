@@ -8,6 +8,7 @@ import { IconClienti, IconCommessa, IconFidelity, IconNoleggio } from "@/compone
 import { DeskClock } from "@/components/DeskClock";
 import { DeskSearch } from "@/components/DeskSearch";
 import { buildWatchGroups, daysUntil } from "@/lib/watchlist";
+import { LogoutButton } from "@/components/LogoutButton";
 
 export const dynamic = "force-dynamic";
 
@@ -176,6 +177,7 @@ export default async function ReceptionPage() {
               <Link href="/admin" className="desk-admin-link">
                 Amministrazione ↗
               </Link>
+              <LogoutButton className="desk-admin-link desk-logout" />
             </div>
           </div>
 

@@ -2,6 +2,7 @@ import "server-only";
 import { createHash, timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { verifySheetCredential } from "./users";
+import { readSessionToken, SESSION_COOKIE } from "./session";
 
 const REALM = "Area amministrazione";
 
@@ -32,7 +33,7 @@ let cache: { key: string; ok: boolean; expires: number } | null = null;
  * non è stato possibile controllare — Google Sheets non ha risposto — e va
  * tenuto distinto, perché rispondere "credenziali errate" a chi le ha
  * giuste è il modo più veloce per far pensare a un guasto del gestionale. */
-type EsitoAuth = "ok" | "negato" | "verifica-fallita";
+export type EsitoAuth = "ok" | "negato" | "verifica-fallita";
 
 function decodeBasicAuth(req: NextRequest): { username: string; password: string } | null {
   const header = req.headers.get("authorization");
@@ -51,11 +52,7 @@ function decodeBasicAuth(req: NextRequest): { username: string; password: string
   return { username: decoded.slice(0, sep), password: decoded.slice(sep + 1) };
 }
 
-async function isAuthorized(req: NextRequest): Promise<EsitoAuth> {
-  const creds = decodeBasicAuth(req);
-  if (!creds) return "negato";
-  const { username, password } = creds;
-
+export async function verifyCredentials(username: string, password: string): Promise<EsitoAuth> {
   // Credenziali "di base" da variabili d'ambiente: sempre valide, nessuna
   // chiamata a Google Sheets necessaria. Impostarle in produzione è anche
   // la rete di sicurezza per il caso qui sotto: con queste attive si entra
@@ -90,6 +87,12 @@ async function isAuthorized(req: NextRequest): Promise<EsitoAuth> {
   return "verifica-fallita";
 }
 
+async function isAuthorized(req: NextRequest): Promise<EsitoAuth> {
+  const creds = decodeBasicAuth(req);
+  if (!creds) return "negato";
+  return verifyCredentials(creds.username, creds.password);
+}
+
 /**
  * Restituisce la risposta da dare quando la richiesta non è autorizzata,
  * oppure null se può passare.
@@ -102,6 +105,12 @@ async function isAuthorized(req: NextRequest): Promise<EsitoAuth> {
  * cache, quindi al ricaricamento successivo si entra.
  */
 export async function requireBasicAuth(req: NextRequest): Promise<NextResponse | null> {
+  // Le rotte API storiche chiamano ancora questo helper direttamente. Una
+  // sessione valida deve quindi essere riconosciuta anche qui, non soltanto
+  // dal proxy, altrimenti l'interfaccia si apre ma le operazioni vengono
+  // respinte subito dopo il nuovo login.
+  if (readSessionToken(req.cookies.get(SESSION_COOKIE)?.value)) return null;
+
   const esito = await isAuthorized(req);
   if (esito === "ok") return null;
 

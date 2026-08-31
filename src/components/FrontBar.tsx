@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BackButton } from "./BackButton";
+import { LogoutButton } from "./LogoutButton";
 
 interface FrontBarProps {
   logoUrl?: string | null;
@@ -40,6 +41,7 @@ export function FrontBar({ logoUrl }: FrontBarProps) {
           Home
         </Link>
         <Link href="/admin">Amministrazione ↗</Link>
+        <LogoutButton className="btn ghost" />
       </div>
     </div>
   );

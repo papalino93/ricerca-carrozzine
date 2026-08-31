@@ -10,7 +10,7 @@ const heading = Inter({
   variable: "--font-heading",
 });
 
-const SITE_URL = "https://ricerca-carrozzine.vercel.app";
+const SITE_URL = "https://medical-center-scandicci.vercel.app";
 
 // "Ricerca Ausili" era il nome di lavoro del progetto, sparito da mesi da
 // ogni schermata del gestionale (l'ultimo punto rimasto era l'intestazione

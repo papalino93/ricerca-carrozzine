@@ -10,8 +10,8 @@ documenti di noleggio in PDF.
 
 - **Ricerca pubblica** (`/`): filtra per larghezza seduta, categoria, stato
   e testo libero (cliente, marca, modello, codice). Non richiede login.
-- **Amministrazione** (`/admin`, `/admin/impostazioni`): protetta da Basic
-  Auth, permette di aggiungere/modificare/eliminare i dispositivi e
+- **Amministrazione** (`/admin`, `/admin/impostazioni`): protetta da una
+  normale pagina di accesso, permette di aggiungere/modificare/eliminare i dispositivi e
   configurare i dati aziendali.
 - **Ciclo di vita del noleggio**: azioni dedicate per portare un
   dispositivo da disponibile a noleggiato (assegnazione cliente/telefono/
@@ -141,9 +141,12 @@ Vedi `.env.example`. In sintesi:
   (incolla il valore intero, incluse le righe `BEGIN/END PRIVATE KEY`; se il
   tuo editor di variabili non accetta più righe, sostituisci gli a-capo con
   `\n` letterali — l'app li normalizza automaticamente).
-- `ADMIN_USER` / `ADMIN_PASSWORD` — credenziali "principali" della Basic
-  Auth per `/admin`. Sono le uniche che funzionano anche se il foglio
+- `ADMIN_USER` / `ADMIN_PASSWORD` — credenziali principali della pagina di
+  accesso. Sono le uniche che funzionano anche se il foglio
   Google non è raggiungibile (utili come accesso di emergenza).
+- `AUTH_SESSION_SECRET` — facoltativa ma consigliata. Chiave casuale di
+  almeno 32 caratteri usata per firmare le sessioni; se non è impostata,
+  viene derivata da `ADMIN_PASSWORD`.
 - `GOOGLE_SHEETS_BACKUP_SPREADSHEET_ID` — facoltativa. ID di un SECONDO
   foglio Google Sheets, separato da quello principale (idealmente in un
   account Google diverso), condiviso con lo stesso `client_email` e usato
@@ -185,7 +188,7 @@ Per farne usare altri (altri operatori, colleghi, ecc.) senza condividere
 quella password: vai su `/admin/impostazioni`, sezione **"Utenti
 autorizzati"**, e aggiungi username e password per ciascuno. Vengono
 salvati nella tab `Utenti` del foglio (password come hash scrypt, mai in
-chiaro) e possono accedere a `/admin` con le proprie credenziali da subito,
+chiaro) e possono accedere dalla pagina `/login` con le proprie credenziali da subito,
 senza redeploy né variabili d'ambiente da toccare. Per revocare l'accesso
 a qualcuno, usa "Revoca" nella stessa sezione.
 
@@ -350,7 +353,7 @@ messaggio d'errore invece dell'elenco, finché non configuri il foglio.
 
 1. Importa il repository su [vercel.com/new](https://vercel.com/new).
 2. In **Settings → Environment Variables** aggiungi `ADMIN_USER`,
-   `ADMIN_PASSWORD`, `GOOGLE_SHEETS_SPREADSHEET_ID`,
+   `ADMIN_PASSWORD`, `AUTH_SESSION_SECRET`, `GOOGLE_SHEETS_SPREADSHEET_ID`,
    `GOOGLE_SHEETS_CLIENT_EMAIL`, `GOOGLE_SHEETS_PRIVATE_KEY`.
 3. Dopo il primo deploy, vai su `/admin/impostazioni` e carica il logo e i
    dati aziendali.
@@ -361,9 +364,10 @@ messaggio d'errore invece dell'elenco, finché non configuri il foglio.
 src/
   app/
     page.tsx                 ricerca pubblica
-    admin/page.tsx            elenco/CRUD dispositivi (Basic Auth)
-    admin/impostazioni/       dati aziendali + upload logo (Basic Auth)
-    admin/fascicoli/          dashboard, archivio, nuovo, editor (Basic Auth)
+    login/page.tsx            pagina di accesso al gestionale
+    admin/page.tsx            elenco/CRUD dispositivi (sessione protetta)
+    admin/impostazioni/       dati aziendali + upload logo (sessione protetta)
+    admin/fascicoli/          dashboard, archivio, nuovo, editor (sessione protetta)
     api/dispositivi/          GET pubblico, POST/DELETE riservati
     api/dispositivi/[codice]/eventi/  noleggio/restituzione/sanificazione (riservato)
     api/impostazioni/         GET/POST riservati (protetti dal proxy)
@@ -379,6 +383,7 @@ src/
     users.ts                   utenti autorizzati aggiuntivi (tab Utenti, solo server)
     sheets.ts                 client Google Sheets (solo server, crea le tab mancanti)
     basic-auth.ts             verifica le credenziali (env oppure tab Utenti)
+    session.ts                crea e verifica il cookie di sessione firmato
     pdf/VerbaleDocument.tsx   template del verbale di noleggio
     fascicoli-types.ts        tipi/costanti dei Fascicoli Plantari (condivisi client/server)
     fascicoli.ts              lettura/scrittura fascicoli (tab FascicoliPlantari, solo server)
@@ -386,7 +391,7 @@ src/
     fascicoli-pdf-log.ts      registro PDF generati (tab FascicoliPdf, solo server)
     pdf/FascicoloDocument.tsx        template del fascicolo plantare (documentazione cliente)
     pdf/ProcessoProduttivoDocument.tsx  template del processo produttivo (documentazione interna)
-  proxy.ts                    Basic Auth su /admin e sulle API di scrittura (gira su Node.js)
+  proxy.ts                    protegge pagine e API e reindirizza a /login
 scripts/
   generate-icons.mjs          favicon/icone PWA dal logo sorgente (sharp)
   generate-og-image.mjs       immagine di condivisione 1200x630 (playwright)
