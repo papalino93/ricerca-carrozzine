@@ -3,6 +3,7 @@ import { listClients, normalizeName } from "@/lib/clients";
 import { listHistory } from "@/lib/history";
 import { listDevices } from "@/lib/devices";
 import { listFascicoliCliente } from "@/lib/fascicoli";
+import { listCommesse } from "@/lib/commesse";
 import { getSettingsSafe } from "@/lib/settings";
 import { FrontBar } from "@/components/FrontBar";
 import { ClientDetailClient } from "@/components/ClientDetailClient";
@@ -16,15 +17,23 @@ export const dynamic = "force-dynamic";
 // una riga di tabella non bastava più. Raggiungibile sia dal banco
 // (/clienti) sia dall'amministrazione (/admin/clienti): un solo livello di
 // accesso in tutta l'app (vedi proxy.ts), stessa pagina per entrambi.
-export default async function ClienteDetailPage({ params }: { params: Promise<{ nome: string }> }) {
+export default async function ClienteDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ nome: string }>;
+  searchParams: Promise<{ tab?: string }>;
+}) {
   const { nome: nomeParam } = await params;
   const nome = decodeURIComponent(nomeParam);
 
-  const [clients, history, devices, fascicoli, settings] = await Promise.all([
+  const [{ tab }, clients, history, devices, fascicoli, commesse, settings] = await Promise.all([
+    searchParams,
     listClients().catch(() => []),
     listHistory().catch(() => []),
     listDevices().catch(() => []),
     listFascicoliCliente(nome).catch(() => []),
+    listCommesse().catch(() => []),
     getSettingsSafe(),
   ]);
 
@@ -35,6 +44,7 @@ export default async function ClienteDetailPage({ params }: { params: Promise<{ 
   const currentDevice =
     devices.find((d) => d.stato === "noleggiato" && normalizeName(d.cliente ?? "") === normalizeName(client.nome)) ??
     null;
+  const clientCommesse = commesse.filter((c) => normalizeName(c.cliente) === normalizeName(client.nome));
 
   return (
     <>
@@ -49,6 +59,8 @@ export default async function ClienteDetailPage({ params }: { params: Promise<{ 
         history={clientHistory}
         currentDevice={currentDevice}
         fascicoli={fascicoli}
+        commesse={clientCommesse}
+        initialTab={tab}
       />
     </>
   );
