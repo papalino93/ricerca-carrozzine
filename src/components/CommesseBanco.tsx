@@ -12,6 +12,9 @@ interface CommesseBancoProps {
   /** Numero di scheda arrivato nell'indirizzo (es. da "Da tenere d'occhio"
    * nella home): precompila la ricerca. */
   initialQuery?: string;
+  /** Anagrafica clienti, solo nome e telefono: suggerisce i nomi già noti nel
+   * campo Cliente e precompila il telefono se corrisponde esattamente. */
+  clienti: { nome: string; telefono: string | null }[];
 }
 
 const STATUS_PILL: Record<CommessaRecord["stato"], string> = {
@@ -69,7 +72,7 @@ function emptyForm() {
  * scrivania, che qui non serve e rallenta. Chi ha bisogno di correggere
  * tutto trova ogni campo in Amministrazione → Commesse, sugli stessi dati.
  */
-export function CommesseBanco({ initialCommesse, initialQuery }: CommesseBancoProps) {
+export function CommesseBanco({ initialCommesse, initialQuery, clienti }: CommesseBancoProps) {
   const [commesse, setCommesse] = useState(initialCommesse);
   const [query, setQuery] = useState(initialQuery ?? "");
   const [vista, setVista] = useState<"aperte" | "archivio">("aperte");
@@ -131,7 +134,10 @@ export function CommesseBanco({ initialCommesse, initialQuery }: CommesseBancoPr
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.cliente.trim()) return;
+    if (!form.cliente.trim() || !form.telefono.trim()) {
+      showToast("Nome cliente e telefono sono obbligatori");
+      return;
+    }
     const acconto = parseImporto(form.acconto);
     const saldo = parseImporto(form.saldo);
     if (acconto === "errore" || saldo === "errore") {
@@ -146,7 +152,7 @@ export function CommesseBanco({ initialCommesse, initialQuery }: CommesseBancoPr
         body: JSON.stringify({
           cliente: form.cliente.trim(),
           indirizzo: null,
-          telefono: form.telefono.trim() || null,
+          telefono: form.telefono.trim(),
           cellulare: null,
           vendita: form.vendita,
           riparazione: form.riparazione,
@@ -304,17 +310,34 @@ export function CommesseBanco({ initialCommesse, initialQuery }: CommesseBancoPr
                 <label htmlFor="banco-cliente">Cliente</label>
                 <input
                   id="banco-cliente"
+                  list="banco-clienti-list"
                   value={form.cliente}
-                  onChange={(e) => setForm({ ...form, cliente: e.target.value })}
+                  onChange={(e) => {
+                    const nome = e.target.value;
+                    // Se il nome digitato corrisponde esattamente a un
+                    // cliente già in anagrafica e il telefono è ancora
+                    // vuoto, lo precompila: evita di ridigitarlo per chi è
+                    // già cliente, senza sovrascrivere un numero già scritto.
+                    const match = !form.telefono
+                      ? clienti.find((c) => c.nome.trim().toLowerCase() === nome.trim().toLowerCase())
+                      : null;
+                    setForm({ ...form, cliente: nome, telefono: match?.telefono || form.telefono });
+                  }}
                   autoFocus
                   required
                 />
+                <datalist id="banco-clienti-list">
+                  {clienti.map((c) => (
+                    <option key={c.nome} value={c.nome} />
+                  ))}
+                </datalist>
               </div>
               <div className="field">
                 <label htmlFor="banco-telefono">Telefono</label>
                 <input
                   id="banco-telefono"
                   inputMode="tel"
+                  required
                   value={form.telefono}
                   onChange={(e) => setForm({ ...form, telefono: e.target.value })}
                 />

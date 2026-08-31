@@ -35,6 +35,9 @@ export async function POST(req: NextRequest) {
     if (!body.cliente?.trim()) {
       return NextResponse.json({ error: "Cliente obbligatorio" }, { status: 400 });
     }
+    if (!body.telefono?.trim() && !body.cellulare?.trim()) {
+      return NextResponse.json({ error: "Telefono o cellulare obbligatorio" }, { status: 400 });
+    }
     const commessa = await createCommessa(body);
     const commesse = await listCommesse();
     return NextResponse.json({ commessa, commesse });
