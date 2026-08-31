@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireBasicAuth } from "@/lib/basic-auth";
-import { rentDevice, returnDevice, sanitizeDevice } from "@/lib/devices";
+import { rentDevice, returnDevice, sanitizeDevice, verifyDevice } from "@/lib/devices";
 import { listHistory } from "@/lib/history";
 import type { TariffaUnita } from "@/lib/tariffe-types";
 
 export const runtime = "nodejs";
 
 interface EventoBody {
-  tipo: "noleggio" | "restituzione" | "sanificazione";
+  tipo: "noleggio" | "restituzione" | "sanificazione" | "verifica";
   cliente?: string;
   telefono?: string | null;
   dal?: string | null;
@@ -72,6 +72,9 @@ export async function POST(
         break;
       case "sanificazione":
         devices = await sanitizeDevice(codice);
+        break;
+      case "verifica":
+        devices = await verifyDevice(codice);
         break;
       default:
         return NextResponse.json({ error: "Tipo evento non valido" }, { status: 400 });

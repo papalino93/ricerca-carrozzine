@@ -97,12 +97,24 @@ a {
   box-shadow: 0 18px 55px rgba(23, 48, 27, 0.12);
 }
 
-.login-card > img {
-  display: block;
-  width: auto;
-  height: 56px;
-  max-width: 100%;
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin-bottom: 30px;
+  color: var(--accent-ink);
+  font-family: var(--heading);
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 0.86;
+  letter-spacing: -0.04em;
+  text-transform: uppercase;
+}
+
+.login-brand img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
 }
 
 .login-heading {
@@ -121,6 +133,20 @@ a {
   width: 100%;
   min-height: 48px;
   margin-top: 4px;
+}
+
+.login-recovery-link {
+  display: block;
+  margin-top: 18px;
+  color: var(--accent);
+  font-weight: 700;
+  text-align: center;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.recovery-result {
+  margin-top: 18px;
 }
 
 .desk-logout,

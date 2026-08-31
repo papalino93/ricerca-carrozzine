@@ -79,7 +79,9 @@ export default async function proxy(req: NextRequest) {
   const isLoginRoute =
     req.nextUrl.pathname === "/login" ||
     req.nextUrl.pathname === "/api/auth/login" ||
-    req.nextUrl.pathname === "/api/auth/logout";
+    req.nextUrl.pathname === "/api/auth/logout" ||
+    req.nextUrl.pathname.startsWith("/recupero-accesso") ||
+    req.nextUrl.pathname.startsWith("/api/auth/recovery/");
   if (isLoginRoute) return NextResponse.next();
 
   if (readSessionToken(req.cookies.get(SESSION_COOKIE)?.value)) {

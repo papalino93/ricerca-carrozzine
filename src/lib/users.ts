@@ -1,5 +1,5 @@
 import "server-only";
-import { randomBytes, scryptSync, timingSafeEqual } from "crypto";
+import { createHash, randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import { readSheet, writeSheet } from "./sheets";
 
 const TAB = "Utenti";
@@ -7,6 +7,11 @@ const HEADER = ["Username", "PasswordHash"];
 
 export interface AdminUser {
   username: string;
+}
+
+export interface RecoverableAccount {
+  username: string;
+  version: string;
 }
 
 function hashPassword(password: string): string {
@@ -65,6 +70,29 @@ export async function resetPassword(username: string, newPassword: string): Prom
   return users.map((u) => ({ username: u.username }));
 }
 
+/**
+ * Reimposta anche l'account principale configurato su Vercel. In quel caso
+ * viene creato un override nel foglio Utenti: da quel momento la password
+ * scelta qui ha precedenza su quella storica salvata nell'ambiente.
+ */
+export async function setRecoveredPassword(username: string, newPassword: string): Promise<void> {
+  if (!newPassword || newPassword.length < 8) {
+    throw new Error("La password deve avere almeno 8 caratteri");
+  }
+
+  const users = await readUsers();
+  const idx = users.findIndex((u) => u.username.toLowerCase() === username.toLowerCase());
+  if (idx >= 0) {
+    users[idx] = { ...users[idx], hash: hashPassword(newPassword) };
+  } else if (process.env.ADMIN_USER?.toLowerCase() === username.toLowerCase()) {
+    users.push({ username: process.env.ADMIN_USER, hash: hashPassword(newPassword) });
+  } else {
+    throw new Error("Account non trovato");
+  }
+
+  await writeSheet(TAB, [HEADER, ...users.map((u) => [u.username, u.hash])]);
+}
+
 export async function removeUser(username: string): Promise<AdminUser[]> {
   const users = await readUsers();
   const remaining = users.filter((u) => u.username.toLowerCase() !== username.toLowerCase());
@@ -78,4 +106,35 @@ export async function verifySheetCredential(username: string, password: string):
   const match = users.find((u) => u.username.toLowerCase() === username.toLowerCase());
   if (!match) return false;
   return verifyPassword(password, match.hash);
+}
+
+/** Distingue un account assente da una password errata. */
+export async function verifySheetCredentialState(
+  username: string,
+  password: string
+): Promise<"absent" | "valid" | "invalid"> {
+  const users = await readUsers();
+  const match = users.find((u) => u.username.toLowerCase() === username.toLowerCase());
+  if (!match) return "absent";
+  return verifyPassword(password, match.hash) ? "valid" : "invalid";
+}
+
+/** Account recuperabili e versione segreta della loro credenziale corrente. */
+export async function listRecoverableAccounts(): Promise<RecoverableAccount[]> {
+  const users = await readUsers();
+  const accounts = users.map((u) => ({
+    username: u.username,
+    version: createHash("sha256").update(`sheet:${u.hash}`).digest("base64url"),
+  }));
+
+  const envUser = process.env.ADMIN_USER?.trim();
+  const envPass = process.env.ADMIN_PASSWORD;
+  if (envUser && envPass && !accounts.some((u) => u.username.toLowerCase() === envUser.toLowerCase())) {
+    accounts.unshift({
+      username: envUser,
+      version: createHash("sha256").update(`env:${envPass}`).digest("base64url"),
+    });
+  }
+
+  return accounts;
 }

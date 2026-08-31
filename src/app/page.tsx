@@ -98,9 +98,6 @@ export default async function ReceptionPage() {
     total: g.rows.length,
     rows: g.rows.slice(0, PREVIEW_CAP[g.key] ?? g.rows.length),
   }));
-  const watchTruncated = watchGroupsFull.some(
-    (g) => g.rows.length > (PREVIEW_CAP[g.key] ?? g.rows.length)
-  );
 
   // I quattro riquadri sono pulsanti, non statistiche. Prima mostravano un
   // numero grande: al banco "Commesse 0" si legge come "qui non c'è
@@ -254,7 +251,7 @@ export default async function ReceptionPage() {
                     </div>
                   ))}
                 </div>
-                {watchTruncated ? (
+                {watchTotal > 0 ? (
                   <div className="desk-watch-more">
                     <Link href="/da-tenere-d-occhio">Vedi tutto →</Link>
                   </div>

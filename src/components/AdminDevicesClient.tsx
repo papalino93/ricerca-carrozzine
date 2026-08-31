@@ -11,7 +11,7 @@ import { StatTiles } from "./StatTiles";
 import { Toast } from "./Toast";
 import { useAutoRefresh } from "@/lib/use-auto-refresh";
 import { matchesQuery } from "@/lib/search-match";
-import { IconNoleggio, IconRestituzione, IconSanificato } from "./ReceptionIcons";
+import { IconNoleggio, IconRestituzione, IconSanificato, IconVerificato } from "./ReceptionIcons";
 
 const EMPTY_FORM: Device = {
   codice: "",
@@ -372,6 +372,27 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
     }
   }
 
+  async function quickVerify(e: React.MouseEvent, codice: string) {
+    e.stopPropagation();
+    if (!confirm(`Confermi di aver controllato ${codice}? Verrà segnato come disponibile.`)) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/dispositivi/${encodeURIComponent(codice)}/eventi`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tipo: "verifica" }),
+      });
+      const body = await readJson(res);
+      if (!res.ok) throw new Error(body.error || "Operazione non riuscita");
+      setDevices(body.devices);
+      showToast(`${codice} verificato e segnato disponibile`);
+    } catch (err) {
+      showToast(networkErrorMessage(err));
+    } finally {
+      setSaving(false);
+    }
+  }
+
   function quickRent(e: React.MouseEvent, d: Device) {
     e.stopPropagation();
     setDetail({ device: d, isNew: false, autoRent: true });
@@ -521,6 +542,9 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
           <span className="legend-item">
             <span className="legend-swatch"><IconSanificato /></span> Segna sanificato
           </span>
+          <span className="legend-item">
+            <span className="legend-swatch"><IconVerificato /></span> Verifica e rendi disponibile
+          </span>
         </div>
         <div className="admin-table-wrap">
         <table className="admin-table">
@@ -622,6 +646,18 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
                       disabled={saving}
                     >
                       <IconSanificato />
+                    </button>
+                  ) : null}
+                  {!d.archiviato && d.stato === "da_verificare" ? (
+                    <button
+                      className="btn primary icon-only"
+                      type="button"
+                      title="Verificato: segna disponibile"
+                      aria-label={`Segna ${d.codice} come verificato e disponibile`}
+                      onClick={(e) => quickVerify(e, d.codice)}
+                      disabled={saving}
+                    >
+                      <IconVerificato />
                     </button>
                   ) : null}
                 </td>

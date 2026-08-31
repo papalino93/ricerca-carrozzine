@@ -1,7 +1,7 @@
 import "server-only";
 import { createHash, timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { verifySheetCredential } from "./users";
+import { verifySheetCredential, verifySheetCredentialState } from "./users";
 import { readSessionToken, SESSION_COOKIE } from "./session";
 
 const REALM = "Area amministrazione";
@@ -59,8 +59,19 @@ export async function verifyCredentials(username: string, password: string): Pro
   // anche mentre Google Sheets è irraggiungibile.
   const envUser = process.env.ADMIN_USER;
   const envPass = process.env.ADMIN_PASSWORD;
-  if (envUser && envPass && safeEqual(username, envUser) && safeEqual(password, envPass)) {
-    return "ok";
+  if (envUser && envPass && safeEqual(username.toLowerCase(), envUser.toLowerCase())) {
+    try {
+      const sheetState = await verifySheetCredentialState(username, password);
+      // Un account omonimo nel foglio è l'override creato dal recupero: la
+      // vecchia password d'ambiente non deve continuare a funzionare.
+      if (sheetState === "valid") return "ok";
+      if (sheetState === "invalid") return "negato";
+    } catch {
+      // L'account d'ambiente resta la rete di sicurezza se Google non è
+      // raggiungibile e non è possibile controllare l'eventuale override.
+      return safeEqual(password, envPass) ? "ok" : "verifica-fallita";
+    }
+    return safeEqual(password, envPass) ? "ok" : "negato";
   }
 
   const cacheKey = createHash("sha256").update(`${username}:${password}`).digest("hex");

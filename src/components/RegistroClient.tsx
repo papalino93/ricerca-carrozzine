@@ -120,12 +120,12 @@ export function RegistroClient({ noleggi, devices, firmeDrive, initialQuery }: R
         />
         <div className="field-row">
           <div className="field">
-            <label>Dal</label>
-            <input type="date" value={dal} onChange={(e) => setDal(e.target.value)} />
+            <label htmlFor="registro-data-dal">Dal</label>
+            <input id="registro-data-dal" type="date" value={dal} onChange={(e) => setDal(e.target.value)} />
           </div>
           <div className="field">
-            <label>Al</label>
-            <input type="date" value={al} onChange={(e) => setAl(e.target.value)} />
+            <label htmlFor="registro-data-al">Al</label>
+            <input id="registro-data-al" type="date" value={al} onChange={(e) => setAl(e.target.value)} />
           </div>
         </div>
       </div>

@@ -11,6 +11,7 @@ import { CategoriesManager } from "./CategoriesManager";
 import { TariffeManager } from "./TariffeManager";
 import { BackupManager } from "./BackupManager";
 import { Toast } from "./Toast";
+import { LogoutButton } from "./LogoutButton";
 
 interface SettingsClientProps {
   initialSettings: CompanySettings;
@@ -95,9 +96,12 @@ export function SettingsClient({
 
   return (
     <div className="wrap">
-      <header className="page-header">
-        <h1>Impostazioni</h1>
-        <p className="sub">Dati aziendali, categorie ausili, tariffe e utenti autorizzati.</p>
+      <header className="page-header with-action">
+        <div>
+          <h1>Impostazioni</h1>
+          <p className="sub">Dati aziendali, categorie ausili, tariffe e utenti autorizzati.</p>
+        </div>
+        <LogoutButton className="btn" />
       </header>
 
       <div className="chips" style={{ marginBottom: 20 }}>

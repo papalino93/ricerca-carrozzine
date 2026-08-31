@@ -48,6 +48,7 @@ const EVENT_LABEL: Record<HistoryEvent["evento"], string> = {
   noleggio: "Noleggio",
   restituzione: "Restituzione",
   sanificazione: "Sanificazione",
+  verifica: "Verifica completata",
 };
 
 function fmtDate(iso: string): string {

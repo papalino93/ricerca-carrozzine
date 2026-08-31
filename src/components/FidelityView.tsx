@@ -26,7 +26,8 @@ export function FidelityView({ clients, settings, commesseHref, clientiHref }: F
       <header className="page-header">
         <h1>Fidelity</h1>
         <p className="sub">
-          {puntiTotali.toLocaleString("it-IT")} punti assegnati · {conPunti.length} clienti con un saldo punti
+          {puntiTotali.toLocaleString("it-IT")} punti assegnati · {conPunti.length}{" "}
+          {conPunti.length === 1 ? "cliente" : "clienti"} con un saldo punti
         </p>
       </header>
 

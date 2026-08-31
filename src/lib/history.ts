@@ -2,7 +2,7 @@ import "server-only";
 import { appendRow, readSheet, writeSheet } from "./sheets";
 import { normalizeName } from "./clients";
 
-export type HistoryEventType = "noleggio" | "restituzione" | "sanificazione";
+export type HistoryEventType = "noleggio" | "restituzione" | "sanificazione" | "verifica";
 
 export interface HistoryEvent {
   data: string; // ISO yyyy-mm-dd
@@ -37,7 +37,7 @@ const HEADER = [
   "Modello",
 ];
 
-const VALID_EVENTS: HistoryEventType[] = ["noleggio", "restituzione", "sanificazione"];
+const VALID_EVENTS: HistoryEventType[] = ["noleggio", "restituzione", "sanificazione", "verifica"];
 
 function toEvent(row: string[]): HistoryEvent {
   const [data, codice, evento, cliente, telefono, contratto, nota, categoria, marca, modello] = row;

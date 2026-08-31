@@ -97,16 +97,16 @@ export function FascicoliArchivioClient({ fascicoli }: FascicoliArchivioClientPr
 
         <div className="form-grid" style={{ marginTop: 14 }}>
           <div className="field">
-            <label>Creato dal</label>
-            <input type="date" value={dataDa} onChange={(e) => setDataDa(e.target.value)} />
+            <label htmlFor="fascicoli-data-da">Creato dal</label>
+            <input id="fascicoli-data-da" type="date" value={dataDa} onChange={(e) => setDataDa(e.target.value)} />
           </div>
           <div className="field">
-            <label>Al</label>
-            <input type="date" value={dataA} onChange={(e) => setDataA(e.target.value)} />
+            <label htmlFor="fascicoli-data-a">Al</label>
+            <input id="fascicoli-data-a" type="date" value={dataA} onChange={(e) => setDataA(e.target.value)} />
           </div>
           <div className="field" style={{ gridColumn: "1 / -1" }}>
-            <label>Operatore</label>
-            <select value={operatore} onChange={(e) => setOperatore(e.target.value)}>
+            <label htmlFor="fascicoli-operatore">Operatore</label>
+            <select id="fascicoli-operatore" value={operatore} onChange={(e) => setOperatore(e.target.value)}>
               <option value="">Tutti</option>
               {operatoriDisponibili.map((o) => (
                 <option key={o} value={o}>

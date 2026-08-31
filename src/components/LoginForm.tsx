@@ -68,6 +68,9 @@ export function LoginForm({ nextPath }: LoginFormProps) {
       <button className="btn primary login-submit" type="submit" disabled={submitting}>
         {submitting ? "Accesso in corso…" : "Accedi"}
       </button>
+      <a className="login-recovery-link" href="/recupero-accesso">
+        Hai dimenticato username o password?
+      </a>
     </form>
   );
 }

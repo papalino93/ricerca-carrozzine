@@ -5,7 +5,7 @@ import { appendHistoryEvent } from "./history";
 import { normalizeName, upsertClient } from "./clients";
 import { nextNumeroNoleggio } from "./counter";
 import { removeAllDevicePhotos } from "./photos";
-import { STATUS_OPTIONS, type ArchiveStatus, type Device, type DeviceStatus } from "./device-types";
+import { STATUS_LABEL, STATUS_OPTIONS, type ArchiveStatus, type Device, type DeviceStatus } from "./device-types";
 import type { TariffaUnita } from "./tariffe-types";
 import { todayIso } from "./dates";
 
@@ -282,9 +282,9 @@ export async function rentDevice(codice: string, input: RentDeviceInput): Promis
   // due operatori con la pagina aperta da prima vedrebbero entrambi il
   // pulsante "Noleggia" sullo stesso ausilio, e il secondo sovrascriverebbe
   // in silenzio il cliente del primo.
-  if (device.stato === "noleggiato") {
+  if (device.stato !== "disponibile") {
     throw new Error(
-      `${codice} risulta già noleggiato${device.cliente ? ` a ${device.cliente}` : ""}. Ricarica la pagina per vedere la situazione aggiornata.`
+      `${codice} non è disponibile (stato attuale: ${STATUS_LABEL[device.stato]}). Ricarica la pagina prima di noleggiarlo.`
     );
   }
   const dal = input.dal || todayIso();
@@ -406,6 +406,35 @@ export async function sanitizeDevice(codice: string): Promise<Device[]> {
     categoria: devices[idx].categoria,
     marca: devices[idx].marca,
     modello: devices[idx].modello,
+  });
+  await saveAllDevices(devices);
+  return devices;
+}
+
+/** da_verificare → disponibile: controllo fisico completato con esito positivo. */
+export async function verifyDevice(codice: string): Promise<Device[]> {
+  const devices = await listDevices();
+  const { idx, device } = findOrThrow(devices, codice);
+  // Come per le altre azioni di ciclo vita, il controllo è anche sul server:
+  // una scheda rimasta aperta non può riportare disponibile un ausilio il cui
+  // stato nel frattempo è stato cambiato da un'altra postazione.
+  if (device.stato !== "da_verificare") {
+    throw new Error(
+      `${codice} non risulta più da verificare. Ricarica la pagina per vedere la situazione aggiornata.`
+    );
+  }
+  devices[idx] = { ...device, stato: "disponibile" };
+  await appendHistoryEvent({
+    data: todayIso(),
+    codice,
+    evento: "verifica",
+    cliente: null,
+    telefono: null,
+    contratto: null,
+    nota: "Controllo completato: dispositivo disponibile",
+    categoria: device.categoria,
+    marca: device.marca,
+    modello: device.modello,
   });
   await saveAllDevices(devices);
   return devices;

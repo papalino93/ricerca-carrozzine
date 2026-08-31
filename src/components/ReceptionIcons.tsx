@@ -166,6 +166,17 @@ export function IconSanificato() {
   );
 }
 
+/** Check dentro un cerchio: controllo/verifica conclusa, distinto dal check
+ * semplice usato per la sanificazione. */
+export function IconVerificato() {
+  return (
+    <svg viewBox="0 0 24 24" {...SHARED}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M8 12.2l2.6 2.7L16.5 9" />
+    </svg>
+  );
+}
+
 export function IconDocumento() {
   return (
     <svg viewBox="0 0 24 24" {...SHARED}>

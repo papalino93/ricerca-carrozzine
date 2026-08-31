@@ -243,7 +243,7 @@ export async function createClient(input: {
     fidelity,
     categoria: null,
     punti: 0,
-    codiceFiscale: input.codiceFiscale || null,
+    codiceFiscale: input.codiceFiscale?.trim().toUpperCase() || null,
   };
   clients.push(client);
   await writeSheet(TAB, [HEADER, ...clients.map(toRow)]);

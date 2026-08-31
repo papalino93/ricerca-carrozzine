@@ -32,7 +32,7 @@ const MAX_GALLERY_PHOTOS = 8;
 interface HistoryEvent {
   data: string;
   codice: string;
-  evento: "noleggio" | "restituzione" | "sanificazione";
+  evento: "noleggio" | "restituzione" | "sanificazione" | "verifica";
   cliente: string | null;
   telefono: string | null;
   contratto: string | null;
@@ -43,6 +43,7 @@ const EVENT_LABEL: Record<HistoryEvent["evento"], string> = {
   noleggio: "Noleggio",
   restituzione: "Restituzione",
   sanificazione: "Sanificazione",
+  verifica: "Verifica completata",
 };
 
 function fmtDate(iso: string): string {
@@ -372,8 +373,13 @@ export function DeviceDetailModal({
     }
   }
 
-  async function handleLifecycle(tipo: "restituzione" | "sanificazione") {
+  async function handleLifecycle(tipo: "restituzione" | "sanificazione" | "verifica") {
     if (tipo === "restituzione" && !confirm(`Segnare ${current.codice} come restituito?`)) return;
+    if (
+      tipo === "verifica" &&
+      !confirm(`Confermi di aver controllato ${current.codice}? Verrà segnato come disponibile.`)
+    )
+      return;
     // Il ritorno svuota cliente/telefono/contratto sul dispositivo: per il
     // verbale di restituzione servono i dati di PRIMA della restituzione.
     const preReturnDevice = current;
@@ -394,7 +400,13 @@ export function DeviceDetailModal({
           : ["stato", "sanificazione"]
       );
       loadHistory();
-      showToast(tipo === "restituzione" ? "Segnato come restituito" : "Segnato come sanificato");
+      showToast(
+        tipo === "restituzione"
+          ? "Segnato come restituito"
+          : tipo === "sanificazione"
+            ? "Segnato come sanificato"
+            : "Verificato e segnato disponibile"
+      );
       if (tipo === "restituzione") {
         setDocDevice(preReturnDevice);
         setDocForcedTipo("restituzione");
@@ -576,6 +588,10 @@ export function DeviceDetailModal({
     ) : current.stato === "da_pulire" ? (
       <button className="btn primary" type="button" onClick={() => handleLifecycle("sanificazione")} disabled={saving}>
         Segna sanificato
+      </button>
+    ) : current.stato === "da_verificare" ? (
+      <button className="btn primary" type="button" onClick={() => handleLifecycle("verifica")} disabled={saving}>
+        Verificato: rendi disponibile
       </button>
     ) : null
   );
