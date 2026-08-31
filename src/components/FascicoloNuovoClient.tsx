@@ -6,6 +6,7 @@ import type { ClientRecord } from "@/lib/clients";
 import type { FascicoloRecord } from "@/lib/fascicoli-types";
 import { matchesQuery } from "@/lib/search-match";
 import { networkErrorMessage, readJson } from "@/lib/fetch-json";
+import { IconCerca } from "./ReceptionIcons";
 
 interface FascicoloNuovoClientProps {
   clients: ClientRecord[];
@@ -164,7 +165,7 @@ export function FascicoloNuovoClient({ clients, fascicoli, initialClienteNome }:
 
       {!creatingNew ? (
         <div className="panel">
-          <h2>🔎 Cerca cliente</h2>
+          <h2><span className="btn-icon"><IconCerca /></span> Cerca cliente</h2>
           <input
             className="searchbox"
             placeholder="Nome, cognome, codice fiscale o telefono…"

@@ -11,6 +11,7 @@ import { StatTiles } from "./StatTiles";
 import { Toast } from "./Toast";
 import { useAutoRefresh } from "@/lib/use-auto-refresh";
 import { matchesQuery } from "@/lib/search-match";
+import { IconNoleggio, IconRestituzione, IconSanificato } from "./ReceptionIcons";
 
 const EMPTY_FORM: Device = {
   codice: "",
@@ -512,13 +513,13 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
         <div className="action-legend">
           <span className="legend-label">Legenda delle icone:</span>
           <span className="legend-item">
-            <span className="legend-swatch">＋</span> Noleggia
+            <span className="legend-swatch"><IconNoleggio /></span> Noleggia
           </span>
           <span className="legend-item">
-            <span className="legend-swatch">↩</span> Segna restituito
+            <span className="legend-swatch"><IconRestituzione /></span> Segna restituito
           </span>
           <span className="legend-item">
-            <span className="legend-swatch">✓</span> Segna sanificato
+            <span className="legend-swatch"><IconSanificato /></span> Segna sanificato
           </span>
         </div>
         <div className="admin-table-wrap">
@@ -596,7 +597,7 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
                       aria-label="Noleggia"
                       onClick={(e) => quickRent(e, d)}
                     >
-                      ＋
+                      <IconNoleggio />
                     </button>
                   ) : null}
                   {!d.archiviato && d.stato === "noleggiato" ? (
@@ -608,7 +609,7 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
                       onClick={(e) => quickReturn(e, d)}
                       disabled={saving}
                     >
-                      ↩
+                      <IconRestituzione />
                     </button>
                   ) : null}
                   {!d.archiviato && d.stato === "da_pulire" ? (
@@ -620,7 +621,7 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
                       onClick={(e) => quickSanitize(e, d.codice)}
                       disabled={saving}
                     >
-                      ✓
+                      <IconSanificato />
                     </button>
                   ) : null}
                 </td>

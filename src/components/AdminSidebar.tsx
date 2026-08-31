@@ -4,12 +4,14 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  IconChiudi,
   IconClienti,
   IconCommessa,
   IconFascicoli,
   IconFidelity,
   IconImpostazioni,
   IconMagazzino,
+  IconMenu,
   IconNoleggio,
 } from "./ReceptionIcons";
 
@@ -50,7 +52,7 @@ export function AdminSidebar() {
           aria-expanded={open}
           onClick={() => setOpen((o) => !o)}
         >
-          {open ? "×" : "☰"}
+          {open ? <IconChiudi /> : <IconMenu />}
         </button>
       </div>
       <div className={`admin-sidebar-menu ${open ? "open" : ""}`}>

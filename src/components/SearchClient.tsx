@@ -12,6 +12,7 @@ import type { Tariffa } from "@/lib/tariffe-types";
 import { readJson } from "@/lib/fetch-json";
 import { useAutoRefresh } from "@/lib/use-auto-refresh";
 import { matchesQuery } from "@/lib/search-match";
+import { IconDocumento, IconNoleggio, IconRestituzione, IconSanificato } from "./ReceptionIcons";
 
 // Deve combaciare con le etichette del righello (35/40/45/50/55, distanziate
 // in modo uniforme): usare un altro WMIN qui sposta i punti rispetto alle
@@ -478,23 +479,23 @@ export function SearchClient({
         </>
       ) : null}
 
-      {/* Spiega le icone-azione delle card qui sotto: senza, "＋"/"📄" da
-          soli (senza il testo che avevano prima, e senza il tooltip al
-          passaggio del mouse che non esiste su telefono) non sono chiari
-          a chi non li ha ancora imparati a memoria. */}
+      {/* Spiega le icone-azione delle card qui sotto: senza (senza il testo
+          che avevano prima, e senza il tooltip al passaggio del mouse che
+          non esiste su telefono) non sono chiare a chi non le ha ancora
+          imparate a memoria. */}
       <div className="action-legend">
         <span className="legend-label">Legenda delle icone:</span>
         <span className="legend-item">
-          <span className="legend-swatch">＋</span> Noleggia
+          <span className="legend-swatch"><IconNoleggio /></span> Noleggia
         </span>
         <span className="legend-item">
-          <span className="legend-swatch">↩</span> Segna restituito
+          <span className="legend-swatch"><IconRestituzione /></span> Segna restituito
         </span>
         <span className="legend-item">
-          <span className="legend-swatch">✓</span> Segna sanificato
+          <span className="legend-swatch"><IconSanificato /></span> Segna sanificato
         </span>
         <span className="legend-item">
-          <span className="legend-swatch">📄</span> Genera documento
+          <span className="legend-swatch"><IconDocumento /></span> Genera documento
         </span>
       </div>
 

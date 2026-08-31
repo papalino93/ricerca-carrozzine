@@ -4,6 +4,7 @@ import { useState } from "react";
 import { STATUS_LABEL, type Device } from "@/lib/device-types";
 import { DocumentPanel } from "./DocumentPanel";
 import { DevicePublicViewModal } from "./DevicePublicViewModal";
+import { IconDocumento, IconNoleggio, IconRestituzione, IconSanificato } from "./ReceptionIcons";
 
 function fmtDate(iso: string | null): string {
   if (!iso) return "";
@@ -104,7 +105,7 @@ export function DeviceCard({
             aria-label="Noleggia"
             onClick={onRent}
           >
-            ＋
+            <IconNoleggio />
           </button>
         ) : null}
         {onReturn && d.stato === "noleggiato" ? (
@@ -116,7 +117,7 @@ export function DeviceCard({
             onClick={onReturn}
             disabled={busy}
           >
-            ↩
+            <IconRestituzione />
           </button>
         ) : null}
         {onSanitize && d.stato === "da_pulire" ? (
@@ -128,7 +129,7 @@ export function DeviceCard({
             onClick={onSanitize}
             disabled={busy}
           >
-            ✓
+            <IconSanificato />
           </button>
         ) : null}
         <button
@@ -138,7 +139,7 @@ export function DeviceCard({
           aria-label="Genera documento"
           onClick={() => setShowDoc(true)}
         >
-          📄
+          <IconDocumento />
         </button>
       </div>
       {showDoc ? <DocumentPanel device={d} onClose={() => setShowDoc(false)} /> : null}
