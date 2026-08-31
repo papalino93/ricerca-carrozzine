@@ -14,6 +14,9 @@ interface CommesseClientProps {
    * riga di "Da tenere d'occhio" nella home): precompila la ricerca, così
    * il clic porta davvero sulla scheda invece che su un elenco intero. */
   initialQuery?: string;
+  /** Anagrafica clienti, solo nome e telefono: suggerisce i nomi già noti nel
+   * campo Cliente e precompila il telefono se corrisponde esattamente. */
+  clienti: { nome: string; telefono: string | null }[];
 }
 
 const STATUS_PILL: Record<CommessaRecord["stato"], string> = {
@@ -83,7 +86,7 @@ function fmtEuro(n: number | null): string {
   return `${n.toFixed(2).replace(".", ",")} €`;
 }
 
-export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery }: CommesseClientProps) {
+export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery, clienti }: CommesseClientProps) {
   const [commesse, setCommesse] = useState(initialCommesse);
   const [query, setQuery] = useState(initialQuery ?? "");
   // Una scheda ritirata è chiusa: il cliente ha portato via la merce e non
@@ -167,7 +170,10 @@ export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery }: 
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.cliente.trim()) return;
+    if (!form.cliente.trim() || !(form.telefono.trim() || form.cellulare.trim())) {
+      showToast("Nome cliente e almeno un numero (telefono o cellulare) sono obbligatori");
+      return;
+    }
     // Stesso controllo del riquadro di modifica: un importo digitato male
     // diventerebbe altrimenti un campo vuoto, e al ritiro la scheda non
     // genererebbe punti fedeltà senza che nessuno se ne accorga.
@@ -352,10 +358,25 @@ export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery }: 
             <div className="field">
               <label>Cliente</label>
               <input
+                list="admin-clienti-list"
                 value={form.cliente}
-                onChange={(e) => setForm({ ...form, cliente: e.target.value })}
+                onChange={(e) => {
+                  const nome = e.target.value;
+                  // Se il nome digitato corrisponde esattamente a un cliente
+                  // già in anagrafica e il telefono è ancora vuoto, lo
+                  // precompila: senza sovrascrivere un numero già scritto.
+                  const match = !form.telefono
+                    ? clienti.find((c) => c.nome.trim().toLowerCase() === nome.trim().toLowerCase())
+                    : null;
+                  setForm({ ...form, cliente: nome, telefono: match?.telefono || form.telefono });
+                }}
                 required
               />
+              <datalist id="admin-clienti-list">
+                {clienti.map((c) => (
+                  <option key={c.nome} value={c.nome} />
+                ))}
+              </datalist>
             </div>
             <div className="field">
               <label>Indirizzo</label>

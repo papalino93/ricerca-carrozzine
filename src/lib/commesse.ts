@@ -2,7 +2,7 @@ import "server-only";
 import { parseNumero } from "./importo";
 import { readSheet, writeSheet } from "./sheets";
 import { nextNumeroCommessa } from "./counter";
-import { adjustClientPunti, normalizeName } from "./clients";
+import { adjustClientPunti, normalizeName, upsertClient } from "./clients";
 import { getSettings } from "./settings";
 import type { CommessaRecord } from "./commesse-types";
 
@@ -156,6 +156,21 @@ export async function createCommessa(
   const commesse = await readCommesse();
   commesse.push(commessa);
   await writeSheet(TAB, [HEADER, ...commesse.map(toRow)]);
+  try {
+    // Registra subito il cliente in anagrafica (nome + telefono), invece di
+    // aspettare il ritiro con saldo (vedi adjustClientPunti più sotto): così
+    // compare in Clienti dal momento in cui si prende l'ordine, non da
+    // quando lo va a ritirare. Best-effort, come rentDevice: un problema qui
+    // non deve impedire la creazione della commessa già andata a buon fine.
+    await upsertClient({
+      nome: commessa.cliente,
+      telefono: commessa.telefono || commessa.cellulare,
+      contratto: null,
+      dal: null,
+    });
+  } catch {
+    // best-effort
+  }
   return commessa;
 }
 
