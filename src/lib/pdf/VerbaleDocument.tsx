@@ -342,7 +342,7 @@ export function VerbaleDocument({
               >
                 <Text style={styles.cellLabel}>Tariffa applicata</Text>
                 <Text style={styles.cellValue}>
-                  {fmtEuro(tariffa.importo)} al {tariffa.unita === "settimana" ? "settimana" : "giorno"}
+                  {`${fmtEuro(tariffa.importo)} al ${tariffa.unita === "settimana" ? "settimana" : "giorno"}`}
                 </Text>
               </View>
               {tariffa.costoConsegna != null ? (
