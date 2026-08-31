@@ -22,7 +22,7 @@ function fmt(iso: string): string {
 }
 
 export function BuildInfo() {
-  const version = process.env.NEXT_PUBLIC_APP_VERSION ?? "1.0.3";
+  const version = process.env.NEXT_PUBLIC_APP_VERSION ?? "1.0.4";
   const sha = process.env.NEXT_PUBLIC_BUILD_SHA;
   const time = fmt(process.env.NEXT_PUBLIC_BUILD_TIME ?? "");
   return (

@@ -24,6 +24,8 @@ interface ClientsClientProps {
   initialQuery?: string;
 }
 
+const CLIENTS_PAGE_SIZE = 50;
+
 function fmtDate(iso: string): string {
   const [y, m, d] = (iso.includes("T") ? iso.slice(0, 10) : iso).split("-");
   if (!y || !m || !d) return iso;
@@ -46,6 +48,7 @@ export function ClientsClient({
   const [deleting, setDeleting] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(CLIENTS_PAGE_SIZE);
   const [newClientForm, setNewClientForm] = useState(emptyNewClientForm);
   const [savingNewClient, setSavingNewClient] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -131,8 +134,23 @@ export function ClientsClient({
     );
   }, [sorted, query]);
 
+  // La ricerca continua a lavorare sull'intera anagrafica; limitiamo solo il
+  // numero di righe costruite nel DOM, che con centinaia di clienti rallentava
+  // soprattutto telefoni e tablet.
+  const visibleClients = filtered.slice(0, visibleCount);
+
+  const currentDevicesByClient = useMemo(() => {
+    const byClient = new Map<string, Device>();
+    for (const device of devices) {
+      if (device.stato === "noleggiato" && device.cliente) {
+        byClient.set(device.cliente.toLowerCase(), device);
+      }
+    }
+    return byClient;
+  }, [devices]);
+
   function currentDeviceFor(nome: string): Device | null {
-    return devices.find((d) => d.stato === "noleggiato" && (d.cliente ?? "").toLowerCase() === nome.toLowerCase()) ?? null;
+    return currentDevicesByClient.get(nome.toLowerCase()) ?? null;
   }
 
   async function handleDelete(e: React.MouseEvent, nome: string) {
@@ -301,7 +319,7 @@ export function ClientsClient({
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((c) => {
+                {visibleClients.map((c) => {
                   const current = currentDeviceFor(c.nome);
                   return (
                     <tr key={c.nome} className="clickable-row">
@@ -335,6 +353,20 @@ export function ClientsClient({
               </tbody>
             </table>
           </div>
+          {filtered.length > visibleCount ? (
+            <div className="card-actions" style={{ marginTop: 16, alignItems: "center" }}>
+              <button
+                className="btn"
+                type="button"
+                onClick={() => setVisibleCount((count) => count + CLIENTS_PAGE_SIZE)}
+              >
+                Mostra altri clienti
+              </button>
+              <span className="hint" style={{ margin: 0 }}>
+                Visualizzati {visibleClients.length} di {filtered.length}
+              </span>
+            </div>
+          ) : null}
         </div>
       )}
       <Toast message={toast} />

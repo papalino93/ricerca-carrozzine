@@ -25,6 +25,7 @@ const RULER_TICKS = [35, 40, 45, 50, 55];
 // aggiungono altre categorie (rollatori, stampelle...) il filtro si nasconde
 // da solo quando non è quella la categoria selezionata.
 const WIDTH_RELEVANT_CATEGORY = "Carrozzine";
+const DEVICES_PAGE_SIZE = 24;
 
 function clamp(v: number, a: number, b: number): number {
   return Math.max(a, Math.min(b, v));
@@ -75,6 +76,7 @@ export function SearchClient({
   );
   const [query, setQuery] = useState(initialQuery ?? "");
   const [sortBy, setSortBy] = useState<SortKey>("larghezza");
+  const [visibleCount, setVisibleCount] = useState(DEVICES_PAGE_SIZE);
   // Vivono qui, non nella singola DeviceCard: appena il noleggio viene
   // confermato il dispositivo passa a "noleggiato" e sparisce dall'elenco
   // filtrato (che per default mostra solo Disponibile/Da pulire) — se il
@@ -233,6 +235,11 @@ export function SearchClient({
     }
     return list;
   }, [devices, category, subcategory, statuses, query, width, widthTolerance, sortBy]);
+
+  // Filtri, conteggi e righello continuano a considerare tutti gli ausili;
+  // viene costruita soltanto una prima tranche di card, così l'apertura non
+  // deve montare decine o centinaia di componenti in una volta sola.
+  const visibleDevices = filtered.slice(0, visibleCount);
 
   function toggleStatus(key: string) {
     setStatuses((prev) => {
@@ -526,7 +533,7 @@ export function SearchClient({
           Prova ad allargare i filtri di stato o categoria.
         </div>
       ) : (
-        filtered.map((d) => (
+        visibleDevices.map((d) => (
           <DeviceCard
             key={d.codice}
             device={d}
@@ -540,6 +547,21 @@ export function SearchClient({
           />
         ))
       )}
+
+      {filtered.length > visibleCount ? (
+        <div className="panel" style={{ textAlign: "center" }}>
+          <button
+            className="btn"
+            type="button"
+            onClick={() => setVisibleCount((count) => count + DEVICES_PAGE_SIZE)}
+          >
+            Mostra altri ausili
+          </button>
+          <p className="hint" style={{ margin: "8px 0 0" }}>
+            Visualizzati {visibleDevices.length} di {filtered.length}
+          </p>
+        </div>
+      ) : null}
 
       {rentingDevice ? (
         <QuickRentModal
