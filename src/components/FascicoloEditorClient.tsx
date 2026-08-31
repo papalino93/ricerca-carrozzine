@@ -100,6 +100,11 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
   const [cliente, setCliente] = useState(initialCliente);
   const [tab, setTab] = useState<SezioneFascicolo>("anagrafica");
   const [saveState, setSaveState] = useState<SaveState>("idle");
+  // Disabilita i pulsanti della savebar mentre una di queste azioni è in
+  // corso: senza, un doppio click (o doppio tap su tablet) su "Genera
+  // fascicolo e scarica PDF" incrementava la versione due volte e caricava
+  // due PDF distinti su Drive per una singola azione dell'operatore.
+  const [azioneInCorso, setAzioneInCorso] = useState<null | "salva" | "anteprima" | "genera">(null);
   const [dirty, setDirty] = useState(false);
   const [clienteDirty, setClienteDirty] = useState(false);
   const [clienteSaving, setClienteSaving] = useState(false);
@@ -249,8 +254,14 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
   }
 
   async function handleSalva() {
-    if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    await persist();
+    if (azioneInCorso) return;
+    setAzioneInCorso("salva");
+    try {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+      await persist();
+    } finally {
+      setAzioneInCorso(null);
+    }
   }
 
   async function assicuraSalvato(): Promise<boolean> {
@@ -260,9 +271,15 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
   }
 
   async function handleAnteprima() {
-    const ok = await assicuraSalvato();
-    if (!ok) return;
-    window.open(`/api/fascicoli/${fascicolo.numero}/documento?inline=1`, "_blank");
+    if (azioneInCorso) return;
+    setAzioneInCorso("anteprima");
+    try {
+      const ok = await assicuraSalvato();
+      if (!ok) return;
+      window.open(`/api/fascicoli/${fascicolo.numero}/documento?inline=1`, "_blank");
+    } finally {
+      setAzioneInCorso(null);
+    }
   }
 
   // Finalizza (incrementa la versione, archivia su Drive se configurato) e
@@ -271,10 +288,16 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
   // cosa lato dati — unificati per non lasciar credere che siano due azioni
   // diverse.
   async function handleGeneraEScarica() {
-    const ok = await assicuraSalvato();
-    if (!ok) return;
-    window.open(`/api/fascicoli/${fascicolo.numero}/documento?finalizza=1`, "_blank");
-    showToast("PDF generato");
+    if (azioneInCorso) return;
+    setAzioneInCorso("genera");
+    try {
+      const ok = await assicuraSalvato();
+      if (!ok) return;
+      window.open(`/api/fascicoli/${fascicolo.numero}/documento?finalizza=1`, "_blank");
+      showToast("PDF generato");
+    } finally {
+      setAzioneInCorso(null);
+    }
   }
 
   async function handleSalvaAnagrafica() {
@@ -373,14 +396,19 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
 
       <div className="fascicolo-savebar">
         <div className="card-actions" style={{ margin: 0 }}>
-          <button type="button" className="btn" onClick={handleSalva}>
+          <button type="button" className="btn" onClick={handleSalva} disabled={Boolean(azioneInCorso)}>
             💾 Salva
           </button>
-          <button type="button" className="btn" onClick={handleAnteprima}>
+          <button type="button" className="btn" onClick={handleAnteprima} disabled={Boolean(azioneInCorso)}>
             👁️ Anteprima / Stampa
           </button>
-          <button type="button" className="btn primary" onClick={handleGeneraEScarica}>
-            📥 Genera fascicolo e scarica PDF
+          <button
+            type="button"
+            className="btn primary"
+            onClick={handleGeneraEScarica}
+            disabled={Boolean(azioneInCorso)}
+          >
+            {azioneInCorso === "genera" ? "Generazione…" : "📥 Genera fascicolo e scarica PDF"}
           </button>
         </div>
       </div>
@@ -1107,7 +1135,7 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
           volta — stesso comportamento libero di "Anteprima / Stampa". */}
       {fascicolo.versione > 1 ? (
         <div className="card-actions" style={{ justifyContent: "flex-end", marginTop: 20 }}>
-          <button type="button" className="btn" onClick={handleAnteprima}>
+          <button type="button" className="btn" onClick={handleAnteprima} disabled={Boolean(azioneInCorso)}>
             🖨️ Ristampa PDF
           </button>
         </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { networkErrorMessage, readJson } from "@/lib/fetch-json";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { fmtTariffa, type Tariffa, type TariffaUnita } from "@/lib/tariffe-types";
 
 interface SottocategoriaEntry {
@@ -32,14 +32,23 @@ export function SottocategorieManager({ categoria }: { categoria: string }) {
   // Nome originale in modifica: null quando il form serve ad aggiungerne una nuova.
   const [editing, setEditing] = useState<string | null>(null);
 
+  // load() è richiamata sia al mount sia dopo ogni handleSubmit/handleRemove:
+  // senza il numero di richiesta qui sotto, due modifiche ravvicinate
+  // potevano far "sparire" temporaneamente l'ultima se le risposte
+  // arrivavano in ordine invertito rispetto alle chiamate.
+  const requestRef = useRef(0);
+
   function load() {
+    const requestId = ++requestRef.current;
     fetch(`/api/sottocategorie?categoria=${encodeURIComponent(categoria)}`)
       .then(async (res) => {
         const body = await readJson(res);
         if (!res.ok) throw new Error(body.error || "Impossibile leggere le sottocategorie");
-        setItems(body.sottocategorie);
+        if (requestId === requestRef.current) setItems(body.sottocategorie);
       })
-      .catch((err) => setError(networkErrorMessage(err)));
+      .catch((err) => {
+        if (requestId === requestRef.current) setError(networkErrorMessage(err));
+      });
   }
 
   useEffect(() => {

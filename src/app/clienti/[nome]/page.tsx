@@ -40,6 +40,11 @@ export default async function ClienteDetailPage({ params }: { params: Promise<{ 
     <>
       <FrontBar logoUrl={settings.logoUrl} />
       <ClientDetailClient
+        // Forza il rimontaggio quando si passa da un cliente all'altro:
+        // senza, una navigazione lato client fra due URL di questa stessa
+        // pagina riuserebbe l'istanza esistente, con lo stato interno
+        // (useState(initialClient)) ancora legato al cliente precedente.
+        key={client.nome}
         initialClient={client}
         history={clientHistory}
         currentDevice={currentDevice}

@@ -169,17 +169,27 @@ export function DeviceDetailModal({
     toastTimer.current = setTimeout(() => setToast(null), 2400);
   }
 
+  // loadHistory/loadGallery sono richiamate sia al montaggio sia dopo ogni
+  // azione (noleggio, restituzione, sanificazione): "cancelled" protegge
+  // solo dallo smontaggio, non da due chiamate concorrenti in ordine
+  // invertito — senza il numero di richiesta qui sotto, una risposta lenta
+  // del caricamento al mount poteva sovrascrivere con dati vecchi lo
+  // storico appena aggiornato da un'azione successiva.
+  const historyRequestRef = useRef(0);
+  const galleryRequestRef = useRef(0);
+
   function loadHistory() {
     if (isNew) return;
+    const requestId = ++historyRequestRef.current;
     let cancelled = false;
     fetch(`/api/dispositivi/${encodeURIComponent(device.codice)}/eventi`)
       .then(async (res) => {
         const body = await readJson(res);
         if (!res.ok) throw new Error(body.error || "Impossibile leggere lo storico");
-        if (!cancelled) setEvents(body.events);
+        if (!cancelled && requestId === historyRequestRef.current) setEvents(body.events);
       })
       .catch(() => {
-        if (!cancelled) setEvents([]);
+        if (!cancelled && requestId === historyRequestRef.current) setEvents([]);
       });
     return () => {
       cancelled = true;
@@ -188,15 +198,16 @@ export function DeviceDetailModal({
 
   function loadGallery() {
     if (isNew) return;
+    const requestId = ++galleryRequestRef.current;
     let cancelled = false;
     fetch(`/api/dispositivi/${encodeURIComponent(device.codice)}/galleria`)
       .then(async (res) => {
         const body = await readJson(res);
         if (!res.ok) throw new Error(body.error || "Impossibile leggere la galleria");
-        if (!cancelled) setGallery(body.photos);
+        if (!cancelled && requestId === galleryRequestRef.current) setGallery(body.photos);
       })
       .catch(() => {
-        if (!cancelled) setGallery([]);
+        if (!cancelled && requestId === galleryRequestRef.current) setGallery([]);
       });
     return () => {
       cancelled = true;
@@ -295,8 +306,12 @@ export function DeviceDetailModal({
     current.categoria,
     current.sottocategoria
   );
-  const rentPrezzoNum = Number(rentPrezzo.replace(",", "."));
-  const rentCostoConsegnaNum = rentCostoConsegna ? Number(rentCostoConsegna.replace(",", ".")) : null;
+  // parseNumero, non Number(x.replace(",", ".")): un importo ≥ 1000€
+  // scritto con il punto delle migliaia (es. "1.200,00") diventerebbe
+  // altrimenti NaN, e il noleggio verrebbe confermato senza alcuna
+  // tariffa registrata, senza che l'operatore se ne accorga.
+  const rentPrezzoNum = parseNumero(rentPrezzo) ?? NaN;
+  const rentCostoConsegnaNum = parseNumero(rentCostoConsegna);
   const rentTotaleStimato =
     tariffa && rentAlPrevisto && rentPrezzoNum > 0
       ? calcolaTotale(rentPrezzoNum, tariffa.unita, giorniTra(rentDal, rentAlPrevisto))
