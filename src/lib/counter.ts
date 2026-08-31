@@ -42,8 +42,20 @@ async function nextCounter(key: string, start: number): Promise<string> {
   const rows = await readSheet(TAB);
   const body = rows.slice(1).filter((row) => row.length > 0 && row[0]);
   const idx = body.findIndex((row) => row[0] === key);
-  const current = idx >= 0 ? Number(body[idx][1]) : NaN;
-  const base = Number.isFinite(current) && current >= start - 1 ? current : start - 1;
+  let base = start - 1;
+  if (idx >= 0) {
+    const current = Number(body[idx][1]);
+    // Un valore non numerico (refuso digitato a mano nel foglio) NON deve
+    // far ripartire il contatore da zero in silenzio: riassegnerebbe un
+    // numero già usato da un altro noleggio/commessa/fascicolo/tessera.
+    // Meglio bloccarsi rumorosamente e farlo correggere a mano.
+    if (!Number.isFinite(current)) {
+      throw new Error(
+        `Il contatore "${key}" nel foglio Contatori ha un valore non numerico ("${body[idx][1]}"): correggilo a mano prima di continuare.`
+      );
+    }
+    base = Math.max(current, start - 1);
+  }
   const next = base + 1;
   const nextRow = [key, String(next)];
   if (idx >= 0) body[idx] = nextRow;
