@@ -25,5 +25,10 @@ export default async function FascicoloPage({ params }: { params: Promise<{ nume
     clients.find((c) => normalizeName(c.nome) === normalizeName(fascicolo.clienteNome)) ??
     EMPTY_CLIENT_TEMPLATE(fascicolo.clienteNome, fascicolo.clienteCF);
 
-  return <FascicoloEditorClient initialFascicolo={fascicolo} initialCliente={cliente} />;
+  return (
+    // key: forza il rimontaggio passando da un fascicolo all'altro, così
+    // lo stato interno (useState(initialFascicolo)) non resta agganciato
+    // al fascicolo precedente se la navigazione avviene lato client.
+    <FascicoloEditorClient key={fascicolo.numero} initialFascicolo={fascicolo} initialCliente={cliente} />
+  );
 }

@@ -2,6 +2,7 @@
 
 import { networkErrorMessage, readJson } from "@/lib/fetch-json";
 import { useState } from "react";
+import { parseNumero } from "@/lib/importo";
 import { fmtEuro, fmtTariffa, type Tariffa, type TariffaUnita } from "@/lib/tariffe-types";
 
 interface TariffeManagerProps {
@@ -49,6 +50,17 @@ export function TariffeManager({ initialTariffe, categories }: TariffeManagerPro
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
+    // parseNumero, non Number(x.replace(",", ".")): un importo ≥ 1000€
+    // scritto con il punto delle migliaia (es. "1.500,00") diventerebbe
+    // altrimenti NaN, respinto dal server con un messaggio fuorviante
+    // ("l'importo deve essere maggiore di zero") che non spiega il vero
+    // problema di formato.
+    const importo = parseNumero(form.importo);
+    const costoConsegna = parseNumero(form.costoConsegna);
+    if (importo == null) {
+      setError("Importo non valido: usa la virgola per i decimali (es. 12,50)");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -58,10 +70,10 @@ export function TariffeManager({ initialTariffe, categories }: TariffeManagerPro
         body: JSON.stringify({
           categoria: form.categoria,
           sottocategoria: form.sottocategoria || null,
-          importo: Number(form.importo.replace(",", ".")),
+          importo,
           unita: form.unita,
           nota: form.nota || null,
-          costoConsegna: form.costoConsegna ? Number(form.costoConsegna.replace(",", ".")) : null,
+          costoConsegna,
         }),
       });
       const body = await readJson(res);

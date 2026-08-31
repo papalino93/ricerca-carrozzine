@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { networkErrorMessage, readJson } from "@/lib/fetch-json";
 import { addDaysIso, todayIso } from "@/lib/dates";
+import { parseNumero } from "@/lib/importo";
 import type { Device } from "@/lib/device-types";
 import {
   calcolaTotale,
@@ -57,8 +58,12 @@ export function QuickRentModal({ device, tariffe, onClose, onRented }: QuickRent
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const prezzoNum = Number(prezzo.replace(",", "."));
-  const costoConsegnaNum = costoConsegna ? Number(costoConsegna.replace(",", ".")) : null;
+  // parseNumero, non Number(x.replace(",", ".")): un importo ≥ 1000€
+  // scritto con il punto delle migliaia (es. "1.200,00") diventerebbe
+  // altrimenti NaN, e il noleggio verrebbe confermato senza alcuna
+  // tariffa registrata, senza che l'operatore se ne accorga.
+  const prezzoNum = parseNumero(prezzo) ?? NaN;
+  const costoConsegnaNum = parseNumero(costoConsegna);
   const totaleStimato =
     tariffa && alPrevisto && prezzoNum > 0
       ? calcolaTotale(prezzoNum, tariffa.unita, giorniTra(dal, alPrevisto))
