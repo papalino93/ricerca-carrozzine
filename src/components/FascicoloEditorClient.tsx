@@ -16,6 +16,7 @@ import {
   type SezioneFascicolo,
 } from "@/lib/fascicoli-types";
 import { networkErrorMessage, readJson } from "@/lib/fetch-json";
+import { IconAnteprima, IconSalva, IconScarica, IconStampa } from "./ReceptionIcons";
 import { Toast } from "./Toast";
 
 interface FascicoloEditorClientProps {
@@ -362,9 +363,9 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
   const nextSezione = tabIndex >= 0 && tabIndex < SEZIONI_FASCICOLO.length - 1 ? SEZIONI_FASCICOLO[tabIndex + 1] : null;
   const saveLabel: Record<SaveState, { text: string; className: string }> = {
     idle: { text: "", className: "" },
-    saving: { text: "⏳ Salvataggio…", className: "saving" },
-    saved: { text: "🟢 Salvato", className: "saved" },
-    error: { text: "🔴 Errore salvataggio", className: "error" },
+    saving: { text: "Salvataggio…", className: "saving" },
+    saved: { text: "Salvato", className: "saved" },
+    error: { text: "Errore salvataggio", className: "error" },
   };
 
   return (
@@ -389,7 +390,10 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
         </div>
         <div className="fascicolo-savestate-wrap">
           {saveLabel[saveState].text ? (
-            <span className={`fascicolo-savestate ${saveLabel[saveState].className}`}>{saveLabel[saveState].text}</span>
+            <span className={`fascicolo-savestate ${saveLabel[saveState].className}`}>
+              <span className="status-dot" />
+              {saveLabel[saveState].text}
+            </span>
           ) : null}
         </div>
       </header>
@@ -397,10 +401,10 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
       <div className="fascicolo-savebar">
         <div className="card-actions" style={{ margin: 0 }}>
           <button type="button" className="btn" onClick={handleSalva} disabled={Boolean(azioneInCorso)}>
-            💾 Salva
+            <span className="btn-icon"><IconSalva /></span> Salva
           </button>
           <button type="button" className="btn" onClick={handleAnteprima} disabled={Boolean(azioneInCorso)}>
-            👁️ Anteprima / Stampa
+            <span className="btn-icon"><IconAnteprima /></span> Anteprima / Stampa
           </button>
           <button
             type="button"
@@ -408,7 +412,13 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
             onClick={handleGeneraEScarica}
             disabled={Boolean(azioneInCorso)}
           >
-            {azioneInCorso === "genera" ? "Generazione…" : "📥 Genera fascicolo e scarica PDF"}
+            {azioneInCorso === "genera" ? (
+              "Generazione…"
+            ) : (
+              <>
+                <span className="btn-icon"><IconScarica /></span> Genera fascicolo e scarica PDF
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -1029,7 +1039,7 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
             />
             <div className="card-actions">
               <a className="btn" href={`/api/fascicoli/${fascicolo.numero}/processo-produttivo`} target="_blank" rel="noreferrer">
-                🖨️ Stampa Allegato A a parte
+                <span className="btn-icon"><IconStampa /></span> Stampa Allegato A a parte
               </a>
             </div>
             <p className="hint">
@@ -1136,7 +1146,7 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
       {fascicolo.versione > 1 ? (
         <div className="card-actions" style={{ justifyContent: "flex-end", marginTop: 20 }}>
           <button type="button" className="btn" onClick={handleAnteprima} disabled={Boolean(azioneInCorso)}>
-            🖨️ Ristampa PDF
+            <span className="btn-icon"><IconStampa /></span> Ristampa PDF
           </button>
         </div>
       ) : null}

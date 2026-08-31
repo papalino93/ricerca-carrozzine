@@ -89,3 +89,109 @@ export function IconFascicoli() {
     </svg>
   );
 }
+
+export function IconSalva() {
+  return (
+    <svg viewBox="0 0 24 24" {...SHARED}>
+      <rect x="4" y="4" width="16" height="16" rx="2" />
+      <path d="M8 4v5h8V4" />
+      <rect x="8.5" y="13" width="7" height="5" rx="0.5" />
+    </svg>
+  );
+}
+
+export function IconAnteprima() {
+  return (
+    <svg viewBox="0 0 24 24" {...SHARED}>
+      <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" />
+      <circle cx="12" cy="12" r="2.6" />
+    </svg>
+  );
+}
+
+export function IconScarica() {
+  return (
+    <svg viewBox="0 0 24 24" {...SHARED}>
+      <path d="M12 3.5v11" />
+      <path d="M7.5 10.5 12 15l4.5-4.5" />
+      <path d="M4.5 18.5h15" />
+    </svg>
+  );
+}
+
+export function IconStampa() {
+  return (
+    <svg viewBox="0 0 24 24" {...SHARED}>
+      <rect x="5" y="8.5" width="14" height="7.5" rx="1.5" />
+      <path d="M7.5 8.5V4.5h9v4" />
+      <rect x="8.5" y="13" width="7" height="6" rx="0.5" />
+    </svg>
+  );
+}
+
+export function IconCerca() {
+  return (
+    <svg viewBox="0 0 24 24" {...SHARED}>
+      <circle cx="10.5" cy="10.5" r="6.5" />
+      <path d="M15.5 15.5 20.5 20.5" />
+    </svg>
+  );
+}
+
+export function IconModifica() {
+  return (
+    <svg viewBox="0 0 24 24" {...SHARED}>
+      <path d="M4 20l1-4.2L15.8 5a2 2 0 0 1 2.8 0l.4.4a2 2 0 0 1 0 2.8L8.2 19z" />
+      <path d="M14 6.5l3.5 3.5" />
+    </svg>
+  );
+}
+
+/** Freccia a U: "rimetti in magazzino" senza usare un colore di stato
+ * (il verde/rosso dell'azione lo decide chi la usa, vedi legend-swatch). */
+export function IconRestituzione() {
+  return (
+    <svg viewBox="0 0 24 24" {...SHARED}>
+      <path d="M6 8h9a4.5 4.5 0 0 1 0 9h-3" />
+      <path d="M9 4.5 6 8l3 3.5" />
+    </svg>
+  );
+}
+
+export function IconSanificato() {
+  return (
+    <svg viewBox="0 0 24 24" {...SHARED}>
+      <path d="M4.5 12.5l5 5 10-11" />
+    </svg>
+  );
+}
+
+export function IconDocumento() {
+  return (
+    <svg viewBox="0 0 24 24" {...SHARED}>
+      <path d="M6.5 3.5h8l3 3v13a1 1 0 0 1-1 1h-10a1 1 0 0 1-1-1v-15a1 1 0 0 1 1-1z" />
+      <path d="M14 3.5v3.5h3.5" />
+      <line x1="8.5" y1="12" x2="15.5" y2="12" />
+      <line x1="8.5" y1="15.5" x2="13" y2="15.5" />
+    </svg>
+  );
+}
+
+export function IconMenu() {
+  return (
+    <svg viewBox="0 0 24 24" {...SHARED}>
+      <line x1="4" y1="7" x2="20" y2="7" />
+      <line x1="4" y1="12" x2="20" y2="12" />
+      <line x1="4" y1="17" x2="20" y2="17" />
+    </svg>
+  );
+}
+
+export function IconChiudi() {
+  return (
+    <svg viewBox="0 0 24 24" {...SHARED}>
+      <line x1="6" y1="6" x2="18" y2="18" />
+      <line x1="18" y1="6" x2="6" y2="18" />
+    </svg>
+  );
+}

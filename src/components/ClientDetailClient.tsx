@@ -8,6 +8,7 @@ import type { HistoryEvent } from "@/lib/history";
 import type { Device } from "@/lib/device-types";
 import { FASCICOLO_STATO_LABEL, type FascicoloRecord } from "@/lib/fascicoli-types";
 import { networkErrorMessage, readJson } from "@/lib/fetch-json";
+import { IconModifica } from "./ReceptionIcons";
 import { Toast } from "./Toast";
 
 interface ClientDetailClientProps {
@@ -248,7 +249,7 @@ export function ClientDetailClient({ initialClient, history, currentDevice, fasc
           <h2 style={{ margin: 0 }}>Anagrafica</h2>
           {!editing ? (
             <button className="btn" type="button" onClick={startEdit}>
-              ✏️ Modifica
+              <span className="btn-icon"><IconModifica /></span> Modifica
             </button>
           ) : null}
         </div>

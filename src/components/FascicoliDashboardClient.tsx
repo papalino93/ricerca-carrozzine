@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import type { ClientRecord } from "@/lib/clients";
 import { FASCICOLO_STATO_LABEL, type FascicoloRecord } from "@/lib/fascicoli-types";
 import { matchesQuery } from "@/lib/search-match";
+import { IconCerca, IconFascicoli } from "./ReceptionIcons";
 import { StatTiles } from "./StatTiles";
 
 interface FascicoliDashboardClientProps {
@@ -90,7 +91,7 @@ export function FascicoliDashboardClient({ fascicoli, clients }: FascicoliDashbo
       </div>
 
       <div className="panel">
-        <h2>🔎 Cerca cliente o fascicolo</h2>
+        <h2><span className="btn-icon"><IconCerca /></span> Cerca cliente o fascicolo</h2>
         <input
           className="searchbox"
           placeholder="Nome, codice fiscale, numero fascicolo o commessa…"
@@ -135,7 +136,7 @@ export function FascicoliDashboardClient({ fascicoli, clients }: FascicoliDashbo
         <div className="page-title-row" style={{ marginBottom: 12 }}>
           <h2 style={{ margin: 0 }}>Ultimi fascicoli creati</h2>
           <Link href="/admin/fascicoli/archivio" className="btn-link">
-            📁 Vai all&apos;archivio
+            <span className="btn-icon"><IconFascicoli /></span> Vai all&apos;archivio
           </Link>
         </div>
         {ultimiCreati.length === 0 ? (

@@ -31,6 +31,12 @@
   --check-bg: #efe8f6;
   --check-line: #d9c7ea;
 
+  /* Tinta neutra di hover/press su elementi che non hanno un colore di
+     stato proprio (righe di tabella, stepper, bottoni ghost): prima era
+     ripetuta come hex diretto in 4 punti diversi del file, mai promossa a
+     token. */
+  --surface-hover: #f0f3f2;
+
   --mono: ui-monospace, "SF Mono", "Roboto Mono", Menlo, Consolas, monospace;
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial,
     sans-serif;
@@ -1377,7 +1383,7 @@ h1 {
 }
 
 .stepper button:hover {
-  background: #f0f3f2;
+  background: var(--surface-hover);
 }
 
 .stepper .val {
@@ -1423,7 +1429,7 @@ h1 {
 }
 
 .clear-width:hover {
-  background: #f0f3f2;
+  background: var(--surface-hover);
 }
 
 .ruler-wrap {
@@ -1595,6 +1601,16 @@ h1 {
 .field textarea:focus {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
+}
+
+/* Prima non esisteva: un campo disabled aveva lo stesso aspetto di uno
+   scrivibile, distinguibile solo provando a cliccarci. */
+.field input:disabled,
+.field select:disabled,
+.field textarea:disabled {
+  background: var(--bg);
+  color: var(--ink-soft);
+  cursor: not-allowed;
 }
 
 /* Campo prezzo: "€" fisso a sinistra, il numero digitato non lo spinge via. */
@@ -2124,6 +2140,18 @@ h1 {
   background: var(--broken-bg);
 }
 
+/* Azione terziaria: niente bordo né sfondo a riposo, così non compete
+   visivamente con primary/danger nella stessa area — solo un hover
+   discreto per confermare che è comunque cliccabile. */
+.btn.ghost {
+  background: transparent;
+  border-color: transparent;
+}
+
+.btn.ghost:hover {
+  background: var(--surface-hover);
+}
+
 .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
@@ -2216,7 +2244,7 @@ tr.clickable-row {
    accesa dopo il tocco, sembrando una riga selezionata. */
 @media (hover: hover) and (pointer: fine) {
   table.admin-table tbody tr:hover > td {
-    background: #f0f3f2;
+    background: var(--surface-hover);
   }
 }
 
@@ -2661,7 +2689,7 @@ tr.clickable-row {
 
   /* Su schermi stretti "Magazzino" e "Impostazioni" affiancati/impilati
      accanto al logo erano poco leggibili e poco intuitivi: qui restano
-     chiusi in un menu a comparsa, apribile con il pulsante ☰. */
+     chiusi in un menu a comparsa, apribile dal pulsante hamburger. */
   .admin-sidebar-toggle {
     display: inline-flex;
     align-items: center;
@@ -2676,6 +2704,11 @@ tr.clickable-row {
     font-size: 18px;
     line-height: 1;
     cursor: pointer;
+  }
+
+  .admin-sidebar-toggle svg {
+    width: 19px;
+    height: 19px;
   }
 
   .admin-sidebar-menu {
@@ -2929,6 +2962,27 @@ tr.clickable-row {
   flex-shrink: 0;
 }
 
+.btn.icon-only svg {
+  width: 19px;
+  height: 19px;
+}
+
+/* Icona + etichetta nello stesso .btn (es. "Salva", "Genera PDF"): un
+   involucro a parte invece di stilare .btn svg in generale, per non
+   toccare .btn.icon-only che centra l'icona da sola senza testo accanto. */
+.btn-icon {
+  display: inline-flex;
+  width: 15px;
+  height: 15px;
+  margin-right: 6px;
+  vertical-align: -3px;
+}
+
+.btn-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
 /* Riga compatta della ricerca pubblica (DeviceCard). */
 .card.compact {
   padding: 10px 12px;
@@ -3018,6 +3072,11 @@ tr.clickable-row {
   flex-shrink: 0;
 }
 
+.action-legend .legend-swatch svg {
+  width: 13px;
+  height: 13px;
+}
+
 /* Colonne "appiccicate" della tabella magazzino: codice a sinistra e
    azione a destra restano visibili durante lo scroll laterale. */
 .admin-table .sticky-col {
@@ -3038,7 +3097,7 @@ tr.clickable-row {
 
 @media (hover: hover) and (pointer: fine) {
   table.admin-table tbody tr:hover .sticky-col {
-    background: #f0f3f2;
+    background: var(--surface-hover);
   }
 }
 
@@ -3222,6 +3281,18 @@ tr.clickable-row {
 
 .fascicolo-savestate.error {
   color: var(--broken-fg);
+}
+
+/* Pallino pieno dello stesso colore del testo accanto (currentColor):
+   stesso linguaggio delle .pill di stato, invece di un'emoji colorata
+   che non segue la palette dell'app. */
+.status-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
 }
 
 .fascicolo-piede-grid {
