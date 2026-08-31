@@ -130,6 +130,12 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
   }
 
   const completamento = useMemo(() => calcolaCompletamento(fascicolo), [fascicolo]);
+  // Percentuale complessiva accanto ai pallini per-tab già esistenti: quelli
+  // dicono QUALI sezioni mancano, questa dice A CHE PUNTO si è in generale,
+  // leggibile senza dover scorrere l'intera barra delle tab. Nessuna sezione
+  // diventa obbligatoria: resta solo un indicatore, non un blocco.
+  const sezioniCompletate = SEZIONI_FASCICOLO.filter((s) => completamento[s.key]).length;
+  const percentualeCompletamento = Math.round((sezioniCompletate / SEZIONI_FASCICOLO.length) * 100);
 
   // Due richieste PATCH sovrapposte sullo stesso fascicolo (l'autosave che
   // parte mentre "Salva" è ancora in corso, o due tab sullo stesso
@@ -427,6 +433,15 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
         invece finalizza: incrementa la versione del fascicolo (oggi alla {fascicolo.versione}ª) e, se configurato,
         lo archivia su Drive.
       </p>
+
+      <div className="fascicolo-progress">
+        <div className="fascicolo-progress-track">
+          <div className="fascicolo-progress-fill" style={{ width: `${percentualeCompletamento}%` }} />
+        </div>
+        <div className="fascicolo-progress-label">
+          {sezioniCompletate} di {SEZIONI_FASCICOLO.length} sezioni completate ({percentualeCompletamento}%)
+        </div>
+      </div>
 
       <div className="fascicolo-tabs">
         {SEZIONI_FASCICOLO.map((s) => (

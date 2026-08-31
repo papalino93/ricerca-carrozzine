@@ -6,6 +6,7 @@ import { matchesQuery } from "@/lib/search-match";
 import { networkErrorMessage } from "@/lib/fetch-json";
 import { todayIso } from "@/lib/dates";
 import {
+  commessaSteps,
   createCommessaRequest,
   deleteCommessaRequest,
   fmtDate,
@@ -492,6 +493,13 @@ export function CommesseBanco({ initialCommesse, initialQuery, clienti }: Commes
 
                   {editing === c.numero ? (
                     <div className="panel" style={{ marginTop: 10 }}>
+                      <div className="status-steps">
+                        {commessaSteps(c.stato).map((s) => (
+                          <span key={s.label} className={`status-step ${s.className}`}>
+                            {s.label}
+                          </span>
+                        ))}
+                      </div>
                       <div className="chips" style={{ marginBottom: 12 }}>
                         {(
                           [
