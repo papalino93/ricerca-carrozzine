@@ -35,7 +35,7 @@ export function AdminSidebar() {
   return (
     <aside className="admin-sidebar">
       <div className="admin-sidebar-top">
-        <Link href="/admin" className="admin-sidebar-brand" onClick={() => setOpen(false)}>
+        <Link href="/" className="admin-sidebar-brand" onClick={() => setOpen(false)}>
           {/* Versione bianca del marchio: la sidebar è verde scuro, quindi qui
               serve il logo in negativo, non quello a colori caricato da
               Impostazioni (usato invece sulle pagine a sfondo chiaro). */}
