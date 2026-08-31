@@ -4,7 +4,14 @@ import { useState } from "react";
 import { networkErrorMessage, readJson } from "@/lib/fetch-json";
 import { addDaysIso, todayIso } from "@/lib/dates";
 import type { Device } from "@/lib/device-types";
-import { calcolaTotale, findTariffa, fmtEuro, giorniTra, type Tariffa } from "@/lib/tariffe-types";
+import {
+  calcolaTotale,
+  findTariffa,
+  fmtEuro,
+  giorniTra,
+  sottocategoriaSenzaTariffaSpecifica,
+  type Tariffa,
+} from "@/lib/tariffe-types";
 
 interface QuickRentModalProps {
   device: Device;
@@ -31,6 +38,11 @@ export function QuickRentModal({ device, tariffe, onClose, onRented }: QuickRent
   const [telefono, setTelefono] = useState("");
   const [dal, setDal] = useState(todayIso());
   const tariffa = findTariffa(tariffe, device.categoria, device.sottocategoria);
+  const mismatchSottocategoria = sottocategoriaSenzaTariffaSpecifica(
+    tariffe,
+    device.categoria,
+    device.sottocategoria
+  );
   // Prefillato dal tariffario, ma modificabile per questo singolo noleggio
   // (es. uno sconto concordato): l'unità (giorno/settimana) resta invece
   // quella della categoria, non ha senso cambiarla per un solo noleggio.
@@ -73,6 +85,7 @@ export function QuickRentModal({ device, tariffe, onClose, onRented }: QuickRent
           tariffaApplicata: tariffa && prezzoNum > 0 ? prezzoNum : null,
           tariffaUnita: tariffa && prezzoNum > 0 ? tariffa.unita : null,
           costoConsegna: costoConsegnaNum,
+          notaTariffa: tariffa?.nota ?? null,
         }),
       });
       const body = await readJson(res);
@@ -96,6 +109,14 @@ export function QuickRentModal({ device, tariffe, onClose, onRented }: QuickRent
         </div>
 
         {error ? <div className="banner error">{error}</div> : null}
+
+        {mismatchSottocategoria ? (
+          <div className="banner" style={{ marginBottom: 12 }}>
+            Nessuna tariffa specifica per la sottocategoria &quot;{device.sottocategoria}&quot;: sto
+            applicando quella generale di &quot;{device.categoria}&quot;. Controlla che non sia un refuso
+            (in Impostazioni → Tariffe).
+          </div>
+        ) : null}
 
         {tariffa ? (
           <div className="field-row" style={{ alignItems: "flex-end" }}>

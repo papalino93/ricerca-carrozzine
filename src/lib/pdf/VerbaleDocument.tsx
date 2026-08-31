@@ -22,6 +22,9 @@ export interface TariffaDocumento {
   totale?: number;
   /** Tariffa fissa di consegna e ritiro per questo noleggio, se presente. */
   costoConsegna?: number | null;
+  /** Nota accessoria della tariffa (es. "+ 35€ materassino"): testo libero,
+   * NON un importo — stampata così com'è, mai sommata al totale. */
+  nota?: string | null;
 }
 
 export interface VerbaleDocumentProps {
@@ -331,36 +334,45 @@ export function VerbaleDocument({
           </View>
         </View>
 
-        {tariffa ? (
-          <>
-            <Text style={styles.sectionLabel}>Tariffa</Text>
-            <View style={styles.table}>
-              <View
-                style={
-                  tariffa.costoConsegna != null || tariffa.totale != null ? styles.row : styles.rowLast
-                }
-              >
-                <Text style={styles.cellLabel}>Tariffa applicata</Text>
-                <Text style={styles.cellValue}>
-                  {`${fmtEuro(tariffa.importo)} al ${tariffa.unita === "settimana" ? "settimana" : "giorno"}`}
-                </Text>
+        {tariffa ? (() => {
+          const hasCostoConsegna = tariffa.costoConsegna != null;
+          const hasNota = Boolean(tariffa.nota);
+          const hasTotale = tariffa.totale != null;
+          return (
+            <>
+              <Text style={styles.sectionLabel}>Tariffa</Text>
+              <View style={styles.table}>
+                <View style={hasCostoConsegna || hasNota || hasTotale ? styles.row : styles.rowLast}>
+                  <Text style={styles.cellLabel}>Tariffa applicata</Text>
+                  <Text style={styles.cellValue}>
+                    {`${fmtEuro(tariffa.importo)} al ${tariffa.unita === "settimana" ? "settimana" : "giorno"}`}
+                  </Text>
+                </View>
+                {hasCostoConsegna ? (
+                  <View style={hasNota || hasTotale ? styles.row : styles.rowLast}>
+                    <Text style={styles.cellLabel}>Costo consegna</Text>
+                    <Text style={styles.cellValue}>{fmtEuro(tariffa.costoConsegna!)}</Text>
+                  </View>
+                ) : null}
+                {/* Testo libero (es. "+ 35€ materassino"): mai sommato al
+                    totale, solo un promemoria per l'operatore e il cliente. */}
+                {hasNota ? (
+                  <View style={hasTotale ? styles.row : styles.rowLast}>
+                    <Text style={styles.cellLabel}>Nota</Text>
+                    <Text style={styles.cellValue}>{tariffa.nota}</Text>
+                  </View>
+                ) : null}
+                {/* Solo sul verbale di restituzione: vedi TariffaDocumento.totale. */}
+                {hasTotale ? (
+                  <View style={styles.rowLast}>
+                    <Text style={styles.cellLabel}>Totale</Text>
+                    <Text style={styles.cellValue}>{fmtEuro(tariffa.totale!)}</Text>
+                  </View>
+                ) : null}
               </View>
-              {tariffa.costoConsegna != null ? (
-                <View style={tariffa.totale != null ? styles.row : styles.rowLast}>
-                  <Text style={styles.cellLabel}>Costo consegna</Text>
-                  <Text style={styles.cellValue}>{fmtEuro(tariffa.costoConsegna)}</Text>
-                </View>
-              ) : null}
-              {/* Solo sul verbale di restituzione: vedi TariffaDocumento.totale. */}
-              {tariffa.totale != null ? (
-                <View style={styles.rowLast}>
-                  <Text style={styles.cellLabel}>Totale</Text>
-                  <Text style={styles.cellValue}>{fmtEuro(tariffa.totale)}</Text>
-                </View>
-              ) : null}
-            </View>
-          </>
-        ) : null}
+            </>
+          );
+        })() : null}
 
         <View style={styles.noteBox}>
           <Text style={styles.noteLabel}>Note</Text>

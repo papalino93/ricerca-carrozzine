@@ -13,7 +13,14 @@ import {
 import { DocumentPanel } from "./DocumentPanel";
 import type { DocumentoTipo } from "@/lib/pdf/VerbaleDocument";
 import type { DevicePhotoMeta } from "@/lib/photos";
-import { calcolaTotale, findTariffa, fmtEuro, giorniTra, type Tariffa } from "@/lib/tariffe-types";
+import {
+  calcolaTotale,
+  findTariffa,
+  fmtEuro,
+  giorniTra,
+  sottocategoriaSenzaTariffaSpecifica,
+  type Tariffa,
+} from "@/lib/tariffe-types";
 import { parseNumero } from "@/lib/importo";
 import { Toast } from "./Toast";
 
@@ -283,6 +290,11 @@ export function DeviceDetailModal({
   }
 
   const tariffa = findTariffa(tariffe, current.categoria, current.sottocategoria);
+  const mismatchSottocategoria = sottocategoriaSenzaTariffaSpecifica(
+    tariffe,
+    current.categoria,
+    current.sottocategoria
+  );
   const rentPrezzoNum = Number(rentPrezzo.replace(",", "."));
   const rentCostoConsegnaNum = rentCostoConsegna ? Number(rentCostoConsegna.replace(",", ".")) : null;
   const rentTotaleStimato =
@@ -325,6 +337,7 @@ export function DeviceDetailModal({
           tariffaApplicata: tariffa && rentPrezzoNum > 0 ? rentPrezzoNum : null,
           tariffaUnita: tariffa && rentPrezzoNum > 0 ? tariffa.unita : null,
           costoConsegna: rentCostoConsegnaNum,
+          notaTariffa: tariffa?.nota ?? null,
         }),
       });
       const body = await readJson(res);
@@ -594,6 +607,13 @@ export function DeviceDetailModal({
       {renting ? (
         <form className="panel" onSubmit={handleConfirmRent} style={{ margin: "0 0 16px" }}>
           <h2>Assegna a un cliente</h2>
+          {mismatchSottocategoria ? (
+            <div className="banner" style={{ marginBottom: 12 }}>
+              Nessuna tariffa specifica per la sottocategoria &quot;{current.sottocategoria}&quot;: sto
+              applicando quella generale di &quot;{current.categoria}&quot;. Controlla che non sia un
+              refuso (in Impostazioni → Tariffe).
+            </div>
+          ) : null}
           {tariffa ? (
             <div className="field-row" style={{ alignItems: "flex-end" }}>
               <div className="field">

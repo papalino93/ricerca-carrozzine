@@ -42,6 +42,28 @@ export function findTariffa(tariffe: Tariffa[], categoria: string, sottocategori
   return tariffe.find((t) => sameKey(t, { categoria, sottocategoria: null })) ?? null;
 }
 
+/** True se questo dispositivo ha una sottocategoria, esistono tariffe
+ * specifiche per QUALCHE sottocategoria di questa stessa categoria, ma
+ * nessuna corrisponde esattamente alla sua: probabile refuso (es. "Elettrica"
+ * sul dispositivo contro "Carrozzina elettrica" sulla tariffa) che fa
+ * ricadere in silenzio sulla tariffa generale di categoria — vedi
+ * findTariffa. Se invece per questa categoria non esiste nessuna tariffa
+ * per sottocategoria, il fallback è normale e non c'è nulla da segnalare. */
+export function sottocategoriaSenzaTariffaSpecifica(
+  tariffe: Tariffa[],
+  categoria: string,
+  sottocategoria: string | null
+): boolean {
+  if (!sottocategoria) return false;
+  const stessaCategoria = tariffe.filter((t) => t.categoria.trim().toLowerCase() === categoria.trim().toLowerCase());
+  const esisteSpecifica = stessaCategoria.some((t) => t.sottocategoria != null);
+  if (!esisteSpecifica) return false;
+  const trovata = stessaCategoria.some(
+    (t) => (t.sottocategoria ?? "").trim().toLowerCase() === sottocategoria.trim().toLowerCase()
+  );
+  return !trovata;
+}
+
 export function fmtTariffa(t: Tariffa): string {
   const importo = t.importo.toLocaleString("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return `${importo} € al ${t.unita === "settimana" ? "settimana" : "giorno"}`;

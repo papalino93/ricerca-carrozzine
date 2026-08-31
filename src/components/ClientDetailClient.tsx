@@ -46,9 +46,13 @@ function displayFullName(c: ClientRecord): string {
     return [c.nomeProprio, c.cognome].filter(Boolean).join(" ") || c.nome;
   }
   const words = c.nome.trim().split(/\s+/).filter(Boolean);
-  if (words.length < 2) return c.nome;
-  const [cognome, ...resto] = words;
-  return `${resto.join(" ")} ${cognome}`;
+  // Solo con esattamente due parole l'inversione "COGNOME Nome" → "Nome
+  // Cognome" è sicura: con un cognome composto (es. "DE ROSSI MARIO") non
+  // c'è modo di sapere dove finisce il cognome e inizia il nome, quindi
+  // meglio mostrare il dato grezzo così com'è che indovinare male.
+  if (words.length !== 2) return c.nome;
+  const [cognome, nomeProprio] = words;
+  return `${nomeProprio} ${cognome}`;
 }
 
 /**
@@ -68,6 +72,7 @@ function toIsoDate(s: string): string {
 
 function anagraficaFromClient(c: ClientRecord) {
   return {
+    nomeGrezzo: c.nome,
     cognome: c.cognome ?? "",
     nomeProprio: c.nomeProprio ?? "",
     codiceFiscale: c.codiceFiscale ?? "",
@@ -109,6 +114,10 @@ export function ClientDetailClient({ initialClient, history, currentDevice, fasc
 
   async function handleSaveAnagrafica(e: React.FormEvent) {
     e.preventDefault();
+    if (!form.nomeGrezzo.trim()) {
+      showToast("Il nome non può essere vuoto");
+      return;
+    }
     setSavingAnagrafica(true);
     try {
       const res = await fetch("/api/clienti", {
@@ -116,6 +125,7 @@ export function ClientDetailClient({ initialClient, history, currentDevice, fasc
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           nome: client.nome,
+          nuovoNome: form.nomeGrezzo.trim(),
           azione: "anagrafica",
           patch: {
             cognome: form.cognome || null,
@@ -135,9 +145,16 @@ export function ClientDetailClient({ initialClient, history, currentDevice, fasc
       });
       const body = await readJson(res);
       if (!res.ok) throw new Error(body.error || "Salvataggio non riuscito");
+      const rinominato = body.client.nome !== client.nome;
       setClient(body.client);
       setEditing(false);
-      showToast("Anagrafica aggiornata");
+      showToast(rinominato ? "Anagrafica aggiornata e nome corretto" : "Anagrafica aggiornata");
+      if (rinominato) {
+        // L'indirizzo di questa pagina è per nome (vedi clienti/[nome]/
+        // page.tsx): dopo la correzione va aggiornato, altrimenti un
+        // ricaricamento cercherebbe ancora il nome vecchio.
+        router.replace(`/clienti/${encodeURIComponent(body.client.nome)}`);
+      }
     } catch (err) {
       showToast(networkErrorMessage(err));
     } finally {
@@ -273,6 +290,17 @@ export function ClientDetailClient({ initialClient, history, currentDevice, fasc
         ) : (
           <form onSubmit={handleSaveAnagrafica}>
             <div className="form-grid">
+              <div className="field" style={{ gridColumn: "1 / -1" }}>
+                <label>Nome e cognome</label>
+                <input
+                  value={form.nomeGrezzo}
+                  onChange={(e) => setForm({ ...form, nomeGrezzo: e.target.value })}
+                  required
+                />
+                <p className="hint" style={{ margin: "4px 0 0" }}>
+                  Correggendolo, si aggiorna anche su noleggi, commesse, storico e fascicoli già collegati a questo cliente.
+                </p>
+              </div>
               <div className="field">
                 <label>Nome proprio</label>
                 <input value={form.nomeProprio} onChange={(e) => setForm({ ...form, nomeProprio: e.target.value })} />

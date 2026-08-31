@@ -75,6 +75,11 @@ export interface Device {
    * tariffario alla conferma, ma modificabile per quel singolo noleggio,
    * come tariffaApplicata. Stampata sul verbale come voce separata. */
   costoConsegna: number | null;
+  /** Nota accessoria della tariffa applicata (es. "+ 35€ materassino"),
+   * copiata qui dal tariffario al momento del noleggio: testo libero da
+   * mostrare al cliente, NON un importo — non entra nel totale calcolato,
+   * l'operatore lo applica a mano se serve. */
+  notaTariffa: string | null;
   /** Data ultima sanificazione, ISO yyyy-mm-dd. */
   sanificazione: string | null;
   nota: string | null;

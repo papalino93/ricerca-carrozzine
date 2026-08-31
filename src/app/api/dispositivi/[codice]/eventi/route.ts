@@ -15,6 +15,7 @@ interface EventoBody {
   tariffaApplicata?: number | null;
   tariffaUnita?: TariffaUnita | null;
   costoConsegna?: number | null;
+  notaTariffa?: string | null;
 }
 
 // Riservata all'amministrazione: storico eventi di un dispositivo.
@@ -63,6 +64,7 @@ export async function POST(
           tariffaApplicata: body.tariffaApplicata ?? null,
           tariffaUnita: body.tariffaUnita ?? null,
           costoConsegna: body.costoConsegna ?? null,
+          notaTariffa: body.notaTariffa ?? null,
         });
         break;
       case "restituzione":
