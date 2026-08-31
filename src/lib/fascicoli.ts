@@ -1,6 +1,7 @@
 import "server-only";
 import { readSheet, writeSheet } from "./sheets";
 import { nextNumeroFascicolo } from "./counter";
+import { normalizeName } from "./clients";
 import {
   emptyFascicoloContenuto,
   FASCICOLO_STATO_OPTIONS,
@@ -129,10 +130,10 @@ export async function getFascicolo(numero: string): Promise<FascicoloRecord | nu
  * vecchio e sparirebbero dalla sua scheda cliente (che li cerca per nome). */
 export async function renameFascicoliCliente(nomeAttuale: string, nuovoNome: string): Promise<number> {
   const fascicoli = await readFascicoli();
-  const target = nomeAttuale.trim().toLowerCase();
+  const target = normalizeName(nomeAttuale);
   let count = 0;
   for (const f of fascicoli) {
-    if (f.clienteNome.trim().toLowerCase() === target) {
+    if (normalizeName(f.clienteNome) === target) {
       f.clienteNome = nuovoNome;
       count++;
     }
@@ -141,11 +142,11 @@ export async function renameFascicoliCliente(nomeAttuale: string, nuovoNome: str
   return count;
 }
 
-/** Tutti i fascicoli di un cliente (stesso nome, case-insensitive come clients.ts), più recenti prima. */
+/** Tutti i fascicoli di un cliente (stesso nome, normalizzato come clients.ts), più recenti prima. */
 export async function listFascicoliCliente(clienteNome: string): Promise<FascicoloRecord[]> {
-  const target = clienteNome.trim().toLowerCase();
+  const target = normalizeName(clienteNome);
   const fascicoli = await listFascicoli();
-  return fascicoli.filter((f) => f.clienteNome.trim().toLowerCase() === target);
+  return fascicoli.filter((f) => normalizeName(f.clienteNome) === target);
 }
 
 export async function createFascicolo(input: {

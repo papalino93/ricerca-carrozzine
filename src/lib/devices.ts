@@ -380,7 +380,15 @@ export async function returnDevice(codice: string): Promise<Device[]> {
 /** da_pulire → disponibile: sanificazione/pulizia completata. */
 export async function sanitizeDevice(codice: string): Promise<Device[]> {
   const devices = await listDevices();
-  const { idx } = findOrThrow(devices, codice);
+  const { idx, device } = findOrThrow(devices, codice);
+  // Vedi rentDevice/returnDevice: senza questo controllo, un click tardivo
+  // su una scheda rimasta aperta potrebbe riportare a "disponibile" un
+  // ausilio nel frattempo già noleggiato altrove.
+  if (device.stato !== "da_pulire") {
+    throw new Error(
+      `${codice} non risulta in attesa di sanificazione. Ricarica la pagina per vedere la situazione aggiornata.`
+    );
+  }
   const sanificazione = todayIso();
   devices[idx] = {
     ...devices[idx],
@@ -418,10 +426,19 @@ export async function archiveDevice(codice: string, tipo: ArchiveStatus): Promis
     throw new Error(`${codice} è attualmente noleggiato: segna prima il rientro.`);
   }
   const breadcrumb = `Archiviato come ${tipo} il ${todayIso()}.`;
+  const notaCombinata = device.nota ? `${device.nota}\n${breadcrumb}` : breadcrumb;
+  // Come upsertDevice: una nota troppo lunga farebbe fallire la riscrittura
+  // dell'intero foglio Dispositivi. Qui però l'archiviazione non è
+  // un'azione su cui l'operatore sta modificando la nota: invece di
+  // bloccarla, tronca la parte più vecchia mantenendo il breadcrumb.
+  const nota =
+    notaCombinata.length > MAX_NOTA_LENGTH
+      ? `…${notaCombinata.slice(-(MAX_NOTA_LENGTH - 1))}`
+      : notaCombinata;
   devices[idx] = {
     ...device,
     archiviato: tipo,
-    nota: device.nota ? `${device.nota}\n${breadcrumb}` : breadcrumb,
+    nota,
   };
   await saveAllDevices(devices);
   return devices;

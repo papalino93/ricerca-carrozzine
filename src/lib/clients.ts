@@ -1,6 +1,7 @@
 import "server-only";
 import { readSheet, writeSheet } from "./sheets";
 import { nextNumeroFidelity } from "./counter";
+import { parseNumero } from "./importo";
 
 export interface ClientRecord {
   nome: string;
@@ -99,7 +100,10 @@ function toClient(row: string[]): ClientRecord {
     luogoNascita: luogoNascita || null,
     fidelity: fidelity || null,
     categoria: categoria || null,
-    punti: Number(punti) || 0,
+    // parseNumero, non Number(): una cifra scritta a mano con la virgola
+    // (es. "150,00") azzererebbe altrimenti in silenzio il saldo punti,
+    // che poi resta perso per sempre alla prima riscrittura del foglio.
+    punti: parseNumero(punti) ?? 0,
     codiceFiscale: codiceFiscale || null,
   };
 }
