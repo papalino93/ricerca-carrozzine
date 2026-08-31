@@ -31,6 +31,21 @@ export function fmtEuro(n: number | null): string {
   return `${n.toFixed(2).replace(".", ",")} €`;
 }
 
+const STEP_ORDER: CommessaRecord["stato"][] = ["in_lavorazione", "pronta", "ritirata"];
+const STEP_LABELS = ["Ordinata", "Pronta", "Ritirata"];
+
+/** Le 3 tappe del ciclo di vita di una commessa, per un indicatore di
+ * avanzamento sola lettura: dice dov'è arrivata la scheda, non impone un
+ * ordine di compilazione né blocca nulla — stesso spirito libero già
+ * scelto per le tab dei Fascicoli Plantari. */
+export function commessaSteps(stato: CommessaRecord["stato"]): { label: string; className: string }[] {
+  const idx = STEP_ORDER.indexOf(stato);
+  return STEP_ORDER.map((_, i) => ({
+    label: STEP_LABELS[i],
+    className: i < idx ? "done" : i === idx ? (idx === STEP_ORDER.length - 1 ? "done" : "current") : "",
+  }));
+}
+
 interface CommesseResponse {
   commessa: CommessaRecord;
   commesse: CommessaRecord[];
