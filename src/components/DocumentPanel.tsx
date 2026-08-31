@@ -90,6 +90,7 @@ export function DocumentPanel({ device, onClose, forcedTipo }: DocumentPanelProp
                 unita: device.tariffaUnita,
                 totale: totale ?? undefined,
                 costoConsegna: device.costoConsegna ?? null,
+                nota: device.notaTariffa ?? null,
               }
             : null,
           firmaCliente: driveConfigured ? firmaCliente : null,
@@ -177,6 +178,12 @@ export function DocumentPanel({ device, onClose, forcedTipo }: DocumentPanelProp
               <>
                 <br />
                 <b>Costo consegna</b>: {fmtEuro(device.costoConsegna)}
+              </>
+            ) : null}
+            {device.notaTariffa ? (
+              <>
+                <br />
+                <b>Nota</b>: {device.notaTariffa}
               </>
             ) : null}
             {totale != null ? (

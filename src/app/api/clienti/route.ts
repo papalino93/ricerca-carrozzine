@@ -5,9 +5,14 @@ import {
   assignFidelity,
   createClient,
   deleteClient,
+  renameClient,
   updateClientAnagrafica,
   type ClientRecord,
 } from "@/lib/clients";
+import { renameDeviceClienti } from "@/lib/devices";
+import { renameCommesseCliente } from "@/lib/commesse";
+import { renameHistoryCliente } from "@/lib/history";
+import { renameFascicoliCliente } from "@/lib/fascicoli";
 
 export const runtime = "nodejs";
 
@@ -76,6 +81,11 @@ export async function PATCH(req: NextRequest) {
       delta?: number;
       azione?: "tessera" | "anagrafica";
       patch?: Partial<Omit<ClientRecord, "punti" | "fidelity">>;
+      /** Nuovo nome, se l'operatore corregge un refuso: rinomina la riga
+       * anagrafica E propaga il cambiamento a noleggi/commesse/storico che
+       * ancora referenziano il nome vecchio (vedi renameClient in clients.ts
+       * per il perché serve propagarlo, non solo rinominare la riga). */
+      nuovoNome?: string;
     };
     if (!body.nome) {
       return NextResponse.json({ error: "Nome obbligatorio" }, { status: 400 });
@@ -94,7 +104,28 @@ export async function PATCH(req: NextRequest) {
     // (es. si scopre il codice fiscale mentre si compila un fascicolo
     // plantare): usata dal modulo Fascicoli Plantari, riusabile ovunque.
     if (body.azione === "anagrafica") {
-      const client = await updateClientAnagrafica(body.nome, body.patch ?? {});
+      let nomeCorrente = body.nome;
+      const nuovoNome = body.nuovoNome?.trim();
+      if (nuovoNome && nuovoNome !== nomeCorrente) {
+        await renameClient(nomeCorrente, nuovoNome);
+        // Propagazione best-effort: la riga anagrafica è già stata
+        // rinominata con successo, un problema qui non deve bloccare il
+        // salvataggio — resterebbe solo qualche vecchio riferimento non
+        // aggiornato, recuperabile a mano, invece di un errore a operazione
+        // ormai avvenuta.
+        try {
+          await Promise.all([
+            renameDeviceClienti(nomeCorrente, nuovoNome),
+            renameCommesseCliente(nomeCorrente, nuovoNome),
+            renameHistoryCliente(nomeCorrente, nuovoNome),
+            renameFascicoliCliente(nomeCorrente, nuovoNome),
+          ]);
+        } catch (err) {
+          console.error("Propagazione rinomina cliente non riuscita:", err);
+        }
+        nomeCorrente = nuovoNome;
+      }
+      const client = await updateClientAnagrafica(nomeCorrente, body.patch ?? {});
       return NextResponse.json({ client });
     }
 

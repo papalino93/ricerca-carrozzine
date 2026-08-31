@@ -2,7 +2,7 @@ import "server-only";
 import { parseNumero } from "./importo";
 import { readSheet, writeSheet } from "./sheets";
 import { appendHistoryEvent } from "./history";
-import { upsertClient } from "./clients";
+import { normalizeName, upsertClient } from "./clients";
 import { nextNumeroNoleggio } from "./counter";
 import { removeAllDevicePhotos } from "./photos";
 import { STATUS_OPTIONS, type ArchiveStatus, type Device, type DeviceStatus } from "./device-types";
@@ -42,6 +42,7 @@ const HEADER = [
   "TariffaUnita",
   "DataPrimoNoleggio",
   "CostoConsegna",
+  "NotaTariffa",
 ];
 
 const VALID_ARCHIVE_STATUSES = ["venduto", "rottamato"];
@@ -75,6 +76,7 @@ function toDevice(row: string[]): Device {
     tariffaUnita,
     dataPrimoNoleggio,
     costoConsegna,
+    notaTariffa,
   ] = row;
 
   return {
@@ -102,6 +104,7 @@ function toDevice(row: string[]): Device {
     tariffaUnita: tariffaUnita === "settimana" ? "settimana" : tariffaUnita === "giorno" ? "giorno" : null,
     dataPrimoNoleggio: dataPrimoNoleggio || null,
     costoConsegna: numOrNull(costoConsegna),
+    notaTariffa: notaTariffa || null,
   };
 }
 
@@ -129,6 +132,7 @@ function toRow(d: Device): string[] {
     d.tariffaUnita ?? "",
     d.dataPrimoNoleggio ?? "",
     d.costoConsegna != null ? String(d.costoConsegna) : "",
+    d.notaTariffa ?? "",
   ];
 }
 
@@ -201,6 +205,24 @@ export async function renameDeviceSottocategoria(
   return count;
 }
 
+/** Corregge il nome cliente sui noleggi in corso, quando il nome viene
+ * rinominato in anagrafica (vedi renameClient in clients.ts). I noleggi già
+ * conclusi non hanno più `cliente` valorizzato (returnDevice lo azzera),
+ * quindi qui c'è al più un dispositivo da correggere. */
+export async function renameDeviceClienti(nomeAttuale: string, nuovoNome: string): Promise<number> {
+  const devices = await listDevices();
+  const target = normalizeName(nomeAttuale);
+  let count = 0;
+  for (const d of devices) {
+    if (d.cliente && normalizeName(d.cliente) === target) {
+      d.cliente = nuovoNome;
+      count++;
+    }
+  }
+  if (count > 0) await saveAllDevices(devices);
+  return count;
+}
+
 export async function setDevicePhoto(codice: string, foto: string | null): Promise<Device[]> {
   const devices = await listDevices();
   const { idx } = findOrThrow(devices, codice);
@@ -240,6 +262,9 @@ export interface RentDeviceInput {
   /** Tariffa di consegna e ritiro per questo specifico noleggio: prefillata
    * dal tariffario come tariffaApplicata, modificabile allo stesso modo. */
   costoConsegna: number | null;
+  /** Nota accessoria della tariffa (testo libero, non un importo): copiata
+   * dal tariffario per essere mostrata sul verbale, mai calcolata. */
+  notaTariffa: string | null;
 }
 
 /**
@@ -275,6 +300,7 @@ export async function rentDevice(codice: string, input: RentDeviceInput): Promis
     tariffaApplicata: input.tariffaApplicata,
     tariffaUnita: input.tariffaUnita,
     costoConsegna: input.costoConsegna,
+    notaTariffa: input.notaTariffa,
   };
   // Registra prima lo storico e solo dopo muta il dispositivo: se il
   // salvataggio del dispositivo falisce, resta comunque una traccia che il
@@ -287,6 +313,9 @@ export async function rentDevice(codice: string, input: RentDeviceInput): Promis
     telefono: input.telefono,
     contratto,
     nota: null,
+    categoria: device.categoria,
+    marca: device.marca,
+    modello: device.modello,
   });
   await saveAllDevices(devices);
   try {
@@ -330,6 +359,7 @@ export async function returnDevice(codice: string): Promise<Device[]> {
     tariffaApplicata: null,
     tariffaUnita: null,
     costoConsegna: null,
+    notaTariffa: null,
   };
   await appendHistoryEvent({
     data: todayIso(),
@@ -339,6 +369,9 @@ export async function returnDevice(codice: string): Promise<Device[]> {
     telefono: previousTelefono,
     contratto: previousContratto,
     nota: null,
+    categoria: device.categoria,
+    marca: device.marca,
+    modello: device.modello,
   });
   await saveAllDevices(devices);
   return devices;
@@ -362,6 +395,9 @@ export async function sanitizeDevice(codice: string): Promise<Device[]> {
     telefono: null,
     contratto: null,
     nota: null,
+    categoria: devices[idx].categoria,
+    marca: devices[idx].marca,
+    modello: devices[idx].modello,
   });
   await saveAllDevices(devices);
   return devices;

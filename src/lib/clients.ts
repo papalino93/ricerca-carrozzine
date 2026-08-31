@@ -269,6 +269,32 @@ export async function updateClientAnagrafica(
 }
 
 /**
+ * Corregge il nome di un cliente GIÀ in anagrafica (es. un refuso digitato
+ * al primo noleggio, mai più corretto perché finora l'interfaccia non lo
+ * permetteva). Il nome è anche la chiave con cui noleggi/commesse/storico
+ * si collegano al cliente (vedi normalizeName): rinominarlo qui SENZA
+ * propagare il cambiamento romperebbe quei collegamenti. Questa funzione
+ * corregge solo la riga anagrafica; la propagazione a dispositivi/commesse/
+ * storico vive nei rispettivi moduli (vedi renameClienteOvunque più sotto
+ * in questo stesso file, che le orchestra tutte).
+ */
+export async function renameClient(nomeAttuale: string, nuovoNome: string): Promise<ClientRecord> {
+  const nuovo = nuovoNome.trim();
+  if (!nuovo) throw new Error("Il nome non può essere vuoto");
+  const clients = await readClients();
+  const idx = clients.findIndex((c) => normalizeName(c.nome) === normalizeName(nomeAttuale));
+  if (idx === -1) throw new Error(`Cliente "${nomeAttuale}" non trovato`);
+  if (normalizeName(nuovo) !== normalizeName(nomeAttuale)) {
+    const duplicato = clients.some((c, i) => i !== idx && normalizeName(c.nome) === normalizeName(nuovo));
+    if (duplicato) throw new Error(`Esiste già un cliente chiamato "${nuovo}"`);
+  }
+  const next = { ...clients[idx], nome: nuovo };
+  clients[idx] = next;
+  await writeSheet(TAB, [HEADER, ...clients.map(toRow)]);
+  return next;
+}
+
+/**
  * Assegna un numero di tessera a un cliente GIÀ in anagrafica che ancora non
  * ne ha uno. Serve perché l'anagrafica si popola anche da sola: chi arriva
  * da un noleggio o dai punti di una commessa esiste già come riga, quindi

@@ -142,6 +142,25 @@ export async function listCommesse(): Promise<CommessaRecord[]> {
   return commesse.sort((a, b) => Number(b.numero) - Number(a.numero));
 }
 
+/** Corregge il nome cliente su tutte le commesse (aperte e già chiuse),
+ * quando il nome viene rinominato in anagrafica (vedi renameClient in
+ * clients.ts). A differenza dei dispositivi, qui il collegamento resta
+ * anche a commessa conclusa: va corretto ovunque, non solo su quelle in
+ * lavorazione. */
+export async function renameCommesseCliente(nomeAttuale: string, nuovoNome: string): Promise<number> {
+  const commesse = await readCommesse();
+  const target = normalizeName(nomeAttuale);
+  let count = 0;
+  for (const c of commesse) {
+    if (normalizeName(c.cliente) === target) {
+      c.cliente = nuovoNome;
+      count++;
+    }
+  }
+  if (count > 0) await writeSheet(TAB, [HEADER, ...commesse.map(toRow)]);
+  return count;
+}
+
 export async function createCommessa(
   input: Omit<CommessaRecord, "numero" | "stato" | "creata" | "puntiAssegnati">
 ): Promise<CommessaRecord> {

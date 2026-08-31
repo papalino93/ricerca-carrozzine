@@ -31,9 +31,10 @@ export function RegistroClient({ noleggi, devices, firmeDrive, initialQuery }: R
   const [dal, setDal] = useState("");
   const [al, setAl] = useState("");
 
-  // Un dispositivo può essere stato eliminato dopo il noleggio: la riga
-  // resta comunque nel registro (è uno storico, non deve sparire), solo
-  // senza marca/modello/categoria da affiancare.
+  // Solo per le righe scritte prima che lo storico registrasse categoria/
+  // marca/modello propri (vedi history.ts): un dispositivo può essere stato
+  // eliminato dopo il noleggio, la riga resta comunque nel registro (è uno
+  // storico, non deve sparire), solo senza dati da affiancare.
   const deviceByCodice = useMemo(() => {
     const map = new Map<string, Device>();
     for (const d of devices) map.set(d.codice, d);
@@ -77,7 +78,15 @@ export function RegistroClient({ noleggi, devices, firmeDrive, initialQuery }: R
       if (al && n.data > al) return false;
       if (q) {
         const d = deviceByCodice.get(n.codice);
-        const hay = [n.contratto, n.codice, n.cliente, n.telefono, d?.marca, d?.modello, d?.categoria]
+        const hay = [
+          n.contratto,
+          n.codice,
+          n.cliente,
+          n.telefono,
+          n.marca ?? d?.marca,
+          n.modello ?? d?.modello,
+          n.categoria ?? d?.categoria,
+        ]
           .filter((v) => v != null && v !== "")
           .join(" ")
           .toLowerCase();
@@ -148,6 +157,9 @@ export function RegistroClient({ noleggi, devices, firmeDrive, initialQuery }: R
               <tbody>
                 {filtered.map((n, i) => {
                   const d = deviceByCodice.get(n.codice);
+                  const categoria = n.categoria ?? d?.categoria ?? null;
+                  const marca = n.marca ?? d?.marca ?? null;
+                  const modello = n.modello ?? d?.modello ?? null;
                   const firme = n.contratto
                     ? firmeByNoleggio.get(`${n.codice}::${n.contratto}`)
                     : undefined;
@@ -158,8 +170,8 @@ export function RegistroClient({ noleggi, devices, firmeDrive, initialQuery }: R
                       </td>
                       <td>{fmtDate(n.data)}</td>
                       <td>{n.codice}</td>
-                      <td>{d?.categoria ?? "—"}</td>
-                      <td>{d ? `${d.marca} ${d.modello}` : "—"}</td>
+                      <td>{categoria ?? "—"}</td>
+                      <td>{marca || modello ? `${marca ?? ""} ${modello ?? ""}`.trim() : "—"}</td>
                       <td>{n.cliente ?? "—"}</td>
                       <td>{n.telefono ?? "—"}</td>
                       {/* Consegna e restituzione sono due verbali distinti:

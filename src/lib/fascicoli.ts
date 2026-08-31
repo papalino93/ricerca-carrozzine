@@ -123,6 +123,24 @@ export async function getFascicolo(numero: string): Promise<FascicoloRecord | nu
   return fascicoli.find((f) => f.numero === numero) ?? null;
 }
 
+/** Corregge il nome cliente sui fascicoli collegati, quando il nome viene
+ * rinominato in anagrafica (vedi renameClient in clients.ts): senza questo,
+ * i fascicoli di un cliente rinominato resterebbero agganciati al nome
+ * vecchio e sparirebbero dalla sua scheda cliente (che li cerca per nome). */
+export async function renameFascicoliCliente(nomeAttuale: string, nuovoNome: string): Promise<number> {
+  const fascicoli = await readFascicoli();
+  const target = nomeAttuale.trim().toLowerCase();
+  let count = 0;
+  for (const f of fascicoli) {
+    if (f.clienteNome.trim().toLowerCase() === target) {
+      f.clienteNome = nuovoNome;
+      count++;
+    }
+  }
+  if (count > 0) await writeSheet(TAB, [HEADER, ...fascicoli.map(toRow)]);
+  return count;
+}
+
 /** Tutti i fascicoli di un cliente (stesso nome, case-insensitive come clients.ts), più recenti prima. */
 export async function listFascicoliCliente(clienteNome: string): Promise<FascicoloRecord[]> {
   const target = clienteNome.trim().toLowerCase();
