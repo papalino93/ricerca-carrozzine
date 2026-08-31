@@ -9,6 +9,7 @@ import { isFascicoliDriveConfigured, uploadFascicoloPdf } from "@/lib/drive";
 import { appendFascicoloPdfLog } from "@/lib/fascicoli-pdf-log";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 // Genera il PDF del fascicolo: recupera i dati del cliente dall'anagrafica
 // (mai ridigitati), li unisce al contenuto del fascicolo e produce un unico
@@ -75,6 +76,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ nume
     const headers: Record<string, string> = {
       "Content-Type": "application/pdf",
       "Content-Disposition": `${inline ? "inline" : "attachment"}; filename="fascicolo-${fascicolo.numero}.pdf"`,
+      "Cache-Control": "no-store",
     };
     if (driveUrl) headers["X-Drive-Url"] = driveUrl;
 

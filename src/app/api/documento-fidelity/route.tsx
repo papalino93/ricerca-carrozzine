@@ -5,6 +5,7 @@ import { getSettings } from "@/lib/settings";
 import { FidelityModule } from "@/lib/pdf/FidelityModule";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 function buildDocument(settings: Awaited<ReturnType<typeof getSettings>>) {
   return <FidelityModule settings={settings} />;
@@ -25,6 +26,7 @@ export async function GET(req: NextRequest) {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": 'attachment; filename="modulo-adesione-fidelity.pdf"',
+        "Cache-Control": "no-store",
       },
     });
   } catch (err) {
