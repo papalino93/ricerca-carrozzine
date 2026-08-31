@@ -701,7 +701,7 @@ export function DeviceDetailModal({
           </div>
           <div className="card-actions">
             <button
-              className="btn"
+              className="btn ghost"
               type="button"
               onClick={() => {
                 setRenting(false);

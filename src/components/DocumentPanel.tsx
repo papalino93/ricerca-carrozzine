@@ -236,7 +236,7 @@ export function DocumentPanel({ device, onClose, forcedTipo }: DocumentPanelProp
         </div>
 
         <div className="card-actions" style={{ marginTop: 16 }}>
-          <button className="btn" onClick={onClose} type="button">
+          <button className="btn ghost" onClick={onClose} type="button">
             Annulla
           </button>
           <button className="btn primary" onClick={handleDownload} disabled={loading} type="button">

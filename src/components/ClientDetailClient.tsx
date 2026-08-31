@@ -410,7 +410,7 @@ export function ClientDetailClient({
               <button className="btn primary" type="submit" disabled={savingAnagrafica}>
                 {savingAnagrafica ? "Salvataggio…" : "Salva anagrafica"}
               </button>
-              <button className="btn" type="button" disabled={savingAnagrafica} onClick={() => setEditing(false)}>
+              <button className="btn ghost" type="button" disabled={savingAnagrafica} onClick={() => setEditing(false)}>
                 Annulla
               </button>
             </div>

@@ -189,7 +189,7 @@ export function QuickRentModal({ device, tariffe, onClose, onRented }: QuickRent
             </button>
           </div>
           <div className="card-actions">
-            <button className="btn" type="button" onClick={onClose}>
+            <button className="btn ghost" type="button" onClick={onClose}>
               Annulla
             </button>
             <button className="btn primary" type="submit" disabled={saving}>
