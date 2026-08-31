@@ -3,8 +3,16 @@
 import { useMemo, useRef, useState } from "react";
 import { COMMESSA_STATUS_LABEL, type CommessaRecord } from "@/lib/commesse-types";
 import { matchesQuery } from "@/lib/search-match";
-import { networkErrorMessage, readJson } from "@/lib/fetch-json";
+import { networkErrorMessage } from "@/lib/fetch-json";
 import { todayIso } from "@/lib/dates";
+import {
+  createCommessaRequest,
+  deleteCommessaRequest,
+  fmtDate,
+  fmtEuro,
+  parseImporto,
+  patchCommessaRequest,
+} from "@/lib/commesse-form";
 import { Toast } from "./Toast";
 
 interface CommesseBancoProps {
@@ -22,28 +30,6 @@ const STATUS_PILL: Record<CommessaRecord["stato"], string> = {
   pronta: "disponibile",
   ritirata: "archiviato",
 };
-
-function fmtDate(iso: string | null): string {
-  if (!iso) return "—";
-  const [y, m, d] = (iso.includes("T") ? iso.slice(0, 10) : iso).split("-");
-  // Stringa non interpretabile come data (es. un valore sporco lasciato da
-  // un test): meglio vuota che stampata così com'è.
-  if (!y || !m || !d) return "—";
-  return `${d}/${m}/${y}`;
-}
-
-function fmtEuro(n: number | null): string {
-  if (n == null) return "—";
-  return `${n.toFixed(2).replace(".", ",")} €`;
-}
-
-/** Legge un importo scritto dall'operatore accettando la virgola. */
-function parseImporto(v: string): number | null | "errore" {
-  const t = v.trim();
-  if (t === "") return null;
-  const n = Number(t.replace(/[€\s]/g, "").replace(",", "."));
-  return Number.isFinite(n) ? n : "errore";
-}
 
 function emptyForm() {
   return {
@@ -116,13 +102,7 @@ export function CommesseBanco({ initialCommesse, initialQuery, clienti }: Commes
   async function patch(numero: string, campi: Record<string, unknown>, message: string) {
     setBusy(numero);
     try {
-      const res = await fetch("/api/commesse", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ numero, ...campi }),
-      });
-      const body = await readJson(res);
-      if (!res.ok) throw new Error(body.error || "Modifica non riuscita");
+      const body = await patchCommessaRequest(numero, campi);
       setCommesse(body.commesse);
       showToast(message);
     } catch (err) {
@@ -146,36 +126,30 @@ export function CommesseBanco({ initialCommesse, initialQuery, clienti }: Commes
     }
     setSaving(true);
     try {
-      const res = await fetch("/api/commesse", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cliente: form.cliente.trim(),
-          indirizzo: null,
-          telefono: form.telefono.trim(),
-          cellulare: null,
-          vendita: form.vendita,
-          riparazione: form.riparazione,
-          operatore: null,
-          fornitore: form.fornitore.trim() || null,
-          numeroOrdineCliente: null,
-          richiesteParticolari: form.richiesteParticolari.trim() || null,
-          dataOrdine: form.dataOrdine || todayIso(),
-          consegnaPrevista: form.consegnaPrevista || null,
-          acconto,
-          saldo,
-          richiestaMedica: false,
-          documentazione: false,
-          documentazioneDiagnostica: false,
-          altro: false,
-          controlloFinale: null,
-          noteChiusura: null,
-          prontaIl: null,
-          ritirataIl: null,
-        }),
+      const body = await createCommessaRequest({
+        cliente: form.cliente.trim(),
+        indirizzo: null,
+        telefono: form.telefono.trim(),
+        cellulare: null,
+        vendita: form.vendita,
+        riparazione: form.riparazione,
+        operatore: null,
+        fornitore: form.fornitore.trim() || null,
+        numeroOrdineCliente: null,
+        richiesteParticolari: form.richiesteParticolari.trim() || null,
+        dataOrdine: form.dataOrdine || todayIso(),
+        consegnaPrevista: form.consegnaPrevista || null,
+        acconto,
+        saldo,
+        richiestaMedica: false,
+        documentazione: false,
+        documentazioneDiagnostica: false,
+        altro: false,
+        controlloFinale: null,
+        noteChiusura: null,
+        prontaIl: null,
+        ritirataIl: null,
       });
-      const body = await readJson(res);
-      if (!res.ok) throw new Error(body.error || "Creazione non riuscita");
       setCommesse(body.commesse);
       setForm(emptyForm());
       setCreating(false);
@@ -239,9 +213,7 @@ export function CommesseBanco({ initialCommesse, initialQuery, clienti }: Commes
     if (!confirm(`Eliminare la scheda n. ${c.numero} (${c.cliente})? L'operazione non si può annullare.`)) return;
     setBusy(c.numero);
     try {
-      const res = await fetch(`/api/commesse?numero=${encodeURIComponent(c.numero)}`, { method: "DELETE" });
-      const body = await readJson(res);
-      if (!res.ok) throw new Error(body.error || "Eliminazione non riuscita");
+      const body = await deleteCommessaRequest(c.numero);
       setCommesse(body.commesse);
       if (editing === c.numero) setEditing(null);
       showToast(`Scheda n. ${c.numero} eliminata`);

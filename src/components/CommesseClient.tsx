@@ -3,8 +3,16 @@
 import { Fragment, useMemo, useRef, useState } from "react";
 import { COMMESSA_STATUS_LABEL, type CommessaRecord } from "@/lib/commesse-types";
 import { matchesQuery } from "@/lib/search-match";
-import { networkErrorMessage, readJson } from "@/lib/fetch-json";
+import { networkErrorMessage } from "@/lib/fetch-json";
 import { todayIso } from "@/lib/dates";
+import {
+  createCommessaRequest,
+  deleteCommessaRequest,
+  fmtDate,
+  fmtEuro,
+  parseImporto,
+  patchCommessaRequest,
+} from "@/lib/commesse-form";
 import { Toast } from "./Toast";
 
 interface CommesseClientProps {
@@ -70,20 +78,6 @@ function toEditForm(c: CommessaRecord): EditForm {
     acconto: c.acconto != null ? String(c.acconto) : "",
     saldo: c.saldo != null ? String(c.saldo) : "",
   };
-}
-
-function fmtDate(iso: string | null): string {
-  if (!iso) return "—";
-  const [y, m, d] = (iso.includes("T") ? iso.slice(0, 10) : iso).split("-");
-  // Stringa non interpretabile come data (es. un valore sporco lasciato da
-  // un test): meglio vuota che stampata così com'è.
-  if (!y || !m || !d) return "—";
-  return `${d}/${m}/${y}`;
-}
-
-function fmtEuro(n: number | null): string {
-  if (n == null) return "—";
-  return `${n.toFixed(2).replace(".", ",")} €`;
 }
 
 export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery, clienti }: CommesseClientProps) {
@@ -177,38 +171,32 @@ export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery, cl
     // Stesso controllo del riquadro di modifica: un importo digitato male
     // diventerebbe altrimenti un campo vuoto, e al ritiro la scheda non
     // genererebbe punti fedeltà senza che nessuno se ne accorga.
-    const acconto = form.acconto ? Number(form.acconto.replace(",", ".")) : null;
-    const saldo = form.saldo ? Number(form.saldo.replace(",", ".")) : null;
-    if ((acconto != null && !Number.isFinite(acconto)) || (saldo != null && !Number.isFinite(saldo))) {
+    const acconto = parseImporto(form.acconto);
+    const saldo = parseImporto(form.saldo);
+    if (acconto === "errore" || saldo === "errore") {
       showToast("Importo non valido in Acconto o Saldo: correggilo prima di continuare");
       return;
     }
     setSaving(true);
     try {
-      const res = await fetch("/api/commesse", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          indirizzo: form.indirizzo || null,
-          telefono: form.telefono || null,
-          cellulare: form.cellulare || null,
-          operatore: form.operatore || null,
-          fornitore: form.fornitore || null,
-          numeroOrdineCliente: form.numeroOrdineCliente || null,
-          richiesteParticolari: form.richiesteParticolari || null,
-          dataOrdine: form.dataOrdine || null,
-          consegnaPrevista: form.consegnaPrevista || null,
-          acconto,
-          saldo,
-          controlloFinale: null,
-          noteChiusura: null,
-          prontaIl: null,
-          ritirataIl: null,
-        }),
+      const body = await createCommessaRequest({
+        ...form,
+        indirizzo: form.indirizzo || null,
+        telefono: form.telefono || null,
+        cellulare: form.cellulare || null,
+        operatore: form.operatore || null,
+        fornitore: form.fornitore || null,
+        numeroOrdineCliente: form.numeroOrdineCliente || null,
+        richiesteParticolari: form.richiesteParticolari || null,
+        dataOrdine: form.dataOrdine || null,
+        consegnaPrevista: form.consegnaPrevista || null,
+        acconto,
+        saldo,
+        controlloFinale: null,
+        noteChiusura: null,
+        prontaIl: null,
+        ritirataIl: null,
       });
-      const body = await readJson(res);
-      if (!res.ok) throw new Error(body.error || "Creazione non riuscita");
       setCommesse(body.commesse);
       setForm(emptyForm());
       setCreating(false);
@@ -239,13 +227,7 @@ export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery, cl
   async function patchCommessa(numero: string, patch: Partial<CommessaRecord>, message: string) {
     setSavingEdit(true);
     try {
-      const res = await fetch("/api/commesse", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ numero, ...patch }),
-      });
-      const body = await readJson(res);
-      if (!res.ok) throw new Error(body.error || "Salvataggio non riuscito");
+      const body = await patchCommessaRequest(numero, patch);
       setCommesse(body.commesse);
       // Riallinea le sole date che imposta il server ("Segna pronta" e
       // "Segna ritirata" le scrivono da sé): senza questo il form
@@ -278,9 +260,7 @@ export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery, cl
     if (!confirm(`Eliminare la scheda n. ${c.numero} (${c.cliente})? L'operazione non si può annullare.`)) return;
     setDeleting(c.numero);
     try {
-      const res = await fetch(`/api/commesse?numero=${encodeURIComponent(c.numero)}`, { method: "DELETE" });
-      const body = await readJson(res);
-      if (!res.ok) throw new Error(body.error || "Eliminazione non riuscita");
+      const body = await deleteCommessaRequest(c.numero);
       setCommesse(body.commesse);
       if (openRef.current === c.numero) {
         openRef.current = null;
@@ -304,9 +284,9 @@ export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery, cl
   // validi, invece di farli sparire silenziosamente come null.
   function editFormPatch(): Partial<CommessaRecord> | null {
     if (!editForm) return {};
-    const acconto = editForm.acconto ? Number(editForm.acconto.replace(",", ".")) : null;
-    const saldo = editForm.saldo ? Number(editForm.saldo.replace(",", ".")) : null;
-    if ((acconto != null && !Number.isFinite(acconto)) || (saldo != null && !Number.isFinite(saldo))) {
+    const acconto = parseImporto(editForm.acconto);
+    const saldo = parseImporto(editForm.saldo);
+    if (acconto === "errore" || saldo === "errore") {
       showToast("Importo non valido in Acconto o Saldo: correggilo prima di continuare");
       return null;
     }

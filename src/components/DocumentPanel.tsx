@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import type { Device } from "@/lib/devices";
 import type { DocumentoTipo } from "@/lib/pdf/VerbaleDocument";
-import { calcolaTotale, fmtEuro, giorniTra } from "@/lib/tariffe-types";
+import { fmtEuro } from "@/lib/tariffe-types";
 import { SignaturePad } from "./SignaturePad";
 import { networkErrorMessage } from "@/lib/fetch-json";
 import { todayIso } from "@/lib/dates";
@@ -54,14 +54,6 @@ export function DocumentPanel({ device, onClose, forcedTipo }: DocumentPanelProp
   }, []);
 
   const hasTariffa = device.tariffaApplicata != null && device.tariffaUnita != null;
-  // Il totale ha senso solo sul verbale di restituzione, calcolato sui
-  // giorni effettivi (dal → data di restituzione): sulla consegna non c'è
-  // ancora una data di rientro certa, quindi niente totale — solo la
-  // tariffa giornaliera/settimanale ed eventuale consegna e ritiro.
-  const totale =
-    tipo === "restituzione" && hasTariffa && device.dal
-      ? calcolaTotale(device.tariffaApplicata!, device.tariffaUnita!, giorniTra(device.dal, data))
-      : null;
 
   async function handleDownload() {
     setLoading(true);
@@ -88,7 +80,6 @@ export function DocumentPanel({ device, onClose, forcedTipo }: DocumentPanelProp
             ? {
                 importo: device.tariffaApplicata,
                 unita: device.tariffaUnita,
-                totale: totale ?? undefined,
                 costoConsegna: device.costoConsegna ?? null,
                 nota: device.notaTariffa ?? null,
               }
@@ -184,12 +175,6 @@ export function DocumentPanel({ device, onClose, forcedTipo }: DocumentPanelProp
               <>
                 <br />
                 <b>Nota</b>: {device.notaTariffa}
-              </>
-            ) : null}
-            {totale != null ? (
-              <>
-                <br />
-                <b>Totale</b>: <b>{fmtEuro(totale)}</b>
               </>
             ) : null}
             <br />
