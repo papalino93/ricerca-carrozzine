@@ -76,6 +76,10 @@ export function CommesseBanco({ initialCommesse, initialQuery }: CommesseBancoPr
   /** Numero della scheda in fase di consegna: mostra il campo del saldo. */
   const [consegna, setConsegna] = useState<string | null>(null);
   const [saldoConsegna, setSaldoConsegna] = useState("");
+  /** Numero della scheda in modifica: mostra il form con i dati inseriti
+   * alla creazione, per poterli correggere senza passare da Amministrazione. */
+  const [editing, setEditing] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState(emptyForm);
   const [busy, setBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -175,7 +179,70 @@ export function CommesseBanco({ initialCommesse, initialQuery }: CommesseBancoPr
     }
   }
 
+  function startEdit(c: CommessaRecord) {
+    setConsegna(null);
+    setEditing(c.numero);
+    setEditForm({
+      cliente: c.cliente,
+      telefono: c.telefono ?? "",
+      vendita: c.vendita,
+      riparazione: c.riparazione,
+      fornitore: c.fornitore ?? "",
+      consegnaPrevista: c.consegnaPrevista ?? "",
+      acconto: c.acconto != null ? String(c.acconto).replace(".", ",") : "",
+      saldo: c.saldo != null ? String(c.saldo).replace(".", ",") : "",
+      richiesteParticolari: c.richiesteParticolari ?? "",
+    });
+  }
+
+  async function saveEdit(c: CommessaRecord) {
+    if (!editForm.cliente.trim()) {
+      showToast("Il cliente è obbligatorio");
+      return;
+    }
+    const acconto = parseImporto(editForm.acconto);
+    const saldo = parseImporto(editForm.saldo);
+    if (acconto === "errore" || saldo === "errore") {
+      showToast("Importo non valido in Acconto o Saldo: correggilo prima di continuare");
+      return;
+    }
+    await patch(
+      c.numero,
+      {
+        cliente: editForm.cliente.trim(),
+        telefono: editForm.telefono.trim() || null,
+        vendita: editForm.vendita,
+        riparazione: editForm.riparazione,
+        fornitore: editForm.fornitore.trim() || null,
+        consegnaPrevista: editForm.consegnaPrevista || null,
+        acconto,
+        saldo,
+        richiesteParticolari: editForm.richiesteParticolari.trim() || null,
+      },
+      `Scheda n. ${c.numero} aggiornata`
+    );
+    setEditing(null);
+  }
+
+  async function handleDelete(c: CommessaRecord) {
+    if (!confirm(`Eliminare la scheda n. ${c.numero} (${c.cliente})? L'operazione non si può annullare.`)) return;
+    setBusy(c.numero);
+    try {
+      const res = await fetch(`/api/commesse?numero=${encodeURIComponent(c.numero)}`, { method: "DELETE" });
+      const body = await readJson(res);
+      if (!res.ok) throw new Error(body.error || "Eliminazione non riuscita");
+      setCommesse(body.commesse);
+      if (editing === c.numero) setEditing(null);
+      showToast(`Scheda n. ${c.numero} eliminata`);
+    } catch (err) {
+      showToast(networkErrorMessage(err));
+    } finally {
+      setBusy(null);
+    }
+  }
+
   function avviaConsegna(c: CommessaRecord) {
+    setEditing(null);
     setConsegna(c.numero);
     setSaldoConsegna(c.saldo != null ? String(c.saldo).replace(".", ",") : "");
   }
@@ -399,7 +466,113 @@ export function CommesseBanco({ initialCommesse, initialQuery }: CommesseBancoPr
                     <a className="btn" href={`/api/documento-commessa?numero=${encodeURIComponent(c.numero)}`}>
                       Stampa
                     </a>
+
+                    <button
+                      className="btn"
+                      type="button"
+                      disabled={inCorso}
+                      onClick={() => (editing === c.numero ? setEditing(null) : startEdit(c))}
+                    >
+                      {editing === c.numero ? "Annulla modifica" : "Modifica"}
+                    </button>
+
+                    <button className="btn danger" type="button" disabled={inCorso} onClick={() => handleDelete(c)}>
+                      {inCorso ? "…" : "Elimina"}
+                    </button>
                   </div>
+
+                  {editing === c.numero ? (
+                    <div className="panel" style={{ marginTop: 10 }}>
+                      <div className="form-grid">
+                        <div className="field">
+                          <label htmlFor={`edit-cliente-${c.numero}`}>Cliente</label>
+                          <input
+                            id={`edit-cliente-${c.numero}`}
+                            value={editForm.cliente}
+                            onChange={(e) => setEditForm({ ...editForm, cliente: e.target.value })}
+                          />
+                        </div>
+                        <div className="field">
+                          <label htmlFor={`edit-telefono-${c.numero}`}>Telefono</label>
+                          <input
+                            id={`edit-telefono-${c.numero}`}
+                            inputMode="tel"
+                            value={editForm.telefono}
+                            onChange={(e) => setEditForm({ ...editForm, telefono: e.target.value })}
+                          />
+                        </div>
+                        <div className="field banco-field-wide">
+                          <label htmlFor={`edit-articolo-${c.numero}`}>Cosa ordina il cliente</label>
+                          <textarea
+                            id={`edit-articolo-${c.numero}`}
+                            rows={2}
+                            value={editForm.richiesteParticolari}
+                            onChange={(e) => setEditForm({ ...editForm, richiesteParticolari: e.target.value })}
+                          />
+                        </div>
+                        <div className="field">
+                          <label htmlFor={`edit-fornitore-${c.numero}`}>Fornitore</label>
+                          <input
+                            id={`edit-fornitore-${c.numero}`}
+                            value={editForm.fornitore}
+                            onChange={(e) => setEditForm({ ...editForm, fornitore: e.target.value })}
+                          />
+                        </div>
+                        <div className="field">
+                          <label htmlFor={`edit-consegna-${c.numero}`}>Consegna prevista</label>
+                          <input
+                            id={`edit-consegna-${c.numero}`}
+                            type="date"
+                            value={editForm.consegnaPrevista}
+                            onChange={(e) => setEditForm({ ...editForm, consegnaPrevista: e.target.value })}
+                          />
+                        </div>
+                        <div className="field">
+                          <label htmlFor={`edit-acconto-${c.numero}`}>Acconto</label>
+                          <input
+                            id={`edit-acconto-${c.numero}`}
+                            inputMode="decimal"
+                            value={editForm.acconto}
+                            onChange={(e) => setEditForm({ ...editForm, acconto: e.target.value })}
+                          />
+                        </div>
+                        <div className="field">
+                          <label htmlFor={`edit-saldo-${c.numero}`}>Saldo</label>
+                          <input
+                            id={`edit-saldo-${c.numero}`}
+                            inputMode="decimal"
+                            value={editForm.saldo}
+                            onChange={(e) => setEditForm({ ...editForm, saldo: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                      <div className="chips" style={{ marginTop: 12 }}>
+                        {(
+                          [
+                            ["vendita", "Vendita"],
+                            ["riparazione", "Riparazione"],
+                          ] as const
+                        ).map(([key, label]) => (
+                          <button
+                            key={key}
+                            type="button"
+                            className={`chip ${editForm[key] ? "active" : ""}`}
+                            onClick={() => setEditForm({ ...editForm, [key]: !editForm[key] })}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="card-actions" style={{ marginTop: 16 }}>
+                        <button className="btn primary" type="button" disabled={inCorso} onClick={() => saveEdit(c)}>
+                          {inCorso ? "Salvataggio…" : "Salva modifiche"}
+                        </button>
+                        <button className="btn" type="button" onClick={() => setEditing(null)}>
+                          Annulla
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
 
                   {consegna === c.numero ? (
                     <div className="banco-consegna">
