@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { getSettingsSafe } from "@/lib/settings";
 import { listDevices } from "@/lib/devices";
 import { listCommesse } from "@/lib/commesse";
 import { buildWatchGroups } from "@/lib/watchlist";
@@ -11,8 +10,7 @@ export const dynamic = "force-dynamic";
  * la home applica per non superare l'altezza delle quattro card (vedi
  * PREVIEW_CAP in app/page.tsx). Stesso raggruppamento, stesso ordine. */
 export default async function DaTenereDOcchioPage() {
-  const [settings, devicesR, commesseR] = await Promise.all([
-    getSettingsSafe(),
+  const [devicesR, commesseR] = await Promise.all([
     listDevices().then(
       (v) => ({ ok: true as const, v }),
       () => ({ ok: false as const, v: [] as Awaited<ReturnType<typeof listDevices>> })
@@ -29,7 +27,7 @@ export default async function DaTenereDOcchioPage() {
 
   return (
     <>
-      <FrontBar logoUrl={settings.logoUrl} />
+      <FrontBar />
       <div className="wrap">
         <header className="page-header">
           <h1>Da tenere d&apos;occhio</h1>

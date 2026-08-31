@@ -110,6 +110,6 @@ export default async function proxy(req: NextRequest) {
 // https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|favicon-32.png|apple-icon.png|icon-192.png|icon-512.png|logo.png|og-image.png|manifest.webmanifest|robots.txt).*)",
+    "/((?!_next/static|_next/image|favicon.ico|favicon-32.png|apple-icon.png|icon-192.png|icon-512.png|logo.png|medical-center-brand.png|og-image.png|manifest.webmanifest|robots.txt).*)",
   ],
 };

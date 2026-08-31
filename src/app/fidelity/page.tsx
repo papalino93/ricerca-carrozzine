@@ -13,7 +13,7 @@ export default async function FrontFidelityPage() {
 
   return (
     <>
-      <FrontBar logoUrl={settings.logoUrl} />
+      <FrontBar />
       <FidelityView clients={clients} settings={settings} commesseHref="/commesse" clientiHref="/clienti" />
     </>
   );

@@ -166,7 +166,7 @@ export default async function ReceptionPage() {
             <Link href="/" className="desk-brand">
               <span className="desk-brand-chip">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={settings?.logoUrl || "/logo.png"} alt="Medical Center" />
+                <img src="/medical-center-brand.png" alt="Medical Center" />
               </span>
             </Link>
             <div className="desk-top-right">

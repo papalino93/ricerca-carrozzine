@@ -43,7 +43,7 @@ export function AdminSidebar() {
               serve il logo in negativo, non quello a colori caricato da
               Impostazioni (usato invece sulle pagine a sfondo chiaro). */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-white.png" alt="" />
+          <img src="/medical-center-brand.png" alt="" />
           <p className="eyebrow">Amministrazione</p>
         </Link>
         <button

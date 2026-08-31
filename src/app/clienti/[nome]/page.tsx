@@ -4,7 +4,6 @@ import { listHistory } from "@/lib/history";
 import { listDevices } from "@/lib/devices";
 import { listFascicoliCliente } from "@/lib/fascicoli";
 import { listCommesse } from "@/lib/commesse";
-import { getSettingsSafe } from "@/lib/settings";
 import { FrontBar } from "@/components/FrontBar";
 import { ClientDetailClient } from "@/components/ClientDetailClient";
 
@@ -27,14 +26,13 @@ export default async function ClienteDetailPage({
   const { nome: nomeParam } = await params;
   const nome = decodeURIComponent(nomeParam);
 
-  const [{ tab }, clients, history, devices, fascicoli, commesse, settings] = await Promise.all([
+  const [{ tab }, clients, history, devices, fascicoli, commesse] = await Promise.all([
     searchParams,
     listClients().catch(() => []),
     listHistory().catch(() => []),
     listDevices().catch(() => []),
     listFascicoliCliente(nome).catch(() => []),
     listCommesse().catch(() => []),
-    getSettingsSafe(),
   ]);
 
   const client = clients.find((c) => normalizeName(c.nome) === normalizeName(nome));
@@ -48,7 +46,7 @@ export default async function ClienteDetailPage({
 
   return (
     <>
-      <FrontBar logoUrl={settings.logoUrl} />
+      <FrontBar />
       <ClientDetailClient
         // Forza il rimontaggio quando si passa da un cliente all'altro:
         // senza, una navigazione lato client fra due URL di questa stessa

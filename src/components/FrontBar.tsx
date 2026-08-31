@@ -2,21 +2,17 @@ import Link from "next/link";
 import { BackButton } from "./BackButton";
 import { LogoutButton } from "./LogoutButton";
 
-interface FrontBarProps {
-  logoUrl?: string | null;
-}
-
 /** Barra sottile in cima alle pagine di Operatore banco (Commesse, Fidelity,
  * Clienti, Magazzino noleggio): stesso brand della home, ma pensata per
  * stare sopra il contenuto normale della pagina invece che come schermata a
  * sé. Resta agganciata in alto (vedi .front-bar): con elenchi lunghi il
  * tasto per tornare indietro sparirebbe al primo scorrimento. */
-export function FrontBar({ logoUrl }: FrontBarProps) {
+export function FrontBar() {
   return (
     <div className="front-bar">
       <Link href="/" className="front-bar-brand">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={logoUrl || "/logo.png"} alt="Medical Center" />
+        <img src="/medical-center-brand.png" alt="Medical Center" />
       </Link>
       <div className="front-bar-links">
         <BackButton />

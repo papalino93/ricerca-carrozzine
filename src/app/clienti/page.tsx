@@ -1,6 +1,5 @@
 import { listClients } from "@/lib/clients";
 import { listDevices } from "@/lib/devices";
-import { getSettingsSafe } from "@/lib/settings";
 import { FrontBar } from "@/components/FrontBar";
 import { ClientsClient } from "@/components/ClientsClient";
 
@@ -11,16 +10,15 @@ export default async function FrontClientiPage({
 }: {
   searchParams: Promise<{ q?: string }>;
 }) {
-  const [{ q }, clients, devices, settings] = await Promise.all([
+  const [{ q }, clients, devices] = await Promise.all([
     searchParams,
     listClients().catch(() => []),
     listDevices().catch(() => []),
-    getSettingsSafe(),
   ]);
 
   return (
     <>
-      <FrontBar logoUrl={settings.logoUrl} />
+      <FrontBar />
       <ClientsClient clients={clients} devices={devices} contesto="banco" initialQuery={q} />
     </>
   );

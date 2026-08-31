@@ -2750,6 +2750,7 @@ tr.clickable-row {
   height: 30px;
   width: auto;
   max-width: 100%;
+  filter: brightness(0) invert(1);
 }
 
 .admin-sidebar-brand .eyebrow {
