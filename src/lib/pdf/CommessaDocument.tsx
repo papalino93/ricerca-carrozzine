@@ -49,7 +49,9 @@ const styles = StyleSheet.create({
 function fmtDate(iso: string | null): string {
   if (!iso) return "—";
   const [y, m, d] = (iso.includes("T") ? iso.slice(0, 10) : iso).split("-");
-  if (!y || !m || !d) return iso;
+  // Stringa non interpretabile come data (es. un valore sporco lasciato da
+  // un test): meglio vuota che stampata così com'è.
+  if (!y || !m || !d) return "—";
   return `${d}/${m}/${y}`;
 }
 
