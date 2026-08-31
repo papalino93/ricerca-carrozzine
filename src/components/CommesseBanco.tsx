@@ -593,7 +593,7 @@ export function CommesseBanco({ initialCommesse, initialQuery, clienti }: Commes
                         <button className="btn primary" type="button" disabled={inCorso} onClick={() => saveEdit(c)}>
                           {inCorso ? "Salvataggio…" : "Salva modifiche"}
                         </button>
-                        <button className="btn" type="button" onClick={() => setEditing(null)}>
+                        <button className="btn ghost" type="button" onClick={() => setEditing(null)}>
                           Annulla
                         </button>
                       </div>
@@ -614,7 +614,7 @@ export function CommesseBanco({ initialCommesse, initialQuery, clienti }: Commes
                       <button className="btn primary" type="button" disabled={inCorso} onClick={() => confermaConsegna(c)}>
                         {inCorso ? "Salvataggio…" : "Conferma consegna"}
                       </button>
-                      <button className="btn" type="button" onClick={() => setConsegna(null)}>
+                      <button className="btn ghost" type="button" onClick={() => setConsegna(null)}>
                         Annulla
                       </button>
                     </div>

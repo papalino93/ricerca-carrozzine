@@ -242,7 +242,7 @@ export function TariffeManager({ initialTariffe, categories }: TariffeManagerPro
             {saving ? "Salvataggio…" : editing ? "Salva modifiche" : "Aggiungi tariffa"}
           </button>
           {editing ? (
-            <button className="btn" type="button" onClick={cancelEdit} disabled={saving}>
+            <button className="btn ghost" type="button" onClick={cancelEdit} disabled={saving}>
               Annulla
             </button>
           ) : null}

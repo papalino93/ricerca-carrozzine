@@ -30,7 +30,7 @@ export function FidelityView({ clients, settings, commesseHref, clientiHref }: F
         </p>
       </header>
 
-      <div className="panel">
+      <div className="info-section">
         <div className="field-row" style={{ marginBottom: 0 }}>
           <div className="field">
             <label>Come si accumula</label>
@@ -54,7 +54,7 @@ export function FidelityView({ clients, settings, commesseHref, clientiHref }: F
           <a className="btn primary" href="/api/documento-fidelity" target="_blank" rel="noreferrer">
             Scarica modulo di adesione (PDF)
           </a>
-          <Link className="btn" href={clientiHref}>
+          <Link className="btn ghost" href={clientiHref}>
             Gestisci punti per cliente →
           </Link>
         </div>

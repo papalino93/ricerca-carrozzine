@@ -223,7 +223,7 @@ export function SottocategorieManager({ categoria }: { categoria: string }) {
             {saving ? "Salvataggio…" : editing ? "Salva modifiche" : "Aggiungi sottocategoria"}
           </button>
           {editing ? (
-            <button className="btn" type="button" onClick={cancelEdit} disabled={saving}>
+            <button className="btn ghost" type="button" onClick={cancelEdit} disabled={saving}>
               Annulla
             </button>
           ) : null}
