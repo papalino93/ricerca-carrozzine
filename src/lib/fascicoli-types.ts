@@ -360,7 +360,6 @@ export type SezioneFascicolo =
   | "esamePiede"
   | "prescrizione"
   | "produzione"
-  | "conformita"
   | "consegna";
 
 export const SEZIONI_FASCICOLO: { key: SezioneFascicolo; label: string }[] = [
@@ -370,7 +369,6 @@ export const SEZIONI_FASCICOLO: { key: SezioneFascicolo; label: string }[] = [
   { key: "esamePiede", label: "Esame del piede" },
   { key: "prescrizione", label: "Prescrizione" },
   { key: "produzione", label: "Produzione" },
-  { key: "conformita", label: "Conformità" },
   { key: "consegna", label: "Consegna" },
 ];
 
@@ -390,7 +388,6 @@ export function calcolaCompletamento(f: Pick<FascicoloRecord, "clienteNome" | "c
     esamePiede: Boolean(c.esamePiede.motivoVisita?.trim()),
     prescrizione: Boolean(c.prescrizione.descrizioneMateriale?.trim() && c.prescrizione.importo != null),
     produzione: Boolean(c.produzione.dataInizioLavori),
-    conformita: Boolean(c.produzione.matricola || c.produzione.codice),
     consegna: Boolean(c.consegna.dataConsegnaEffettiva),
   };
 }

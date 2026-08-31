@@ -1011,43 +1011,6 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
           </>
         ) : null}
 
-        {tab === "conformita" ? (
-          <>
-            <h2>Dichiarazione di conformità</h2>
-            <p className="hint">
-              Generata automaticamente da Medical Center in base ai dati di questo fascicolo (dispositivo, codice,
-              matricola, responsabile di progetto): una sola volta nel PDF finale, come nel modello definitivo del
-              fascicolo.
-            </p>
-            <div className="admin-table-wrap">
-              <table className="admin-table">
-                <tbody>
-                  <tr>
-                    <td>Nome dispositivo</td>
-                    <td>{fascicolo.tipoDispositivo}</td>
-                  </tr>
-                  <tr>
-                    <td>Codice</td>
-                    <td>{c.produzione.codice || "—"}</td>
-                  </tr>
-                  <tr>
-                    <td>Matricola</td>
-                    <td>{c.produzione.matricola || "—"}</td>
-                  </tr>
-                  <tr>
-                    <td>Commessa</td>
-                    <td>{fascicolo.commessa || fascicolo.numero}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <p className="hint" style={{ marginTop: 12 }}>
-              Firma della direzione: predisposta per la firma digitale sullo schermo in una fase futura — per ora il
-              PDF esce con la riga vuota, da firmare a penna dopo la stampa.
-            </p>
-          </>
-        ) : null}
-
         {tab === "consegna" ? (
           <>
             <h2>Consegna</h2>
