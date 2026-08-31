@@ -1,5 +1,6 @@
 import "server-only";
 import { google, sheets_v4 } from "googleapis";
+import { revalidateTag, unstable_cache } from "next/cache";
 
 let cachedAuth: InstanceType<typeof google.auth.JWT> | null = null;
 // Tab già verificate/create in questa istanza (evita una chiamata
@@ -114,6 +115,36 @@ function friendlyError(err: unknown): Error {
   return err instanceof Error ? err : new Error(message || "Errore imprevisto");
 }
 
+// Le pagine del gestionale leggono spesso le stesse tab nello spazio di pochi
+// secondi. Questa cache condivisa da Vercel evita di ripetere ogni volta la
+// stessa chiamata a Google Sheets, ma resta volutamente molto breve: eventuali
+// modifiche fatte direttamente nel foglio diventano visibili entro 15 secondi.
+// Le scritture effettuate dal gestionale, invece, invalidano subito il tag.
+const SHEETS_DATA_CACHE_TAG = "medical-center-sheets-data";
+
+const readValuesCached = unstable_cache(
+  async (spreadsheetId: string, range: string): Promise<string[][]> => {
+    const sheets = getSheetsApi();
+    try {
+      const res = await conRiprova(() =>
+        sheets.spreadsheets.values.get({ spreadsheetId, range })
+      );
+      return (res.data.values as string[][] | undefined) ?? [];
+    } catch (err) {
+      if (isMissingRangeError(err)) return [];
+      throw friendlyError(err);
+    }
+  },
+  ["medical-center-sheets-values-v1"],
+  { revalidate: 15, tags: [SHEETS_DATA_CACHE_TAG] }
+);
+
+function invalidateSheetsData(): void {
+  // Nei Route Handler updateTag non è consentito; expire: 0 rende non valido
+  // immediatamente il dato per la richiesta successiva.
+  revalidateTag(SHEETS_DATA_CACHE_TAG, { expire: 0 });
+}
+
 /** Crea la tab se non esiste ancora (idempotente, con cache in memoria). */
 async function ensureTab(sheets: sheets_v4.Sheets, spreadsheetId: string, tab: string): Promise<void> {
   const cacheKey = `${spreadsheetId}::${tab}`;
@@ -139,16 +170,7 @@ async function ensureTab(sheets: sheets_v4.Sheets, spreadsheetId: string, tab: s
  * decine di MB per mostrare qualche etichetta.
  */
 export async function readRange(range: string): Promise<string[][]> {
-  const sheets = getSheetsApi();
-  try {
-    const res = await conRiprova(() =>
-      sheets.spreadsheets.values.get({ spreadsheetId: getSpreadsheetId(), range })
-    );
-    return (res.data.values as string[][] | undefined) ?? [];
-  } catch (err) {
-    if (isMissingRangeError(err)) return [];
-    throw friendlyError(err);
-  }
+  return readValuesCached(getSpreadsheetId(), range);
 }
 
 /**
@@ -218,6 +240,7 @@ export async function deleteRows(tab: string, rowNumbers: number[], spreadsheetI
         })),
       },
     });
+    invalidateSheetsData();
   } catch (err) {
     throw friendlyError(err);
   }
@@ -228,19 +251,7 @@ export async function deleteRows(tab: string, rowNumbers: number[], spreadsheetI
  * Se la tab non esiste ancora restituisce un elenco vuoto invece di errore.
  */
 export async function readSheet(tab: string, spreadsheetIdOverride?: string): Promise<string[][]> {
-  const sheets = getSheetsApi();
-  try {
-    const res = await conRiprova(() =>
-      sheets.spreadsheets.values.get({
-        spreadsheetId: spreadsheetIdOverride ?? getSpreadsheetId(),
-        range: tab,
-      })
-    );
-    return (res.data.values as string[][] | undefined) ?? [];
-  } catch (err) {
-    if (isMissingRangeError(err)) return [];
-    throw friendlyError(err);
-  }
+  return readValuesCached(spreadsheetIdOverride ?? getSpreadsheetId(), tab);
 }
 
 /**
@@ -264,6 +275,7 @@ export async function writeSheet(tab: string, rows: string[][], spreadsheetIdOve
     if (rows.length === 0) {
       // Nessun contenuto nuovo da proteggere: qui svuotare è l'operazione richiesta.
       await sheets.spreadsheets.values.clear({ spreadsheetId, range: tab });
+      invalidateSheetsData();
       return;
     }
 
@@ -281,6 +293,7 @@ export async function writeSheet(tab: string, rows: string[][], spreadsheetIdOve
       spreadsheetId,
       range: `${tab}!A${rows.length + 1}:ZZ`,
     });
+    invalidateSheetsData();
   } catch (err) {
     throw friendlyError(err);
   }
@@ -329,6 +342,7 @@ export async function appendRows(
       insertDataOption: "INSERT_ROWS",
       requestBody: { values: rows },
     });
+    invalidateSheetsData();
   } catch (err) {
     throw friendlyError(err);
   }
@@ -369,6 +383,7 @@ export async function appendRow(
       insertDataOption: "INSERT_ROWS",
       requestBody: { values: [row] },
     });
+    invalidateSheetsData();
   } catch (err) {
     throw friendlyError(err);
   }
