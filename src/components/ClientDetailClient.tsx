@@ -7,16 +7,42 @@ import type { ClientRecord } from "@/lib/clients";
 import type { HistoryEvent } from "@/lib/history";
 import type { Device } from "@/lib/device-types";
 import { FASCICOLO_STATO_LABEL, type FascicoloRecord } from "@/lib/fascicoli-types";
+import { COMMESSA_STATUS_LABEL, type CommessaRecord } from "@/lib/commesse-types";
 import { networkErrorMessage, readJson } from "@/lib/fetch-json";
 import { IconModifica } from "./ReceptionIcons";
 import { Toast } from "./Toast";
+
+const TABS = ["panoramica", "commesse", "storico", "fidelity", "fascicoli"] as const;
+type ClientTab = (typeof TABS)[number];
+
+const TAB_LABEL: Record<ClientTab, string> = {
+  panoramica: "Panoramica",
+  commesse: "Commesse",
+  storico: "Storico",
+  fidelity: "Fidelity",
+  fascicoli: "Fascicoli",
+};
+
+function isClientTab(v: string | undefined): v is ClientTab {
+  return (TABS as readonly string[]).includes(v ?? "");
+}
 
 interface ClientDetailClientProps {
   initialClient: ClientRecord;
   history: HistoryEvent[];
   currentDevice: Device | null;
   fascicoli: FascicoloRecord[];
+  commesse: CommessaRecord[];
+  /** Tab da aprire subito (es. da un link diretto in "Da tenere d'occhio"):
+   * un valore non riconosciuto ricade su "panoramica" invece di rompere. */
+  initialTab?: string;
 }
+
+const STATUS_PILL: Record<CommessaRecord["stato"], string> = {
+  in_lavorazione: "noleggiato",
+  pronta: "disponibile",
+  ritirata: "archiviato",
+};
 
 const EVENT_LABEL: Record<HistoryEvent["evento"], string> = {
   noleggio: "Noleggio",
@@ -89,9 +115,17 @@ function anagraficaFromClient(c: ClientRecord) {
   };
 }
 
-export function ClientDetailClient({ initialClient, history, currentDevice, fascicoli }: ClientDetailClientProps) {
+export function ClientDetailClient({
+  initialClient,
+  history,
+  currentDevice,
+  fascicoli,
+  commesse,
+  initialTab,
+}: ClientDetailClientProps) {
   const router = useRouter();
   const [client, setClient] = useState(initialClient);
+  const [tab, setTab] = useState<ClientTab>(isClientTab(initialTab) ? initialTab : "panoramica");
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(() => anagraficaFromClient(initialClient));
   const [savingAnagrafica, setSavingAnagrafica] = useState(false);
@@ -227,23 +261,41 @@ export function ClientDetailClient({ initialClient, history, currentDevice, fasc
         ← Indietro
       </button>
 
-      <header className="page-header">
-        <div className="page-header-text">
-          <h1>{displayFullName(client)}</h1>
-          <p className="sub">
-            {client.codiceFiscale ? `CF ${client.codiceFiscale}` : "Codice fiscale non registrato"}
-            {client.fidelity ? ` · Tessera fedeltà n. ${client.fidelity}` : ""}
-          </p>
-        </div>
-      </header>
+      <div className="client-detail-header">
+        <header className="page-header" style={{ marginBottom: 0 }}>
+          <div className="page-header-text">
+            <h1>{displayFullName(client)}</h1>
+            <p className="sub">
+              {client.codiceFiscale ? `CF ${client.codiceFiscale}` : "Codice fiscale non registrato"}
+              {client.fidelity ? ` · Tessera fedeltà n. ${client.fidelity}` : ""}
+            </p>
+          </div>
+        </header>
 
-      {currentDevice ? (
-        <div className="banner" style={{ marginBottom: 16 }}>
-          Noleggio in corso: <b>{currentDevice.codice}</b> — {currentDevice.categoria} {currentDevice.marca}{" "}
-          {currentDevice.modello}
-        </div>
-      ) : null}
+        {currentDevice ? (
+          <div className="banner" style={{ marginTop: 14, marginBottom: 0 }}>
+            Noleggio in corso: <b>{currentDevice.codice}</b> — {currentDevice.categoria} {currentDevice.marca}{" "}
+            {currentDevice.modello}
+          </div>
+        ) : null}
+      </div>
 
+      <div className="tabs">
+        {TABS.map((t) => (
+          <button
+            key={t}
+            type="button"
+            className={`tab ${tab === t ? "active" : ""}`}
+            onClick={() => setTab(t)}
+          >
+            {TAB_LABEL[t]}
+            {t === "commesse" ? <span className="tab-count">{commesse.length}</span> : null}
+            {t === "fascicoli" ? <span className="tab-count">{fascicoli.length}</span> : null}
+          </button>
+        ))}
+      </div>
+
+      {tab === "panoramica" ? (
       <div className="panel">
         <div className="page-title-row" style={{ marginBottom: 12 }}>
           <h2 style={{ margin: 0 }}>Anagrafica</h2>
@@ -365,7 +417,47 @@ export function ClientDetailClient({ initialClient, history, currentDevice, fasc
           </form>
         )}
       </div>
+      ) : null}
 
+      {tab === "commesse" ? (
+      <div className="panel">
+        <h2>Commesse</h2>
+        {commesse.length === 0 ? (
+          <p className="hint" style={{ margin: 0 }}>
+            Nessuna commessa registrata per questo cliente.
+          </p>
+        ) : (
+          <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>N.</th>
+                  <th>Tipo</th>
+                  <th>Data ordine</th>
+                  <th>Stato</th>
+                </tr>
+              </thead>
+              <tbody>
+                {commesse.map((c) => (
+                  <tr key={c.numero}>
+                    <td>
+                      <Link href={`/admin/commesse?q=${encodeURIComponent(c.numero)}`}>{c.numero}</Link>
+                    </td>
+                    <td>{[c.vendita && "Vendita", c.riparazione && "Riparazione"].filter(Boolean).join(" + ") || "—"}</td>
+                    <td>{c.dataOrdine ? fmtDate(c.dataOrdine) : "—"}</td>
+                    <td>
+                      <span className={`pill ${STATUS_PILL[c.stato]}`}>{COMMESSA_STATUS_LABEL[c.stato]}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+      ) : null}
+
+      {tab === "fidelity" ? (
       <div className="panel">
         <h2>Fidelity</h2>
         <div className="card-actions" style={{ alignItems: "center" }}>
@@ -391,23 +483,31 @@ export function ClientDetailClient({ initialClient, history, currentDevice, fasc
           ) : null}
         </div>
       </div>
+      ) : null}
 
-      {fascicoli.length > 0 ? (
+      {tab === "fascicoli" ? (
         <div className="panel">
           <h2>Fascicoli plantari</h2>
-          <ul className="search-result-list">
-            {fascicoli.map((f) => (
-              <li key={f.numero}>
-                <Link href={`/admin/fascicoli/${f.numero}`} className="search-result-item">
-                  <strong>{f.numero}</strong> · creato il {fmtDate(f.dataCreazione)}{" "}
-                  <span className={`pill fascicolo-${f.stato}`}>{FASCICOLO_STATO_LABEL[f.stato]}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
+          {fascicoli.length === 0 ? (
+            <p className="hint" style={{ margin: 0 }}>
+              Nessun fascicolo plantare per questo cliente.
+            </p>
+          ) : (
+            <ul className="search-result-list">
+              {fascicoli.map((f) => (
+                <li key={f.numero}>
+                  <Link href={`/admin/fascicoli/${f.numero}`} className="search-result-item">
+                    <strong>{f.numero}</strong> · creato il {fmtDate(f.dataCreazione)}{" "}
+                    <span className={`pill fascicolo-${f.stato}`}>{FASCICOLO_STATO_LABEL[f.stato]}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       ) : null}
 
+      {tab === "storico" ? (
       <div className="panel">
         <h2>Storico</h2>
         {history.length === 0 ? (
@@ -453,6 +553,7 @@ export function ClientDetailClient({ initialClient, history, currentDevice, fasc
           </div>
         )}
       </div>
+      ) : null}
 
       <div className="danger-zone">
         {!confirmingDelete ? (
