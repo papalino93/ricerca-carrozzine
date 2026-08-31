@@ -6,6 +6,7 @@ import { getFascicolo } from "@/lib/fascicoli";
 import { ProcessoProduttivoDocument } from "@/lib/pdf/ProcessoProduttivoDocument";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 // Allegato A (flussogramma di progettazione ISO 13485) come documento a
 // sé, stampabile su richiesta senza toccare il fascicolo: la stessa
@@ -28,6 +29,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ nume
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="processo-produttivo-${fascicolo.numero}.pdf"`,
+        "Cache-Control": "no-store",
       },
     });
   } catch (err) {

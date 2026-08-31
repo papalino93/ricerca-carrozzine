@@ -7,6 +7,10 @@ import { CommessaDocument } from "@/lib/pdf/CommessaDocument";
 import type { CommessaRecord } from "@/lib/commesse-types";
 
 export const runtime = "nodejs";
+// Senza questo, un browser/CDN può servire una copia in cache di un GET
+// precedente per lo stesso numero: un operatore che corregge la commessa
+// e ristampa subito vedrebbe ancora i dati vecchi.
+export const dynamic = "force-dynamic";
 
 function buildDocument(settings: Awaited<ReturnType<typeof getSettings>>, commessa: CommessaRecord) {
   return <CommessaDocument settings={settings} commessa={commessa} />;
@@ -37,6 +41,7 @@ export async function GET(req: NextRequest) {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="scheda-commessa-${numero}.pdf"`,
+        "Cache-Control": "no-store",
       },
     });
   } catch (err) {
