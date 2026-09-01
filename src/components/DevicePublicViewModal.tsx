@@ -57,8 +57,8 @@ export function DevicePublicViewModal({ device: d, onClose, onUpdated }: DeviceP
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay device-public-overlay" onClick={onClose}>
+      <div className="modal device-public-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h3>
             {d.codice} — {d.marca} {d.modello}
@@ -115,7 +115,7 @@ export function DevicePublicViewModal({ device: d, onClose, onUpdated }: DeviceP
         {error ? <div className="banner error">{error}</div> : null}
 
         {canResolve ? (
-          <div className="panel" style={{ margin: "12px 0 0" }}>
+          <div className="panel verify-panel" style={{ margin: "12px 0 0" }}>
             <h2>Da verificare</h2>
             <p className="hint" style={{ marginBottom: 10 }}>
               Controllato di persona? Risolvi qui, non serve passare dall&apos;amministrazione.
@@ -126,7 +126,7 @@ export function DevicePublicViewModal({ device: d, onClose, onUpdated }: DeviceP
             </div>
             <div className="card-actions" style={{ marginTop: 8, marginBottom: 14 }}>
               <button
-                className="btn"
+                className="btn verify-save"
                 type="button"
                 disabled={saving || nota === (d.nota ?? "")}
                 onClick={() => save({ nota: nota || null })}
@@ -138,7 +138,11 @@ export function DevicePublicViewModal({ device: d, onClose, onUpdated }: DeviceP
               {RESOLVE_OPTIONS.map((o) => (
                 <button
                   key={o.stato}
-                  className="btn primary"
+                  className={
+                    o.stato === "disponibile"
+                      ? "btn primary verify-resolve-primary"
+                      : "btn verify-resolve-secondary"
+                  }
                   type="button"
                   disabled={saving}
                   onClick={() => save({ stato: o.stato })}
