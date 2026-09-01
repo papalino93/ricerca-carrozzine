@@ -902,6 +902,24 @@ h1 {
 }
 
 .desk-watch {
+  /* Palette riservata alla zona operativa: il verde rimane il colore
+     dell'interfaccia generale, mentre qui ogni tipo di attenzione ha un
+     segnale proprio e riconoscibile anche a colpo d'occhio. */
+  --watch-urgent-fg: #a96200;
+  --watch-urgent-bg: #fff2dc;
+  --watch-urgent-line: #f1c77e;
+  --watch-broken-fg: #b8322a;
+  --watch-broken-bg: #fdebea;
+  --watch-broken-line: #f2beb9;
+  --watch-check-fg: #4f59b6;
+  --watch-check-bg: #edf0ff;
+  --watch-check-line: #cbd1f5;
+  --watch-clean-fg: #087b78;
+  --watch-clean-bg: #e4f6f4;
+  --watch-clean-line: #b9e0dc;
+  --watch-neutral-fg: #48637d;
+  --watch-neutral-bg: #eaf0f6;
+  --watch-neutral-line: #c7d5e2;
   background:
     radial-gradient(70% 140% at 100% 0%, rgba(231, 240, 227, 0.72) 0%, transparent 62%),
     linear-gradient(145deg, #fffefa 0%, var(--surface) 62%, #f5f8f2 100%);
@@ -925,9 +943,9 @@ h1 {
 }
 
 .desk-watch-column {
-  --watch-fg: var(--ink-soft);
-  --watch-bg: #f3f5f1;
-  --watch-line: var(--line);
+  --watch-fg: var(--watch-neutral-fg);
+  --watch-bg: var(--watch-neutral-bg);
+  --watch-line: var(--watch-neutral-line);
   min-width: 0;
   padding: 16px;
   border: 1px solid var(--watch-line);
@@ -939,23 +957,28 @@ h1 {
   box-shadow: 0 8px 24px -20px color-mix(in srgb, var(--watch-fg) 50%, transparent);
 }
 
-.desk-watch-column-urgent,
+.desk-watch-column-urgent {
+  --watch-fg: var(--watch-urgent-fg);
+  --watch-bg: var(--watch-urgent-bg);
+  --watch-line: var(--watch-urgent-line);
+}
+
 .desk-watch-column-broken {
-  --watch-fg: var(--broken-fg);
-  --watch-bg: var(--broken-bg);
-  --watch-line: var(--broken-line);
+  --watch-fg: var(--watch-broken-fg);
+  --watch-bg: var(--watch-broken-bg);
+  --watch-line: var(--watch-broken-line);
 }
 
 .desk-watch-column-check {
-  --watch-fg: var(--check-fg);
-  --watch-bg: var(--check-bg);
-  --watch-line: var(--check-line);
+  --watch-fg: var(--watch-check-fg);
+  --watch-bg: var(--watch-check-bg);
+  --watch-line: var(--watch-check-line);
 }
 
 .desk-watch-column-clean {
-  --watch-fg: var(--clean-fg);
-  --watch-bg: var(--clean-bg);
-  --watch-line: var(--clean-line);
+  --watch-fg: var(--watch-clean-fg);
+  --watch-bg: var(--watch-clean-bg);
+  --watch-line: var(--watch-clean-line);
 }
 
 .desk-watch-head {
@@ -978,9 +1001,9 @@ h1 {
 .desk-watch-total {
   font-size: 14px;
   font-weight: 600;
-  color: var(--accent-ink);
-  background: var(--accent-bg);
-  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--line));
+  color: var(--watch-neutral-fg);
+  background: color-mix(in srgb, var(--watch-neutral-bg) 72%, white);
+  border: 1px solid var(--watch-neutral-line);
   border-radius: 999px;
   padding: 5px 10px;
   flex-shrink: 0;
@@ -1036,34 +1059,39 @@ h1 {
   font-size: 11.5px;
 }
 
-.desk-watch-group.urgent,
-.desk-watch-group.broken {
-  color: var(--broken-fg);
+.desk-watch-group.urgent {
+  color: var(--watch-urgent-fg);
 }
-.desk-watch-group.urgent .dot,
+.desk-watch-group.urgent .dot {
+  background: var(--watch-urgent-fg);
+}
+
+.desk-watch-group.broken {
+  color: var(--watch-broken-fg);
+}
 .desk-watch-group.broken .dot {
-  background: var(--broken-fg);
+  background: var(--watch-broken-fg);
 }
 
 .desk-watch-group.check {
-  color: var(--check-fg);
+  color: var(--watch-check-fg);
 }
 .desk-watch-group.check .dot {
-  background: var(--check-fg);
+  background: var(--watch-check-fg);
 }
 
 .desk-watch-group.clean {
-  color: var(--clean-fg);
+  color: var(--watch-clean-fg);
 }
 .desk-watch-group.clean .dot {
-  background: var(--clean-fg);
+  background: var(--watch-clean-fg);
 }
 
 .desk-watch-group.neutral {
-  color: var(--ink-soft);
+  color: var(--watch-neutral-fg);
 }
 .desk-watch-group.neutral .dot {
-  background: var(--ink-soft);
+  background: var(--watch-neutral-fg);
 }
 
 /* "A noleggio >30 gg" è una singola etichetta operativa: nelle colonne
@@ -1170,6 +1198,8 @@ h1 {
 .desk-watch-column .desk-watch-code {
   grid-area: code;
   align-self: center;
+  color: var(--watch-fg);
+  background: color-mix(in srgb, var(--watch-bg) 72%, white);
 }
 
 .desk-watch-column .desk-watch-who {
