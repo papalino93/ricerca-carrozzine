@@ -16,11 +16,18 @@ export function UsersManager({ initialUsers }: UsersManagerProps) {
   const [password, setPassword] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [passwordTarget, setPasswordTarget] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmationPassword, setConfirmationPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
     setError(null);
+    setNotice(null);
     try {
       const res = await fetch("/api/utenti", {
         method: "POST",
@@ -39,22 +46,57 @@ export function UsersManager({ initialUsers }: UsersManagerProps) {
     }
   }
 
-  async function handleReset(u: string) {
-    const newPassword = prompt(`Nuova password per "${u}" (almeno 6 caratteri):`);
-    if (!newPassword) return;
+  function openReset(u: string) {
+    setPasswordTarget(u);
+    setNewPassword("");
+    setConfirmationPassword("");
+    setShowNewPassword(false);
+    setError(null);
+    setResetError(null);
+    setNotice(null);
+  }
+
+  function closeReset() {
+    if (saving) return;
+    setPasswordTarget(null);
+    setNewPassword("");
+    setConfirmationPassword("");
+    setShowNewPassword(false);
+    setResetError(null);
+  }
+
+  async function handleReset(e: React.FormEvent) {
+    e.preventDefault();
+    if (!passwordTarget) return;
+    if (newPassword.length < 6) {
+      setResetError("La password deve contenere almeno 6 caratteri.");
+      return;
+    }
+    if (newPassword !== confirmationPassword) {
+      setResetError("Le due password non coincidono.");
+      return;
+    }
+
     setSaving(true);
     setError(null);
+    setNotice(null);
+    setResetError(null);
     try {
       const res = await fetch("/api/utenti", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: u, password: newPassword }),
+        body: JSON.stringify({ username: passwordTarget, password: newPassword }),
       });
       const body = await readJson(res);
       if (!res.ok) throw new Error(body.error || "Impossibile reimpostare la password");
-      alert(`Password aggiornata per "${u}".`);
+      setUsers(body.users);
+      setNotice(`Password aggiornata per “${passwordTarget}”.`);
+      setPasswordTarget(null);
+      setNewPassword("");
+      setConfirmationPassword("");
+      setShowNewPassword(false);
     } catch (err) {
-      setError(networkErrorMessage(err));
+      setResetError(networkErrorMessage(err));
     } finally {
       setSaving(false);
     }
@@ -64,6 +106,7 @@ export function UsersManager({ initialUsers }: UsersManagerProps) {
     if (!(await confirmAction({ title: `Revocare l'accesso a “${u}”?`, description: "L'utente non potrà più accedere al gestionale.", confirmLabel: "Revoca accesso", tone: "danger" }))) return;
     setSaving(true);
     setError(null);
+    setNotice(null);
     try {
       const res = await fetch(`/api/utenti?username=${encodeURIComponent(u)}`, { method: "DELETE" });
       const body = await readJson(res);
@@ -86,6 +129,11 @@ export function UsersManager({ initialUsers }: UsersManagerProps) {
       </p>
 
       {error ? <div className="banner error">{error}</div> : null}
+      {notice ? (
+        <div className="banner success" role="status">
+          {notice}
+        </div>
+      ) : null}
 
       {users.length === 0 ? (
         <p className="hint">Nessun utente aggiuntivo autorizzato per ora.</p>
@@ -104,7 +152,12 @@ export function UsersManager({ initialUsers }: UsersManagerProps) {
                 <td>{u.username}</td>
                 <td>
                   <div className="card-actions" style={{ marginTop: 0 }}>
-                    <button className="btn" type="button" onClick={() => handleReset(u.username)} disabled={saving}>
+                    <button
+                      className="btn"
+                      type="button"
+                      onClick={() => openReset(u.username)}
+                      disabled={saving}
+                    >
                       Reimposta password
                     </button>
                     <button className="btn danger" type="button" onClick={() => handleRemove(u.username)} disabled={saving}>
@@ -142,6 +195,77 @@ export function UsersManager({ initialUsers }: UsersManagerProps) {
           </button>
         </div>
       </form>
+
+      {passwordTarget ? (
+        <div className="confirm-backdrop" role="presentation" onMouseDown={closeReset}>
+          <section
+            className="confirm-dialog password-change-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="password-change-title"
+            aria-describedby="password-change-description"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="confirm-dialog-icon" aria-hidden="true">
+              ✓
+            </div>
+            <h2 id="password-change-title">Nuova password per “{passwordTarget}”</h2>
+            <p id="password-change-description">
+              Scegli una password di almeno 6 caratteri e confermala prima di salvarla.
+            </p>
+            <form onSubmit={handleReset}>
+              <div className="field password-change-field">
+                <label htmlFor="new-password">Nuova password</label>
+                <div className="password-change-input">
+                  <input
+                    id="new-password"
+                    type={showNewPassword ? "text" : "password"}
+                    value={newPassword}
+                    onChange={(event) => setNewPassword(event.target.value)}
+                    minLength={6}
+                    autoComplete="new-password"
+                    autoFocus
+                    required
+                  />
+                  <button
+                    className="btn ghost password-toggle"
+                    type="button"
+                    onClick={() => setShowNewPassword((visible) => !visible)}
+                    aria-label={showNewPassword ? "Nascondi password" : "Mostra password"}
+                  >
+                    {showNewPassword ? "Nascondi" : "Mostra"}
+                  </button>
+                </div>
+              </div>
+              <div className="field password-change-field">
+                <label htmlFor="confirmation-password">Conferma password</label>
+                <input
+                  id="confirmation-password"
+                  type={showNewPassword ? "text" : "password"}
+                  value={confirmationPassword}
+                  onChange={(event) => setConfirmationPassword(event.target.value)}
+                  minLength={6}
+                  autoComplete="new-password"
+                  required
+                />
+              </div>
+              {resetError ? (
+                <div className="banner error password-change-error" role="alert">
+                  {resetError}
+                </div>
+              ) : null}
+              <div className="confirm-dialog-actions">
+                <button type="button" className="btn" onClick={closeReset} disabled={saving}>
+                  Annulla
+                </button>
+                <button type="submit" className="btn primary" disabled={saving}>
+                  {saving ? "Salvataggio…" : "Salva password"}
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 }

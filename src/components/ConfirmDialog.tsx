@@ -60,10 +60,20 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
             <h2 id="confirm-dialog-title">{options.title}</h2>
             <p id="confirm-dialog-description">{options.description}</p>
             <div className="confirm-dialog-actions">
-              <button type="button" className="btn" onClick={() => close(false)}>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => close(false)}
+                autoFocus={options.tone === "danger"}
+              >
                 Annulla
               </button>
-              <button type="button" className="btn primary" onClick={() => close(true)} autoFocus>
+              <button
+                type="button"
+                className="btn primary"
+                onClick={() => close(true)}
+                autoFocus={options.tone !== "danger"}
+              >
                 {options.confirmLabel}
               </button>
             </div>

@@ -201,6 +201,43 @@ a {
 .confirm-dialog-actions .btn { min-width: 132px; }
 .confirm-dialog.danger .btn.primary { background: var(--broken-fg); border-color: var(--broken-fg); }
 
+.password-change-dialog {
+  text-align: left;
+}
+
+.password-change-dialog .confirm-dialog-icon,
+.password-change-dialog h2,
+.password-change-dialog p {
+  text-align: center;
+}
+
+.password-change-field {
+  margin-bottom: 14px;
+}
+
+.password-change-input {
+  position: relative;
+}
+
+.password-change-input input {
+  width: 100%;
+  padding-right: 88px;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  min-height: 34px;
+  padding: 5px 8px;
+  transform: translateY(-50%);
+  font-size: 12px;
+}
+
+.password-change-error {
+  margin: -2px 0 16px;
+}
+
 @media (max-width: 520px) {
   .confirm-dialog { padding: 24px 18px; }
   .confirm-dialog-actions { flex-direction: column-reverse; }
