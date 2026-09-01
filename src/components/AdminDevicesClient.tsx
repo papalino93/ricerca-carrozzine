@@ -12,6 +12,7 @@ import { Toast } from "./Toast";
 import { useAutoRefresh } from "@/lib/use-auto-refresh";
 import { matchesQuery } from "@/lib/search-match";
 import { IconNoleggio, IconRestituzione, IconSanificato, IconVerificato } from "./ReceptionIcons";
+import { useConfirm } from "./ConfirmDialog";
 
 const EMPTY_FORM: Device = {
   codice: "",
@@ -72,6 +73,7 @@ interface AdminDevicesClientProps {
 }
 
 export function AdminDevicesClient({ initialDevices, categories, tariffe }: AdminDevicesClientProps) {
+  const confirmAction = useConfirm();
   const [devices, setDevices] = useState(initialDevices);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [detail, setDetail] = useState<{ device: Device; isNew: boolean; autoRent?: boolean } | null>(null);
@@ -329,7 +331,7 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
 
   async function quickReturn(e: React.MouseEvent, d: Device) {
     e.stopPropagation();
-    if (!confirm(`Segnare ${d.codice} come restituito? Andrà in "da pulire".`)) return;
+    if (!(await confirmAction({ title: `Segnare ${d.codice} come restituito?`, description: "L'ausilio passerà in “Da sanificare” e resterà nello storico.", confirmLabel: "Segna restituito" }))) return;
     setSaving(true);
     try {
       const res = await fetch(`/api/dispositivi/${encodeURIComponent(d.codice)}/eventi`, {
@@ -374,7 +376,7 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
 
   async function quickVerify(e: React.MouseEvent, codice: string) {
     e.stopPropagation();
-    if (!confirm(`Confermi di aver controllato ${codice}? Verrà segnato come disponibile.`)) return;
+    if (!(await confirmAction({ title: `Confermi di aver controllato ${codice}?`, description: "Il dispositivo verrà segnato come disponibile.", confirmLabel: "Segna disponibile" }))) return;
     setSaving(true);
     try {
       const res = await fetch(`/api/dispositivi/${encodeURIComponent(codice)}/eventi`, {

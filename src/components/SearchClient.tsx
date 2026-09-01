@@ -13,6 +13,7 @@ import { readJson } from "@/lib/fetch-json";
 import { useAutoRefresh } from "@/lib/use-auto-refresh";
 import { matchesQuery } from "@/lib/search-match";
 import { IconDocumento, IconNoleggio, IconRestituzione, IconSanificato } from "./ReceptionIcons";
+import { useConfirm } from "./ConfirmDialog";
 
 // Deve combaciare con le etichette del righello (35/40/45/50/55, distanziate
 // in modo uniforme): usare un altro WMIN qui sposta i punti rispetto alle
@@ -59,6 +60,7 @@ export function SearchClient({
   tariffe,
   initialQuery,
 }: SearchClientProps) {
+  const confirmAction = useConfirm();
   const [devices, setDevices] = useState(initialDevices);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [width, setWidth] = useState<number | null>(null);
@@ -140,7 +142,7 @@ export function SearchClient({
   useAutoRefresh(refreshDevices);
 
   async function handleReturn(d: Device) {
-    if (!confirm(`Segnare ${d.codice} come restituito? Andrà in "da pulire".`)) return;
+    if (!(await confirmAction({ title: `Segnare ${d.codice} come restituito?`, description: "L'ausilio passerà in “Da sanificare” e resterà nello storico.", confirmLabel: "Segna restituito" }))) return;
     setBusyCodice(d.codice);
     try {
       const res = await fetch(`/api/dispositivi/${encodeURIComponent(d.codice)}/eventi`, {

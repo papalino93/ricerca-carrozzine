@@ -7,6 +7,7 @@ import type { Device } from "@/lib/device-types";
 import { matchesQuery } from "@/lib/search-match";
 import { networkErrorMessage, readJson } from "@/lib/fetch-json";
 import { Toast } from "./Toast";
+import { useConfirm } from "./ConfirmDialog";
 
 interface ClientsClientProps {
   /** Dove si sta guardando l'anagrafica. Al banco si cerca un cliente, lo
@@ -53,6 +54,7 @@ export function ClientsClient({
   contesto = "admin",
   initialQuery,
 }: ClientsClientProps) {
+  const confirmAction = useConfirm();
   const banco = contesto === "banco";
   const [clients, setClients] = useState(initialClients);
   const [query, setQuery] = useState(initialQuery ?? "");
@@ -176,7 +178,7 @@ export function ClientsClient({
     const warning = current
       ? ` Attenzione: ha un noleggio in corso (${current.codice}), che NON verrà toccato — solo la riga in anagrafica.`
       : "";
-    if (!confirm(`Eliminare "${nome}" dall'anagrafica clienti?${warning}`)) return;
+    if (!(await confirmAction({ title: `Eliminare “${nome}” dall'anagrafica?`, description: `Il cliente verrà rimosso.${warning}`, confirmLabel: "Elimina cliente", tone: "danger" }))) return;
     setDeleting(nome);
     try {
       const res = await fetch(`/api/clienti?nome=${encodeURIComponent(nome)}`, { method: "DELETE" });

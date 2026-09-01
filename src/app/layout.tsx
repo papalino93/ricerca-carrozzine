@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { InstallPwaBanner } from "@/components/InstallPwaBanner";
 import { BuildInfo } from "@/components/BuildInfo";
+import { ConfirmProvider } from "@/components/ConfirmDialog";
 import "./globals.css";
 
 const heading = Inter({
@@ -80,9 +81,11 @@ export default function RootLayout({
         />
       </head>
       <body>
-        {children}
-        <InstallPwaBanner />
-        <BuildInfo />
+        <ConfirmProvider>
+          {children}
+          <InstallPwaBanner />
+          <BuildInfo />
+        </ConfirmProvider>
       </body>
     </html>
   );

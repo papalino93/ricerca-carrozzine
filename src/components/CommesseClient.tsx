@@ -15,6 +15,7 @@ import {
   patchCommessaRequest,
 } from "@/lib/commesse-form";
 import { Toast } from "./Toast";
+import { useConfirm } from "./ConfirmDialog";
 
 interface CommesseClientProps {
   initialCommesse: CommessaRecord[];
@@ -82,6 +83,7 @@ function toEditForm(c: CommessaRecord): EditForm {
 }
 
 export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery, clienti }: CommesseClientProps) {
+  const confirmAction = useConfirm();
   const [commesse, setCommesse] = useState(initialCommesse);
   const [query, setQuery] = useState(initialQuery ?? "");
   // Una scheda ritirata è chiusa: il cliente ha portato via la merce e non
@@ -258,7 +260,7 @@ export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery, cl
   }
 
   async function handleDelete(c: CommessaRecord) {
-    if (!confirm(`Eliminare la scheda n. ${c.numero} (${c.cliente})? L'operazione non si può annullare.`)) return;
+    if (!(await confirmAction({ title: `Eliminare la scheda n. ${c.numero}?`, description: `La commessa di ${c.cliente} non potrà essere recuperata.`, confirmLabel: "Elimina commessa", tone: "danger" }))) return;
     setDeleting(c.numero);
     try {
       const body = await deleteCommessaRequest(c.numero);

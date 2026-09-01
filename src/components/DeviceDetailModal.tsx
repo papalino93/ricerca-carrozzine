@@ -23,6 +23,7 @@ import {
 } from "@/lib/tariffe-types";
 import { parseNumero } from "@/lib/importo";
 import { Toast } from "./Toast";
+import { useConfirm } from "./ConfirmDialog";
 
 // Deve combaciare con MAX_PHOTOS_PER_DEVICE in src/lib/photos.ts (server-only,
 // non importabile qui): solo per mostrare il conteggio, il limite reale è
@@ -105,6 +106,7 @@ export function DeviceDetailModal({
   onDeleted,
   onDuplicate,
 }: DeviceDetailModalProps) {
+  const confirmAction = useConfirm();
   const [form, setForm] = useState<Device>(device);
   // Stato realmente persistito (non l'eventuale bozza non salvata in `form`):
   // pillola e pulsanti di ciclo vita si basano su questo, non su `form.stato`,
@@ -374,10 +376,10 @@ export function DeviceDetailModal({
   }
 
   async function handleLifecycle(tipo: "restituzione" | "sanificazione" | "verifica") {
-    if (tipo === "restituzione" && !confirm(`Segnare ${current.codice} come restituito?`)) return;
+    if (tipo === "restituzione" && !(await confirmAction({ title: `Segnare ${current.codice} come restituito?`, description: "L'ausilio passerà in “Da sanificare” e resterà nello storico.", confirmLabel: "Segna restituito" }))) return;
     if (
       tipo === "verifica" &&
-      !confirm(`Confermi di aver controllato ${current.codice}? Verrà segnato come disponibile.`)
+      !(await confirmAction({ title: `Confermi di aver controllato ${current.codice}?`, description: "Il dispositivo verrà segnato come disponibile.", confirmLabel: "Segna disponibile" }))
     )
       return;
     // Il ritorno svuota cliente/telefono/contratto sul dispositivo: per il
@@ -420,7 +422,7 @@ export function DeviceDetailModal({
   }
 
   async function handleArchive(tipo: "venduto" | "rottamato") {
-    if (!confirm(`Segnare ${current.codice} come ${tipo}? Resterà in archivio, con tutto lo storico, ma sparirà dalle viste normali.`))
+    if (!(await confirmAction({ title: `Segnare ${current.codice} come ${tipo}?`, description: "Resterà in archivio con tutto lo storico, ma sparirà dalle viste normali.", confirmLabel: `Segna come ${tipo}`, tone: "danger" })))
       return;
     setSaving(true);
     setError(null);
@@ -554,7 +556,7 @@ export function DeviceDetailModal({
   }
 
   async function handleGalleryRemove(id: string) {
-    if (!confirm("Rimuovere questa foto dalla galleria?")) return;
+    if (!(await confirmAction({ title: "Rimuovere questa foto dalla galleria?", description: "La foto verrà rimossa dal dispositivo.", confirmLabel: "Rimuovi foto", tone: "danger" }))) return;
     setUploadingGallery(true);
     setError(null);
     try {

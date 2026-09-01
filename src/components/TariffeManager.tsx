@@ -4,6 +4,7 @@ import { networkErrorMessage, readJson } from "@/lib/fetch-json";
 import { useState } from "react";
 import { parseNumero } from "@/lib/importo";
 import { fmtEuro, fmtTariffa, type Tariffa, type TariffaUnita } from "@/lib/tariffe-types";
+import { useConfirm } from "./ConfirmDialog";
 
 interface TariffeManagerProps {
   initialTariffe: Tariffa[];
@@ -20,6 +21,7 @@ const EMPTY_FORM = {
 };
 
 export function TariffeManager({ initialTariffe, categories }: TariffeManagerProps) {
+  const confirmAction = useConfirm();
   const [tariffe, setTariffe] = useState(initialTariffe);
   const [form, setForm] = useState(EMPTY_FORM);
   // Non null mentre si modifica una tariffa esistente (invece di
@@ -90,7 +92,7 @@ export function TariffeManager({ initialTariffe, categories }: TariffeManagerPro
 
   async function handleRemove(t: Tariffa) {
     const label = t.sottocategoria ? `${t.categoria} · ${t.sottocategoria}` : t.categoria;
-    if (!confirm(`Eliminare la tariffa "${label}"?`)) return;
+    if (!(await confirmAction({ title: `Eliminare la tariffa “${label}”?`, description: "La tariffa verrà rimossa dalle impostazioni.", confirmLabel: "Elimina tariffa", tone: "danger" }))) return;
     setSaving(true);
     setError(null);
     try {

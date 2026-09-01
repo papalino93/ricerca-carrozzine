@@ -15,6 +15,7 @@ import {
   patchCommessaRequest,
 } from "@/lib/commesse-form";
 import { Toast } from "./Toast";
+import { useConfirm } from "./ConfirmDialog";
 
 interface CommesseBancoProps {
   initialCommesse: CommessaRecord[];
@@ -60,6 +61,7 @@ function emptyForm() {
  * tutto trova ogni campo in Amministrazione → Commesse, sugli stessi dati.
  */
 export function CommesseBanco({ initialCommesse, initialQuery, clienti }: CommesseBancoProps) {
+  const confirmAction = useConfirm();
   const [commesse, setCommesse] = useState(initialCommesse);
   const [query, setQuery] = useState(initialQuery ?? "");
   const [vista, setVista] = useState<"aperte" | "archivio">("aperte");
@@ -211,7 +213,7 @@ export function CommesseBanco({ initialCommesse, initialQuery, clienti }: Commes
   }
 
   async function handleDelete(c: CommessaRecord) {
-    if (!confirm(`Eliminare la scheda n. ${c.numero} (${c.cliente})? L'operazione non si può annullare.`)) return;
+    if (!(await confirmAction({ title: `Eliminare la scheda n. ${c.numero}?`, description: `La commessa di ${c.cliente} non potrà essere recuperata.`, confirmLabel: "Elimina commessa", tone: "danger" }))) return;
     setBusy(c.numero);
     try {
       const body = await deleteCommessaRequest(c.numero);

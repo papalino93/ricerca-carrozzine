@@ -3,12 +3,14 @@
 import { networkErrorMessage, readJson } from "@/lib/fetch-json";
 import { Fragment, useState } from "react";
 import { SottocategorieManager } from "./SottocategorieManager";
+import { useConfirm } from "./ConfirmDialog";
 
 interface CategoriesManagerProps {
   initialCategories: string[];
 }
 
 export function CategoriesManager({ initialCategories }: CategoriesManagerProps) {
+  const confirmAction = useConfirm();
   const [categories, setCategories] = useState(initialCategories);
   const [nome, setNome] = useState("");
   const [saving, setSaving] = useState(false);
@@ -40,7 +42,7 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
   }
 
   async function handleRemove(categoria: string) {
-    if (!confirm(`Eliminare la categoria "${categoria}"?`)) return;
+    if (!(await confirmAction({ title: `Eliminare la categoria “${categoria}”?`, description: "La categoria verrà rimossa dalle impostazioni.", confirmLabel: "Elimina categoria", tone: "danger" }))) return;
     setSaving(true);
     setError(null);
     try {

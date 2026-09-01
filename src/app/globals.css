@@ -137,6 +137,76 @@ a {
   text-underline-offset: 3px;
 }
 
+/* Conferme in-app: sostituiscono le finestre grigie del browser, con una
+   gerarchia chiara anche su tablet e telefono. */
+.confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(16, 31, 20, 0.48);
+  backdrop-filter: blur(3px);
+}
+
+.confirm-dialog {
+  width: min(100%, 460px);
+  padding: 28px;
+  text-align: center;
+  background: var(--surface-elevated);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  box-shadow: 0 24px 65px rgba(10, 28, 14, 0.28);
+}
+
+.confirm-dialog-icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  color: var(--accent-ink);
+  background: var(--accent-bg);
+  font-size: 23px;
+  font-weight: 800;
+}
+
+.confirm-dialog.danger .confirm-dialog-icon {
+  color: var(--broken-fg);
+  background: var(--broken-bg);
+}
+
+.confirm-dialog h2 {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--heading);
+  font-size: 21px;
+}
+
+.confirm-dialog p {
+  margin: 10px auto 22px;
+  max-width: 360px;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}
+
+.confirm-dialog-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.confirm-dialog-actions .btn { min-width: 132px; }
+.confirm-dialog.danger .btn.primary { background: var(--broken-fg); border-color: var(--broken-fg); }
+
+@media (max-width: 520px) {
+  .confirm-dialog { padding: 24px 18px; }
+  .confirm-dialog-actions { flex-direction: column-reverse; }
+  .confirm-dialog-actions .btn { width: 100%; min-height: 46px; }
+}
+
 .recovery-result {
   margin-top: 18px;
 }
