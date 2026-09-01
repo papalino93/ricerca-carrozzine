@@ -9,7 +9,12 @@ export const dynamic = "force-dynamic";
 /** Elenco completo di "Da tenere d'occhio", senza il tetto per gruppo che
  * la home applica per non superare l'altezza delle quattro card (vedi
  * PREVIEW_CAP in app/page.tsx). Stesso raggruppamento, stesso ordine. */
-export default async function DaTenereDOcchioPage() {
+export default async function DaTenereDOcchioPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ gruppo?: string }>;
+}) {
+  const { gruppo } = await searchParams;
   const [devicesR, commesseR] = await Promise.all([
     listDevices().then(
       (v) => ({ ok: true as const, v }),
@@ -23,7 +28,9 @@ export default async function DaTenereDOcchioPage() {
 
   const datiParziali = !devicesR.ok || !commesseR.ok;
   const groups = buildWatchGroups(devicesR.v, commesseR.v);
-  const total = groups.reduce((n, g) => n + g.rows.length, 0);
+  const selectedGroup = groups.find((g) => g.key === gruppo);
+  const visibleGroups = selectedGroup ? [selectedGroup] : groups;
+  const total = visibleGroups.reduce((n, g) => n + g.rows.length, 0);
 
   return (
     <>
@@ -35,14 +42,21 @@ export default async function DaTenereDOcchioPage() {
             {datiParziali
               ? "Elenco non disponibile: Google Sheets non risponde."
               : total > 0
-                ? `${total} posizioni su cui c'è qualcosa da fare.`
+                ? selectedGroup
+                  ? `${selectedGroup.label}: ${total} posizioni.`
+                  : `${total} posizioni su cui c'è qualcosa da fare.`
                 : "Nessuna scadenza né magazzino fermo al momento."}
           </p>
+          {selectedGroup ? (
+            <Link href="/da-tenere-d-occhio" className="desk-watch-back">
+              ← Tutte le categorie
+            </Link>
+          ) : null}
         </header>
 
         {total > 0 ? (
           <div className="desk-watch desk-watch-full">
-            {groups.map((g) => (
+            {visibleGroups.map((g) => (
               <div key={g.key}>
                 <div className={`desk-watch-group ${g.tone}`}>
                   <span className="dot" aria-hidden="true" />

@@ -157,7 +157,7 @@ export function buildWatchGroups(devices: Device[], commesse: CommessaRecord[]):
     },
     {
       key: "lunghi",
-      label: `A noleggio da oltre ${NOLEGGIO_LUNGO_GG} gg`,
+      label: `A noleggio >${NOLEGGIO_LUNGO_GG} gg`,
       tone: "neutral",
       showWhen: true,
       rows: lunghi,

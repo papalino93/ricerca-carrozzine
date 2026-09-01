@@ -221,11 +221,15 @@ export default async function ReceptionPage() {
                 <div className="desk-watch-scroll desk-watch-grid">
                   {watchGroups.map((g) => (
                     <div key={g.key} className={`desk-watch-column desk-watch-column-${g.tone}`}>
-                      <div className={`desk-watch-group ${g.tone}`}>
+                      <Link
+                        href={`/da-tenere-d-occhio?gruppo=${encodeURIComponent(g.key)}`}
+                        className={`desk-watch-group ${g.tone}`}
+                        aria-label={`Apri categoria ${g.label}`}
+                      >
                         <span className="dot" aria-hidden="true" />
                         {g.label}
                         <span className="count">{g.total}</span>
-                      </div>
+                      </Link>
                       <ul>
                         {g.rows.map((r, i) => (
                           <li key={`${r.code}-${i}`}>
@@ -245,7 +249,10 @@ export default async function ReceptionPage() {
                         ))}
                       </ul>
                       {g.total > g.rows.length ? (
-                        <Link href="/da-tenere-d-occhio" className="desk-watch-overflow">
+                        <Link
+                          href={`/da-tenere-d-occhio?gruppo=${encodeURIComponent(g.key)}`}
+                          className="desk-watch-overflow"
+                        >
                           +{g.total - g.rows.length} altre
                         </Link>
                       ) : null}

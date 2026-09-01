@@ -999,6 +999,20 @@ h1 {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.03em;
+  text-decoration: none;
+}
+
+.desk-watch-column .desk-watch-group {
+  border-radius: 9px;
+  padding: 4px 3px;
+  margin: -4px -3px 7px;
+  transition: background 0.16s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .desk-watch-column .desk-watch-group:hover {
+    background: color-mix(in srgb, var(--watch-bg) 74%, white);
+  }
 }
 
 .desk-watch-group:first-of-type {
@@ -1050,6 +1064,15 @@ h1 {
 }
 .desk-watch-group.neutral .dot {
   background: var(--ink-soft);
+}
+
+/* "A noleggio >30 gg" è una singola etichetta operativa: nelle colonne
+   della home non deve spezzarsi su due righe, che renderebbe il gruppo
+   meno riconoscibile degli altri. */
+.desk-watch-column-neutral .desk-watch-group {
+  font-size: 12px;
+  letter-spacing: 0.015em;
+  white-space: nowrap;
 }
 
 .desk-watch ul {
@@ -1130,6 +1153,39 @@ h1 {
   text-overflow: ellipsis;
 }
 
+/* Nelle card compatte il dettaglio del noleggio va sotto categoria e
+   modello, non alla destra di tutto il contenuto: così un testo lungo non
+   schiaccia il dispositivo successivo né viene tagliato come N20SP. */
+.desk-watch-column li a {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "code who"
+    "code when";
+  align-items: start;
+  column-gap: 12px;
+  row-gap: 2px;
+}
+
+.desk-watch-column .desk-watch-code {
+  grid-area: code;
+  align-self: center;
+}
+
+.desk-watch-column .desk-watch-who {
+  grid-area: who;
+  display: block;
+  white-space: normal;
+}
+
+.desk-watch-column .desk-watch-when {
+  grid-area: when;
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
 /* Testo semplice, non più una pastiglia: il colore del gruppo qui sopra
    già dice di che si tratta, questa colonna serve solo per il dettaglio
    che cambia riga per riga (una data, i giorni di ritardo o di noleggio) —
@@ -1178,6 +1234,19 @@ h1 {
 }
 
 .desk-watch-overflow:hover {
+  text-decoration: underline;
+}
+
+.desk-watch-back {
+  display: inline-block;
+  margin-top: 8px;
+  color: var(--accent-ink);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.desk-watch-back:hover {
   text-decoration: underline;
 }
 
