@@ -300,10 +300,45 @@ export function ClientsClient({
       ) : (
         <div className="panel">
           <p className="hint" style={{ marginBottom: 10 }}>
-            Clicca su un cliente per vedere anagrafica completa, fascicoli plantari collegati e storico.
-            <span className="mobile-scroll-hint"> Scorri la tabella lateralmente per vedere tutte le colonne.</span>
+            <span className="clients-desktop-hint">
+              Clicca su un cliente per vedere anagrafica completa, fascicoli plantari collegati e storico.
+            </span>
+            <span className="clients-mobile-hint">
+              Tocca un cliente per vedere anagrafica completa, fascicoli plantari collegati e storico.
+            </span>
           </p>
-          <div className="admin-table-wrap">
+          <div className="clients-mobile-list">
+            {visibleClients.map((c) => {
+              const current = currentDeviceFor(c.nome);
+              const telefoni = [...new Set([c.telefono, c.cellulare].filter(Boolean))].join(" · ") || "—";
+              return (
+                <Link
+                  key={c.nome}
+                  href={`/clienti/${encodeURIComponent(c.nome)}`}
+                  className="client-mobile-row"
+                  aria-label={`Apri la scheda di ${c.nome}`}
+                >
+                  <span className="client-mobile-main">
+                    <strong>{c.nome}</strong>
+                    <span className="client-mobile-meta">
+                      <span>Tel. {telefoni}</span>
+                      <span>CF {c.codiceFiscale ?? "—"}</span>
+                    </span>
+                  </span>
+                  <span className="client-mobile-side">
+                    <span className="client-mobile-fidelity">Fidelity {c.fidelity ?? "—"}</span>
+                    {current ? (
+                      <span className="pill noleggiato">{current.codice} in corso</span>
+                    ) : (
+                      <span className="client-mobile-status">Nessun noleggio</span>
+                    )}
+                  </span>
+                  <span className="client-mobile-chevron" aria-hidden="true">›</span>
+                </Link>
+              );
+            })}
+          </div>
+          <div className="admin-table-wrap clients-desktop-table">
             <table className="admin-table">
               <thead>
                 <tr>
