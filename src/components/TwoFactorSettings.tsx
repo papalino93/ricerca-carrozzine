@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { networkErrorMessage, readJson } from "@/lib/fetch-json";
+import { useConfirm } from "./ConfirmDialog";
 
 interface TwoFactorSettingsProps {
   initialEnabled: boolean;
@@ -10,6 +11,7 @@ interface TwoFactorSettingsProps {
 type Stage = "status" | "setup" | "backup-codes" | "disable";
 
 export function TwoFactorSettings({ initialEnabled }: TwoFactorSettingsProps) {
+  const confirmAction = useConfirm();
   const [enabled, setEnabled] = useState(initialEnabled);
   const [stage, setStage] = useState<Stage>("status");
   const [busy, setBusy] = useState(false);
@@ -21,6 +23,19 @@ export function TwoFactorSettings({ initialEnabled }: TwoFactorSettingsProps) {
   const [confirmCode, setConfirmCode] = useState("");
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [disablePassword, setDisablePassword] = useState("");
+
+  async function startReconfigure() {
+    if (
+      !(await confirmAction({
+        title: "Riconfigurare il 2FA?",
+        description:
+          "Il QR code attuale smetterà subito di funzionare su tutti i dispositivi dove l'hai scansionato. Per usare più telefoni, scansiona il nuovo QR su tutti prima di chiudere questa pagina.",
+        confirmLabel: "Continua",
+      }))
+    )
+      return;
+    await startSetup();
+  }
 
   async function startSetup() {
     setBusy(true);
@@ -108,6 +123,9 @@ export function TwoFactorSettings({ initialEnabled }: TwoFactorSettingsProps) {
               <strong>Attiva</strong> sul tuo account.
             </p>
             <div className="card-actions">
+              <button className="btn" type="button" onClick={startReconfigure} disabled={busy}>
+                {busy ? "Avvio…" : "Riconfigura / aggiungi un dispositivo"}
+              </button>
               <button className="btn danger" type="button" onClick={() => setStage("disable")}>
                 Disattiva 2FA
               </button>
