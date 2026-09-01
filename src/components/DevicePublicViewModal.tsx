@@ -4,6 +4,7 @@ import { useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { networkErrorMessage, readJson } from "@/lib/fetch-json";
 import { STATUS_LABEL, type Device, type DeviceStatus } from "@/lib/device-types";
+import { useModalA11y } from "./useModalA11y";
 
 function fmtDate(iso: string | null): string {
   if (!iso) return "";
@@ -36,6 +37,7 @@ export function DevicePublicViewModal({ device: d, onClose, onUpdated }: DeviceP
     () => true,
     () => false,
   );
+  const dialogRef = useModalA11y(onClose, mounted);
   const [nota, setNota] = useState(d.nota ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,10 +67,17 @@ export function DevicePublicViewModal({ device: d, onClose, onUpdated }: DeviceP
   if (!mounted) return null;
 
   return createPortal(
-    <div className="modal-overlay device-public-overlay" onClick={onClose}>
-      <div className="modal device-public-modal" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay device-public-overlay" role="presentation" onClick={onClose}>
+      <div
+        ref={dialogRef}
+        className="modal device-public-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="device-public-view-title"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="modal-head">
-          <h3>
+          <h3 id="device-public-view-title">
             {d.codice} — {d.marca} {d.modello}
           </h3>
           <button className="modal-close" onClick={onClose} aria-label="Chiudi" type="button">

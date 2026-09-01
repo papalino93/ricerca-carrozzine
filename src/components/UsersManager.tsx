@@ -4,6 +4,7 @@ import { networkErrorMessage, readJson } from "@/lib/fetch-json";
 import { useState } from "react";
 import type { AdminUser } from "@/lib/users";
 import { useConfirm } from "./ConfirmDialog";
+import { useModalA11y } from "./useModalA11y";
 
 interface UsersManagerProps {
   initialUsers: AdminUser[];
@@ -22,6 +23,7 @@ export function UsersManager({ initialUsers }: UsersManagerProps) {
   const [confirmationPassword, setConfirmationPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [resetError, setResetError] = useState<string | null>(null);
+  const passwordDialogRef = useModalA11y(closeReset, Boolean(passwordTarget));
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -198,7 +200,8 @@ export function UsersManager({ initialUsers }: UsersManagerProps) {
 
       {passwordTarget ? (
         <div className="confirm-backdrop" role="presentation" onMouseDown={closeReset}>
-          <section
+          <div
+            ref={passwordDialogRef}
             className="confirm-dialog password-change-dialog"
             role="dialog"
             aria-modal="true"
@@ -263,7 +266,7 @@ export function UsersManager({ initialUsers }: UsersManagerProps) {
                 </button>
               </div>
             </form>
-          </section>
+          </div>
         </div>
       ) : null}
     </div>

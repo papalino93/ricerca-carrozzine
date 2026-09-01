@@ -24,6 +24,7 @@ import {
 import { parseNumero } from "@/lib/importo";
 import { Toast } from "./Toast";
 import { useConfirm } from "./ConfirmDialog";
+import { useModalA11y } from "./useModalA11y";
 
 // Deve combaciare con MAX_PHOTOS_PER_DEVICE in src/lib/photos.ts (server-only,
 // non importabile qui): solo per mostrare il conteggio, il limite reale è
@@ -106,6 +107,7 @@ export function DeviceDetailModal({
   onDeleted,
   onDuplicate,
 }: DeviceDetailModalProps) {
+  const dialogRef = useModalA11y(onClose);
   const confirmAction = useConfirm();
   const [form, setForm] = useState<Device>(device);
   // Stato realmente persistito (non l'eventuale bozza non salvata in `form`):
@@ -1222,10 +1224,19 @@ export function DeviceDetailModal({
 
   return (
     <>
-      <div className="modal-overlay" onClick={onClose}>
-        <div className={`modal wide ${!isNew ? "has-sidebar" : ""}`} onClick={(e) => e.stopPropagation()}>
+      <div className="modal-overlay" role="presentation" onClick={onClose}>
+        <div
+          ref={dialogRef}
+          className={`modal wide ${!isNew ? "has-sidebar" : ""}`}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="device-detail-title"
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="modal-head">
-            <h3>{isNew ? "Nuovo dispositivo" : `${form.codice} — ${form.marca} ${form.modello}`}</h3>
+            <h3 id="device-detail-title">
+              {isNew ? "Nuovo dispositivo" : `${form.codice} — ${form.marca} ${form.modello}`}
+            </h3>
             <button className="modal-close" onClick={onClose} aria-label="Chiudi" type="button">
               ×
             </button>

@@ -7,6 +7,7 @@ import { fmtEuro } from "@/lib/tariffe-types";
 import { SignaturePad } from "./SignaturePad";
 import { networkErrorMessage } from "@/lib/fetch-json";
 import { todayIso } from "@/lib/dates";
+import { useModalA11y } from "./useModalA11y";
 
 interface DocumentPanelProps {
   device: Device;
@@ -18,6 +19,7 @@ interface DocumentPanelProps {
 }
 
 export function DocumentPanel({ device, onClose, forcedTipo }: DocumentPanelProps) {
+  const dialogRef = useModalA11y(onClose);
   const [tipo, setTipo] = useState<DocumentoTipo>(
     forcedTipo ?? (device.stato === "noleggiato" ? "restituzione" : "consegna")
   );
@@ -111,10 +113,17 @@ export function DocumentPanel({ device, onClose, forcedTipo }: DocumentPanelProp
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay" role="presentation" onClick={onClose}>
+      <div
+        ref={dialogRef}
+        className="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="document-panel-title"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="modal-head">
-          <h3>Genera documento — {device.codice}</h3>
+          <h3 id="document-panel-title">Genera documento — {device.codice}</h3>
           <button className="modal-close" onClick={onClose} aria-label="Chiudi">
             ×
           </button>

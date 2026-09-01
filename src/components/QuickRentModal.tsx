@@ -4,6 +4,7 @@ import { useState } from "react";
 import { networkErrorMessage, readJson } from "@/lib/fetch-json";
 import { addDaysIso, todayIso } from "@/lib/dates";
 import { parseNumero } from "@/lib/importo";
+import { useModalA11y } from "./useModalA11y";
 import type { Device } from "@/lib/device-types";
 import {
   calcolaTotale,
@@ -35,6 +36,7 @@ interface QuickRentModalProps {
 // permesso nuovo: chi arriva qui è già autenticato come chiunque acceda
 // all'amministrazione (un solo livello di accesso in questo sito).
 export function QuickRentModal({ device, tariffe, onClose, onRented }: QuickRentModalProps) {
+  const dialogRef = useModalA11y(onClose);
   const [cliente, setCliente] = useState("");
   const [telefono, setTelefono] = useState("");
   const [dal, setDal] = useState(todayIso());
@@ -104,10 +106,17 @@ export function QuickRentModal({ device, tariffe, onClose, onRented }: QuickRent
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay" role="presentation" onClick={onClose}>
+      <div
+        ref={dialogRef}
+        className="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="quick-rent-title"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="modal-head">
-          <h3>Noleggia {device.codice} — {device.marca} {device.modello}</h3>
+          <h3 id="quick-rent-title">Noleggia {device.codice} — {device.marca} {device.modello}</h3>
           <button className="modal-close" onClick={onClose} aria-label="Chiudi" type="button">
             ×
           </button>

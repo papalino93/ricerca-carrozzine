@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useRef, useState } from "react";
+import { useModalA11y } from "./useModalA11y";
 
 type ConfirmTone = "default" | "danger";
 
@@ -31,23 +32,16 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
       setOptions({ confirmLabel: "Conferma", tone: "default", ...nextOptions });
     });
   }, []);
-
-  useEffect(() => {
-    if (!options) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") close(false);
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [close, options]);
+  const dialogRef = useModalA11y(() => close(false), Boolean(options));
 
   return (
     <ConfirmContext.Provider value={confirm}>
       {children}
       {options ? (
         <div className="confirm-backdrop" role="presentation" onMouseDown={() => close(false)}>
-          <section
+          <div
             className={`confirm-dialog ${options.tone === "danger" ? "danger" : ""}`}
+            ref={dialogRef}
             role="alertdialog"
             aria-modal="true"
             aria-labelledby="confirm-dialog-title"
@@ -77,7 +71,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
                 {options.confirmLabel}
               </button>
             </div>
-          </section>
+          </div>
         </div>
       ) : null}
     </ConfirmContext.Provider>
