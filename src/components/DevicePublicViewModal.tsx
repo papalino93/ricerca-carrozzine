@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import { networkErrorMessage, readJson } from "@/lib/fetch-json";
 import { STATUS_LABEL, type Device, type DeviceStatus } from "@/lib/device-types";
 
@@ -30,6 +31,11 @@ const RESOLVE_OPTIONS: { stato: DeviceStatus; label: string }[] = [
 ];
 
 export function DevicePublicViewModal({ device: d, onClose, onUpdated }: DevicePublicViewModalProps) {
+  const mounted = useSyncExternalStore(
+    () => () => undefined,
+    () => true,
+    () => false,
+  );
   const [nota, setNota] = useState(d.nota ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +62,9 @@ export function DevicePublicViewModal({ device: d, onClose, onUpdated }: DeviceP
     }
   }
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <div className="modal-overlay device-public-overlay" onClick={onClose}>
       <div className="modal device-public-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
@@ -160,6 +168,7 @@ export function DevicePublicViewModal({ device: d, onClose, onUpdated }: DeviceP
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
