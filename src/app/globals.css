@@ -359,8 +359,9 @@ h1 {
 .desk-header {
   background: var(--header-dark);
   border-radius: 20px;
-  padding: 18px 20px 20px;
-  margin-bottom: 14px;
+  padding: 16px 18px;
+  margin-bottom: 18px;
+  box-shadow: 0 16px 34px -24px rgba(14, 74, 13, 0.72);
 }
 
 .desk-top {
@@ -368,8 +369,8 @@ h1 {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  flex-wrap: wrap;
-  margin-bottom: 16px;
+  flex-wrap: nowrap;
+  margin-bottom: 0;
 }
 
 .desk-brand {
@@ -390,7 +391,7 @@ h1 {
 }
 
 .desk-brand img {
-  height: 40px;
+  height: 36px;
   width: auto;
   max-width: 40vw;
   object-fit: contain;
@@ -402,6 +403,7 @@ h1 {
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 /* Riquadro meteo + data/ora. Tre colonne con la stessa struttura —
@@ -709,6 +711,12 @@ h1 {
   box-shadow: 0 1px 2px rgba(23, 48, 27, 0.04);
 }
 
+.desk-top > .desk-search {
+  flex: 1 1 420px;
+  min-width: 280px;
+  max-width: 620px;
+}
+
 .desk-search:focus-within {
   border-color: var(--accent);
 }
@@ -736,23 +744,17 @@ h1 {
 }
 
 .desk-layout {
-  display: grid;
-  /* minmax(0, …) e non "1fr" secco: con 1fr ogni colonna non può scendere
-     sotto il proprio contenuto minimo, e una riga lunga nelle scadenze
-     allargherebbe tutta la pagina oltre lo schermo. */
-  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
-  gap: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
 .desk-tiles {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px;
-  /* Altezza naturale, non più spartita a metà colonna: un riquadro
-     "Da tenere d'occhio" con tante voci non deve più tirarsi dietro le
-     quattro card, allungandole con un vuoto in mezzo. Le due colonne si
-     allineano dall'alto e ciascuna prende solo lo spazio che le serve. */
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
   align-self: start;
+  width: 100%;
 }
 
 /* Card compatta e allineata a sinistra, non più un pulsante centrato: con
@@ -772,8 +774,8 @@ h1 {
     color-mix(in srgb, var(--surface) 30%, var(--accent-bg)) 100%
   );
   border: 1px solid var(--line);
-  border-radius: 22px;
-  padding: 46px 40px 40px;
+  border-radius: 20px;
+  padding: 24px 24px 22px;
   text-decoration: none;
   color: var(--ink);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 1px 2px rgba(23, 48, 27, 0.05),
@@ -785,12 +787,12 @@ h1 {
 @media (hover: hover) and (pointer: fine) {
   .desk-tile:hover {
     transform: translateY(-3px);
-    border-color: var(--c);
+    border-color: var(--accent);
     background: radial-gradient(
       120% 90% at 50% 0%,
       var(--surface) 28%,
-      color-mix(in srgb, var(--surface) 30%, var(--accent-bg)) 68%,
-      color-mix(in srgb, var(--accent-bg) 65%, var(--accent)) 100%
+      color-mix(in srgb, var(--surface) 22%, var(--accent-bg)) 68%,
+      color-mix(in srgb, var(--accent-bg) 58%, var(--accent)) 100%
     );
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 2px 4px rgba(23, 48, 27, 0.08),
       0 20px 36px -18px rgba(23, 48, 27, 0.4);
@@ -801,7 +803,7 @@ h1 {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 38px;
+  margin-bottom: 20px;
 }
 
 /* La freccia dice "si entra da qui" senza bisogno di un pulsante a parte:
@@ -828,8 +830,8 @@ h1 {
    sottile, nessun cerchio, sfondo tenue) messi a schermo uno accanto
    all'altro. */
 .desk-tile-icon {
-  width: 80px;
-  height: 80px;
+  width: 58px;
+  height: 58px;
   border-radius: 50%;
   background: var(--c);
   color: #fff;
@@ -849,8 +851,8 @@ h1 {
 }
 
 .desk-tile-icon svg {
-  width: 38px;
-  height: 38px;
+  width: 29px;
+  height: 29px;
 }
 
 .desk-tile-info {
@@ -876,7 +878,7 @@ h1 {
 .desk-tile-label {
   display: block;
   font-family: var(--heading);
-  font-size: 27px;
+  font-size: 23px;
   font-weight: 700;
   letter-spacing: -0.01em;
 }
@@ -900,30 +902,60 @@ h1 {
 }
 
 .desk-watch {
-  background: var(--surface);
+  background:
+    radial-gradient(70% 140% at 100% 0%, rgba(231, 240, 227, 0.72) 0%, transparent 62%),
+    linear-gradient(145deg, #fffefa 0%, var(--surface) 62%, #f5f8f2 100%);
   border: 1px solid var(--line);
-  border-radius: 22px;
-  padding: 32px 34px 24px;
-  box-shadow: 0 1px 2px rgba(23, 48, 27, 0.04);
+  border-radius: 24px;
+  padding: 26px 28px 22px;
+  box-shadow: 0 2px 5px rgba(23, 48, 27, 0.05), 0 18px 44px -30px rgba(23, 48, 27, 0.32);
   display: flex;
   flex-direction: column;
-  /* Non deve superare l'altezza naturale delle quattro card (vedi
-     desk-tiles): oltre questa soglia le voci in più scorrono dentro
-     .desk-watch-scroll invece di allungare la home rendendola più alta
-     della griglia. Tarato sulle card SENZA statistica sotto (le più
-     basse): con la statistica le card sono più alte e il riquadro resta
-     più corto di loro, mai più lungo — l'unico verso sbagliato è l'altro. */
-  max-height: 572px;
 }
 
-/* Zona che scorre internamente quando le voci superano l'altezza del
-   riquadro: min-height:0 è necessario perché un figlio flex, senza,
-   ignorerebbe max-height/overflow-y del genitore e crescerebbe oltre. Testa
-   del riquadro e "Vedi tutto" restano fuori, sempre visibili. */
 .desk-watch-scroll {
-  flex: 1 1 auto;
   min-height: 0;
-  overflow-y: auto;
+}
+
+.desk-watch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.desk-watch-column {
+  --watch-fg: var(--ink-soft);
+  --watch-bg: #f3f5f1;
+  --watch-line: var(--line);
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--watch-line);
+  border-top: 3px solid var(--watch-fg);
+  border-radius: 16px;
+  background:
+    radial-gradient(120% 85% at 100% 0%, color-mix(in srgb, var(--watch-bg) 82%, white) 0%, transparent 68%),
+    color-mix(in srgb, var(--watch-bg) 48%, white);
+  box-shadow: 0 8px 24px -20px color-mix(in srgb, var(--watch-fg) 50%, transparent);
+}
+
+.desk-watch-column-urgent,
+.desk-watch-column-broken {
+  --watch-fg: var(--broken-fg);
+  --watch-bg: var(--broken-bg);
+  --watch-line: var(--broken-line);
+}
+
+.desk-watch-column-check {
+  --watch-fg: var(--check-fg);
+  --watch-bg: var(--check-bg);
+  --watch-line: var(--check-line);
+}
+
+.desk-watch-column-clean {
+  --watch-fg: var(--clean-fg);
+  --watch-bg: var(--clean-bg);
+  --watch-line: var(--clean-line);
 }
 
 .desk-watch-head {
@@ -931,22 +963,26 @@ h1 {
   align-items: baseline;
   justify-content: space-between;
   gap: 10px;
-  margin: 0 0 4px;
+  margin: 0;
 }
 
 .desk-watch-head h2 {
   margin: 0;
-  font-size: 13.5px;
+  font-family: var(--heading);
+  font-size: 22px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--ink-soft);
+  letter-spacing: -0.01em;
+  color: var(--ink);
 }
 
 .desk-watch-total {
   font-size: 14px;
   font-weight: 600;
-  color: var(--ink-soft);
+  color: var(--accent-ink);
+  background: var(--accent-bg);
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--line));
+  border-radius: 999px;
+  padding: 5px 10px;
   flex-shrink: 0;
 }
 
@@ -958,7 +994,7 @@ h1 {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 21px 0 7px;
+  margin: 0 0 11px;
   font-size: 13px;
   font-weight: 700;
   text-transform: uppercase;
@@ -966,7 +1002,7 @@ h1 {
 }
 
 .desk-watch-group:first-of-type {
-  margin-top: 14px;
+  margin-top: 0;
 }
 
 .desk-watch-group .dot {
@@ -977,8 +1013,10 @@ h1 {
 }
 
 .desk-watch-group .count {
-  background: var(--line);
-  color: var(--ink-soft);
+  margin-left: auto;
+  background: color-mix(in srgb, var(--watch-bg) 72%, white);
+  color: var(--watch-fg);
+  border: 1px solid var(--watch-line);
   border-radius: 999px;
   padding: 2px 8px;
   font-size: 11.5px;
@@ -1021,17 +1059,30 @@ h1 {
 }
 
 .desk-watch li + li {
-  border-top: 1px solid var(--line);
+  margin-top: 7px;
 }
 
 .desk-watch li a {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 0;
+  padding: 10px;
   text-decoration: none;
   color: var(--ink);
-  font-size: 16px;
+  font-size: 14px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.88);
+  border-radius: 11px;
+  box-shadow: 0 3px 12px -12px rgba(23, 48, 27, 0.7);
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .desk-watch li a:hover {
+    transform: translateY(-1px);
+    border-color: var(--watch-line);
+    box-shadow: 0 9px 18px -14px rgba(23, 48, 27, 0.52);
+  }
 }
 
 .desk-watch li a:hover .desk-watch-cat,
@@ -1045,7 +1096,7 @@ h1 {
   color: var(--accent-ink);
   background: var(--accent-bg);
   border-radius: 7px;
-  padding: 4px 10px;
+  padding: 4px 7px;
   flex-shrink: 0;
   font-variant-numeric: tabular-nums;
 }
@@ -1072,6 +1123,13 @@ h1 {
   margin-left: 5px;
 }
 
+.desk-watch-column .desk-watch-rest {
+  display: block;
+  margin: 2px 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* Testo semplice, non più una pastiglia: il colore del gruppo qui sopra
    già dice di che si tratta, questa colonna serve solo per il dettaglio
    che cambia riga per riga (una data, i giorni di ritardo o di noleggio) —
@@ -1095,7 +1153,7 @@ h1 {
    l'ultima cosa della colonna. */
 .desk-watch-more {
   flex-shrink: 0;
-  margin-top: 10px;
+  margin-top: 16px;
   text-align: right;
 }
 
@@ -1110,6 +1168,19 @@ h1 {
   text-decoration: underline;
 }
 
+.desk-watch-overflow {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--watch-fg);
+  text-decoration: none;
+}
+
+.desk-watch-overflow:hover {
+  text-decoration: underline;
+}
+
 /* Pagina dedicata "Vedi tutto": stesso riquadro raggruppato della home,
    ma senza il tetto d'altezza — qui l'elenco è il contenuto della pagina,
    non un'anteprima accanto ad altro. */
@@ -1119,9 +1190,32 @@ h1 {
   max-width: 720px;
 }
 
+.desk-watch-full li a {
+  background: transparent;
+  border-color: transparent;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+@media (max-width: 1180px) {
+  .desk-top {
+    flex-wrap: wrap;
+  }
+
+  .desk-top > .desk-search {
+    order: 3;
+    flex-basis: 100%;
+    max-width: none;
+  }
+
+  .desk-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 860px) {
-  .desk-layout {
-    grid-template-columns: minmax(0, 1fr);
+  .desk-watch-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -1137,6 +1231,10 @@ h1 {
   .desk-top-right {
     width: 100%;
     justify-content: space-between;
+  }
+
+  .desk-watch-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 /* ---------- Modulo nuova commessa (banco) ---------- */

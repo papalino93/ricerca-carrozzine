@@ -29,19 +29,15 @@ function oraDiScandicci(): { giorno: string; data: string; ora: string } {
   };
 }
 
-/** Quante righe al massimo mostra ogni gruppo: il riquadro scorre
- * internamente (vedi .desk-watch-scroll in globals.css) fino a
- * quest'altezza, non serve più tagliare aggressivamente per stare
- * nell'altezza delle quattro card come quando il contenuto in eccesso
- * spariva del tutto dietro "Vedi tutto". Resta comunque un tetto, non
- * rimosso, per non renderizzare centinaia di righe in home nel caso
- * limite di un gruppo enorme. */
+/** La home mostra una sintesi breve per gruppo. L'elenco non scorre più
+ * dentro un riquadro stretto: i gruppi sono card affiancate e l'elenco
+ * completo resta raggiungibile da "Vedi tutto". */
 const PREVIEW_CAP: Record<string, number> = {
-  scadenze: 30,
-  guasto: 30,
-  da_verificare: 30,
-  da_pulire: 30,
-  lunghi: 30,
+  scadenze: 3,
+  guasto: 3,
+  da_verificare: 3,
+  da_pulire: 3,
+  lunghi: 3,
 };
 
 export default async function ReceptionPage() {
@@ -169,6 +165,7 @@ export default async function ReceptionPage() {
                 <img src="/medical-center-brand.png" alt="Medical Center" />
               </span>
             </Link>
+            <DeskSearch />
             <div className="desk-top-right">
               <DeskClock weather={weather} iniziale={oraDiScandicci()} />
               <Link href="/admin" className="desk-admin-link">
@@ -178,7 +175,6 @@ export default async function ReceptionPage() {
             </div>
           </div>
 
-          <DeskSearch />
         </div>
 
         {datiParziali ? (
@@ -222,9 +218,9 @@ export default async function ReceptionPage() {
               </p>
             ) : (
               <>
-                <div className="desk-watch-scroll">
+                <div className="desk-watch-scroll desk-watch-grid">
                   {watchGroups.map((g) => (
-                    <div key={g.key}>
+                    <div key={g.key} className={`desk-watch-column desk-watch-column-${g.tone}`}>
                       <div className={`desk-watch-group ${g.tone}`}>
                         <span className="dot" aria-hidden="true" />
                         {g.label}
@@ -248,6 +244,11 @@ export default async function ReceptionPage() {
                           </li>
                         ))}
                       </ul>
+                      {g.total > g.rows.length ? (
+                        <Link href="/da-tenere-d-occhio" className="desk-watch-overflow">
+                          +{g.total - g.rows.length} altre
+                        </Link>
+                      ) : null}
                     </div>
                   ))}
                 </div>

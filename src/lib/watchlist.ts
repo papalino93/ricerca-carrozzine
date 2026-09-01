@@ -20,13 +20,9 @@ function daysSince(iso: string): number {
   return -daysUntil(iso);
 }
 
-/** Oltre questa durata un noleggio merita una telefonata: il contratto va
- * rinnovato, chiuso o l'ausilio recuperato.
- *
- * Sei mesi e non un mese: qui la durata mediana di un noleggio è di circa
- * sei settimane, quindi "oltre trenta giorni" descrive la normalità — due
- * noleggi su tre — e segnalarli tutti significa non segnalare niente. */
-export const NOLEGGIO_LUNGO_GG = 180;
+/** Oltre questa durata un noleggio entra nella lista di controllo: il
+ * contratto può richiedere un rinnovo, una chiusura o un contatto. */
+export const NOLEGGIO_LUNGO_GG = 30;
 
 export interface WatchRow {
   code: string;
