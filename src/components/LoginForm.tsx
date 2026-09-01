@@ -37,8 +37,12 @@ export function LoginForm({ nextPath }: LoginFormProps) {
         setSubmitting(false);
         return;
       }
+      // Niente router.refresh() dopo: la home è "force-dynamic" e con lo
+      // staleTimes di default (0s) di questo Next.js replace() già rifà la
+      // richiesta al server da solo — un refresh() qui raddoppiava il giro
+      // su Google Sheets a ogni login, invece di evitare dati vecchi in
+      // cache (che qui non può esserci).
       router.replace(nextPath);
-      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Accesso non riuscito");
       setSubmitting(false);
@@ -58,7 +62,6 @@ export function LoginForm({ nextPath }: LoginFormProps) {
       const body = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) throw new Error(body.error || "Codice non valido");
       router.replace(nextPath);
-      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Codice non valido");
       setSubmitting(false);
