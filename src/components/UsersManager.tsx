@@ -3,12 +3,14 @@
 import { networkErrorMessage, readJson } from "@/lib/fetch-json";
 import { useState } from "react";
 import type { AdminUser } from "@/lib/users";
+import { useConfirm } from "./ConfirmDialog";
 
 interface UsersManagerProps {
   initialUsers: AdminUser[];
 }
 
 export function UsersManager({ initialUsers }: UsersManagerProps) {
+  const confirmAction = useConfirm();
   const [users, setUsers] = useState(initialUsers);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -59,7 +61,7 @@ export function UsersManager({ initialUsers }: UsersManagerProps) {
   }
 
   async function handleRemove(u: string) {
-    if (!confirm(`Revocare l'accesso a "${u}"?`)) return;
+    if (!(await confirmAction({ title: `Revocare l'accesso a “${u}”?`, description: "L'utente non potrà più accedere al gestionale.", confirmLabel: "Revoca accesso", tone: "danger" }))) return;
     setSaving(true);
     setError(null);
     try {

@@ -3,6 +3,7 @@
 import { networkErrorMessage, readJson } from "@/lib/fetch-json";
 import { useEffect, useRef, useState } from "react";
 import { fmtTariffa, type Tariffa, type TariffaUnita } from "@/lib/tariffe-types";
+import { useConfirm } from "./ConfirmDialog";
 
 interface SottocategoriaEntry {
   categoria: string;
@@ -25,6 +26,7 @@ const EMPTY_FORM = {
  * un elenco separato — è la stessa tab "Tariffe" letta/scritta da qui.
  */
 export function SottocategorieManager({ categoria }: { categoria: string }) {
+  const confirmAction = useConfirm();
   const [items, setItems] = useState<SottocategoriaEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -102,7 +104,7 @@ export function SottocategorieManager({ categoria }: { categoria: string }) {
   }
 
   async function handleRemove(item: SottocategoriaEntry) {
-    if (!confirm(`Eliminare la sottocategoria "${item.nome}"?`)) return;
+    if (!(await confirmAction({ title: `Eliminare la sottocategoria “${item.nome}”?`, description: "La sottocategoria verrà rimossa dalle impostazioni.", confirmLabel: "Elimina sottocategoria", tone: "danger" }))) return;
     setSaving(true);
     setError(null);
     try {
