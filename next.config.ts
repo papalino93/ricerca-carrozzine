@@ -8,7 +8,7 @@ import type { NextConfig } from "next";
 // a colpo d'occhio se quello che si sta guardando è davvero l'ultimo deploy.
 const nextConfig: NextConfig = {
   env: {
-    NEXT_PUBLIC_APP_VERSION: process.env.npm_package_version ?? "1.0.7",
+    NEXT_PUBLIC_APP_VERSION: process.env.npm_package_version ?? "1.0.8",
     NEXT_PUBLIC_BUILD_SHA: (process.env.VERCEL_GIT_COMMIT_SHA ?? "").slice(0, 7),
     NEXT_PUBLIC_BUILD_TIME: new Date().toISOString(),
   },

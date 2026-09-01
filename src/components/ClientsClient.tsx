@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import type { ClientRecord } from "@/lib/clients";
 import type { Device } from "@/lib/device-types";
@@ -25,6 +25,17 @@ interface ClientsClientProps {
 }
 
 const CLIENTS_PAGE_SIZE = 50;
+const MOBILE_CLIENTS_QUERY = "(max-width: 640px)";
+
+function subscribeMobileClients(callback: () => void) {
+  const media = window.matchMedia(MOBILE_CLIENTS_QUERY);
+  media.addEventListener("change", callback);
+  return () => media.removeEventListener("change", callback);
+}
+
+function mobileClientsSnapshot() {
+  return window.matchMedia(MOBILE_CLIENTS_QUERY).matches;
+}
 
 function fmtDate(iso: string): string {
   const [y, m, d] = (iso.includes("T") ? iso.slice(0, 10) : iso).split("-");
@@ -52,6 +63,11 @@ export function ClientsClient({
   const [newClientForm, setNewClientForm] = useState(emptyNewClientForm);
   const [savingNewClient, setSavingNewClient] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const showMobileClients = useSyncExternalStore(
+    subscribeMobileClients,
+    mobileClientsSnapshot,
+    () => false,
+  );
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
@@ -300,45 +316,43 @@ export function ClientsClient({
       ) : (
         <div className="panel">
           <p className="hint" style={{ marginBottom: 10 }}>
-            <span className="clients-desktop-hint">
-              Clicca su un cliente per vedere anagrafica completa, fascicoli plantari collegati e storico.
-            </span>
-            <span className="clients-mobile-hint">
-              Tocca un cliente per vedere anagrafica completa, fascicoli plantari collegati e storico.
-            </span>
+            {showMobileClients ? "Tocca" : "Clicca"} su un cliente per vedere anagrafica completa,
+            fascicoli plantari collegati e storico.
           </p>
-          <div className="clients-mobile-list">
-            {visibleClients.map((c) => {
-              const current = currentDeviceFor(c.nome);
-              const telefoni = [...new Set([c.telefono, c.cellulare].filter(Boolean))].join(" · ") || "—";
-              return (
-                <Link
-                  key={c.nome}
-                  href={`/clienti/${encodeURIComponent(c.nome)}`}
-                  className="client-mobile-row"
-                  aria-label={`Apri la scheda di ${c.nome}`}
-                >
-                  <span className="client-mobile-main">
-                    <strong>{c.nome}</strong>
-                    <span className="client-mobile-meta">
-                      <span>Tel. {telefoni}</span>
-                      <span>CF {c.codiceFiscale ?? "—"}</span>
+          {showMobileClients ? (
+            <div className="clients-mobile-list">
+              {visibleClients.map((c) => {
+                const current = currentDeviceFor(c.nome);
+                const telefoni = [...new Set([c.telefono, c.cellulare].filter(Boolean))].join(" · ") || "—";
+                return (
+                  <Link
+                    key={c.nome}
+                    href={`/clienti/${encodeURIComponent(c.nome)}`}
+                    className="client-mobile-row"
+                    aria-label={`Apri la scheda di ${c.nome}`}
+                  >
+                    <span className="client-mobile-main">
+                      <strong>{c.nome}</strong>
+                      <span className="client-mobile-meta">
+                        <span>Tel. {telefoni}</span>
+                        <span>CF {c.codiceFiscale ?? "—"}</span>
+                      </span>
                     </span>
-                  </span>
-                  <span className="client-mobile-side">
-                    <span className="client-mobile-fidelity">Fidelity {c.fidelity ?? "—"}</span>
-                    {current ? (
-                      <span className="pill noleggiato">{current.codice} in corso</span>
-                    ) : (
-                      <span className="client-mobile-status">Nessun noleggio</span>
-                    )}
-                  </span>
-                  <span className="client-mobile-chevron" aria-hidden="true">›</span>
-                </Link>
-              );
-            })}
-          </div>
-          <div className="admin-table-wrap clients-desktop-table">
+                    <span className="client-mobile-side">
+                      <span className="client-mobile-fidelity">Fidelity {c.fidelity ?? "—"}</span>
+                      {current ? (
+                        <span className="pill noleggiato">{current.codice} in corso</span>
+                      ) : (
+                        <span className="client-mobile-status">Nessun noleggio</span>
+                      )}
+                    </span>
+                    <span className="client-mobile-chevron" aria-hidden="true">›</span>
+                  </Link>
+                );
+              })}
+            </div>
+          ) : (
+          <div className="admin-table-wrap">
             <table className="admin-table">
               <thead>
                 <tr>
@@ -388,6 +402,7 @@ export function ClientsClient({
               </tbody>
             </table>
           </div>
+          )}
           {filtered.length > visibleCount ? (
             <div className="card-actions" style={{ marginTop: 16, alignItems: "center" }}>
               <button

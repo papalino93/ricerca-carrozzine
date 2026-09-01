@@ -2357,22 +2357,8 @@ h1 {
   display: none;
 }
 
-.clients-mobile-list,
-.clients-mobile-hint {
-  display: none;
-}
-
 @media (max-width: 640px) {
   .mobile-scroll-hint {
-    display: inline;
-  }
-
-  .clients-desktop-table,
-  .clients-desktop-hint {
-    display: none;
-  }
-
-  .clients-mobile-hint {
     display: inline;
   }
 
