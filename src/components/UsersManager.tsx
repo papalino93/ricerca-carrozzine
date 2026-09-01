@@ -8,11 +8,16 @@ import { useModalA11y } from "./useModalA11y";
 
 interface UsersManagerProps {
   initialUsers: AdminUser[];
+  currentUsername: string;
+  initialTwoFactorUsernames: string[];
 }
 
-export function UsersManager({ initialUsers }: UsersManagerProps) {
+export function UsersManager({ initialUsers, currentUsername, initialTwoFactorUsernames }: UsersManagerProps) {
   const confirmAction = useConfirm();
   const [users, setUsers] = useState(initialUsers);
+  const [twoFactorUsernames, setTwoFactorUsernames] = useState(
+    initialTwoFactorUsernames.map((u) => u.toLowerCase())
+  );
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [saving, setSaving] = useState(false);
@@ -24,6 +29,36 @@ export function UsersManager({ initialUsers }: UsersManagerProps) {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [resetError, setResetError] = useState<string | null>(null);
   const passwordDialogRef = useModalA11y(closeReset, Boolean(passwordTarget));
+
+  async function handleDisableTwoFactor(u: string) {
+    if (
+      !(await confirmAction({
+        title: `Disattivare il 2FA di “${u}”?`,
+        description: "Da usare solo se ha perso sia il telefono sia i codici di recupero.",
+        confirmLabel: "Disattiva 2FA",
+        tone: "danger",
+      }))
+    )
+      return;
+    setSaving(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const res = await fetch("/api/auth/2fa/admin-disable", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: u }),
+      });
+      const body = await readJson(res);
+      if (!res.ok) throw new Error(body.error || "Impossibile disattivare il 2FA");
+      setTwoFactorUsernames((list) => list.filter((x) => x !== u.toLowerCase()));
+      setNotice(`2FA disattivato per “${u}”.`);
+    } catch (err) {
+      setError(networkErrorMessage(err));
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -145,30 +180,46 @@ export function UsersManager({ initialUsers }: UsersManagerProps) {
           <thead>
             <tr>
               <th>Username</th>
+              <th>2FA</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
-            {users.map((u) => (
-              <tr key={u.username}>
-                <td>{u.username}</td>
-                <td>
-                  <div className="card-actions" style={{ marginTop: 0 }}>
-                    <button
-                      className="btn"
-                      type="button"
-                      onClick={() => openReset(u.username)}
-                      disabled={saving}
-                    >
-                      Reimposta password
-                    </button>
-                    <button className="btn danger" type="button" onClick={() => handleRemove(u.username)} disabled={saving}>
-                      Revoca
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {users.map((u) => {
+              const isSelf = u.username.toLowerCase() === currentUsername.toLowerCase();
+              const has2fa = twoFactorUsernames.includes(u.username.toLowerCase());
+              return (
+                <tr key={u.username}>
+                  <td>{u.username}</td>
+                  <td>{has2fa ? "Attivo" : "—"}</td>
+                  <td>
+                    <div className="card-actions" style={{ marginTop: 0 }}>
+                      <button
+                        className="btn"
+                        type="button"
+                        onClick={() => openReset(u.username)}
+                        disabled={saving}
+                      >
+                        Reimposta password
+                      </button>
+                      {has2fa && !isSelf ? (
+                        <button
+                          className="btn"
+                          type="button"
+                          onClick={() => handleDisableTwoFactor(u.username)}
+                          disabled={saving}
+                        >
+                          Disattiva 2FA
+                        </button>
+                      ) : null}
+                      <button className="btn danger" type="button" onClick={() => handleRemove(u.username)} disabled={saving}>
+                        Revoca
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
         </div>

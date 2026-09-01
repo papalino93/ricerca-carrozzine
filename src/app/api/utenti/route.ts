@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireBasicAuth } from "@/lib/basic-auth";
 import { addUser, listUsers, removeUser, resetPassword } from "@/lib/users";
+import { disableTwoFactor } from "@/lib/twofactor";
 
 export const runtime = "nodejs";
 
@@ -71,6 +72,9 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: "Username obbligatorio" }, { status: 400 });
     }
     const users = await removeUser(username);
+    // Best-effort: se lo username venisse riassegnato in futuro a un'altra
+    // persona, non deve ereditare il secret 2FA di chi non ha più accesso.
+    await disableTwoFactor(username).catch(() => {});
     return NextResponse.json({ users });
   } catch (err) {
     return NextResponse.json(

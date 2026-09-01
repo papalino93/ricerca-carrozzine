@@ -10,6 +10,7 @@ import { UsersManager } from "./UsersManager";
 import { CategoriesManager } from "./CategoriesManager";
 import { TariffeManager } from "./TariffeManager";
 import { BackupManager } from "./BackupManager";
+import { TwoFactorSettings } from "./TwoFactorSettings";
 import { Toast } from "./Toast";
 import { LogoutButton } from "./LogoutButton";
 
@@ -19,9 +20,12 @@ interface SettingsClientProps {
   initialCategories: string[];
   initialTariffe: Tariffa[];
   initialBackupStatus: SnapshotStatus;
+  currentUsername: string;
+  currentUserTwoFactorEnabled: boolean;
+  twoFactorUsernames: string[];
 }
 
-type SettingsTab = "azienda" | "categorie" | "tariffe" | "fidelity" | "backup" | "utenti";
+type SettingsTab = "azienda" | "categorie" | "tariffe" | "fidelity" | "backup" | "utenti" | "sicurezza";
 
 const TABS: { key: SettingsTab; label: string }[] = [
   { key: "azienda", label: "Azienda" },
@@ -30,6 +34,7 @@ const TABS: { key: SettingsTab; label: string }[] = [
   { key: "fidelity", label: "Fidelity" },
   { key: "backup", label: "Backup" },
   { key: "utenti", label: "Utenti" },
+  { key: "sicurezza", label: "Sicurezza" },
 ];
 
 export function SettingsClient({
@@ -38,6 +43,9 @@ export function SettingsClient({
   initialCategories,
   initialTariffe,
   initialBackupStatus,
+  currentUsername,
+  currentUserTwoFactorEnabled,
+  twoFactorUsernames,
 }: SettingsClientProps) {
   const [tab, setTab] = useState<SettingsTab>("azienda");
   const [settings, setSettings] = useState(initialSettings);
@@ -327,7 +335,15 @@ export function SettingsClient({
       </div>
 
       <div style={{ display: tab === "utenti" ? "block" : "none" }}>
-        <UsersManager initialUsers={initialUsers} />
+        <UsersManager
+          initialUsers={initialUsers}
+          currentUsername={currentUsername}
+          initialTwoFactorUsernames={twoFactorUsernames}
+        />
+      </div>
+
+      <div style={{ display: tab === "sicurezza" ? "block" : "none" }}>
+        <TwoFactorSettings initialEnabled={currentUserTwoFactorEnabled} />
       </div>
 
       <Toast message={toast} />

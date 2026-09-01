@@ -80,6 +80,7 @@ export default async function proxy(req: NextRequest) {
     req.nextUrl.pathname === "/login" ||
     req.nextUrl.pathname === "/api/auth/login" ||
     req.nextUrl.pathname === "/api/auth/logout" ||
+    req.nextUrl.pathname === "/api/auth/verify-2fa" ||
     req.nextUrl.pathname.startsWith("/recupero-accesso") ||
     req.nextUrl.pathname.startsWith("/api/auth/recovery/");
   if (isLoginRoute) return NextResponse.next();

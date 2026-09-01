@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyCredentials } from "@/lib/basic-auth";
 import { createSessionToken, SESSION_COOKIE, SESSION_MAX_AGE } from "@/lib/session";
+import {
+  createPendingTwoFactorToken,
+  isTrustedDevice,
+  isTwoFactorEnabled,
+  PENDING_2FA_COOKIE,
+  PENDING_2FA_MAX_AGE,
+  TRUSTED_DEVICE_COOKIE,
+} from "@/lib/twofactor";
 
 export const runtime = "nodejs";
 
@@ -30,6 +38,26 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    // Se Google Sheets non risponde qui, si considera il 2FA non attivo
+    // invece di bloccare l'accesso: stessa scelta già fatta altrove nel
+    // progetto (vedi basic-auth.ts) di non far dipendere l'ingresso nel
+    // gestionale dalla disponibilità del foglio.
+    const twoFactorOn = await isTwoFactorEnabled(username).catch(() => false);
+    const trusted =
+      twoFactorOn && isTrustedDevice(req.cookies.get(TRUSTED_DEVICE_COOKIE)?.value, username);
+
+    if (twoFactorOn && !trusted) {
+      const response = NextResponse.json({ requiresTwoFactor: true });
+      response.cookies.set(PENDING_2FA_COOKIE, createPendingTwoFactorToken(username), {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: PENDING_2FA_MAX_AGE,
+      });
+      return response;
+    }
+
     const response = NextResponse.json({ ok: true });
     response.cookies.set(SESSION_COOKIE, createSessionToken(username), {
       httpOnly: true,
