@@ -984,7 +984,10 @@ export function DeviceDetailModal({
           {!isNew ? (
             <div className="photo-field">
               {form.foto ? (
-                <img className="photo-preview" src={form.foto} alt={`Foto ${form.codice}`} />
+                // La preview è un data URI della foto appena caricata o già salvata: non
+                // passa dal loader remoto di next/image e non genera richieste aggiuntive.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img className="photo-preview" src={form.foto} alt={`Foto ${form.codice}`} decoding="async" />
               ) : null}
               <div className="card-actions" style={{ marginTop: 0 }}>
                 <label className="btn">

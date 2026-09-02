@@ -72,7 +72,16 @@ export function DeviceCard({
       <div className="card-body">
         <div className="card-top">
           {d.foto ? (
-            <img className="card-photo" src={d.foto} alt={`${d.marca} ${d.modello}`} />
+            // Le foto arrivano come data URI già ottimizzate lato upload: next/image non
+            // può applicare il suo loader su questo tipo di sorgente.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              className="card-photo"
+              src={d.foto}
+              alt={`${d.marca} ${d.modello}`}
+              loading="lazy"
+              decoding="async"
+            />
           ) : null}
           <span className="model">
             {d.marca} {d.modello}

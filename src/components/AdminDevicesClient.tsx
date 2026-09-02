@@ -577,7 +577,15 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
                   if (!saving) openExisting(d);
                 }}
               >
-                <td>{d.foto ? <img className="photo-thumb" src={d.foto} alt="" /> : null}</td>
+                <td>
+                  {d.foto ? (
+                    // Le foto sono data URI già compresse nel foglio: il loader remoto di
+                    // next/image non può ottimizzarle ulteriormente. Manteniamo quindi un
+                    // <img> nativo, ma ritardiamo decoding e caricamento fuori viewport.
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img className="photo-thumb" src={d.foto} alt="" loading="lazy" decoding="async" />
+                  ) : null}
+                </td>
                 <td className="sticky-col sticky-left">{d.codice}</td>
                 <td>{d.categoria}</td>
                 <td>{d.sottocategoria ?? "—"}</td>
