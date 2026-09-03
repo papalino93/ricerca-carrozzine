@@ -112,11 +112,11 @@ export function SettingsClient({
         <LogoutButton className="btn" />
       </header>
 
-      <div className="chips" style={{ marginBottom: 20 }}>
+      <div className="tabs">
         {TABS.map((t) => (
           <button
             key={t.key}
-            className={`chip ${tab === t.key ? "active" : ""}`}
+            className={`tab ${tab === t.key ? "active" : ""}`}
             type="button"
             onClick={() => setTab(t.key)}
           >
@@ -203,32 +203,41 @@ export function SettingsClient({
             ) : null}
           </div>
 
+          <div className="card-actions">
+            <button className="btn primary" type="submit" disabled={saving}>
+              {saving ? "Salvataggio…" : "Salva impostazioni"}
+            </button>
+          </div>
+        </form>
+
+        {/* Separato dai dati operativi sopra: prima erano un unico form
+            lunghissimo, con due blocchi di testo legale in mezzo ai campi
+            che si compilano più spesso (ragione sociale, telefono...). */}
+        <form className="panel" onSubmit={handleSubmit}>
+          <h2>Testi legali sui documenti</h2>
+          <p className="hint" style={{ marginBottom: 14 }}>
+            Testo in corpo piccolo stampato sui documenti di noleggio. Fai rivedere entrambi da un
+            legale o consulente prima di usarli con i clienti — in particolare i tempi di
+            conservazione dei dati e l&apos;eventuale trattamento di categorie particolari di dati
+            (es. informazioni sanitarie che l&apos;ausilio noleggiato può far emergere
+            indirettamente): non sono ancora clausole verificate.
+          </p>
           <div className="field">
-            <label>Condizioni generali (testo in corpo piccolo sui documenti)</label>
+            <label>Condizioni generali</label>
             <textarea
               rows={4}
               value={settings.condizioniGenerali}
               onChange={(e) => setSettings({ ...settings, condizioniGenerali: e.target.value })}
             />
-            <p className="hint">
-              Fai rivedere questo testo da un commercialista o consulente prima di
-              usarlo con i clienti — non è ancora una clausola legale verificata.
-            </p>
           </div>
 
           <div className="field">
-            <label>Informativa privacy (testo in corpo piccolo sui documenti)</label>
+            <label>Informativa privacy</label>
             <textarea
               rows={6}
               value={settings.informativaPrivacy}
               onChange={(e) => setSettings({ ...settings, informativaPrivacy: e.target.value })}
             />
-            <p className="hint">
-              Fai rivedere questo testo da un legale o consulente privacy prima di
-              usarlo con i clienti — in particolare i tempi di conservazione dei dati e
-              l&apos;eventuale trattamento di categorie particolari di dati (es. informazioni
-              sanitarie che l&apos;ausilio noleggiato può far emergere indirettamente).
-            </p>
           </div>
 
           <div className="card-actions">
@@ -292,31 +301,40 @@ export function SettingsClient({
             mano — non è (ancora) automatico sul documento.
           </p>
 
+          <div className="card-actions">
+            <button className="btn primary" type="submit" disabled={saving}>
+              {saving ? "Salvataggio…" : "Salva impostazioni"}
+            </button>
+          </div>
+        </form>
+
+        {/* Separato dalle regole di accredito punti sopra: i due testi qui
+            sono lunghi e vanno fatti rivedere da un legale, il resto sopra
+            sono due numeri che si aggiustano al volo. */}
+        <form className="panel" onSubmit={handleSubmit}>
+          <h2>Testi del modulo di adesione</h2>
+          <p className="hint" style={{ marginBottom: 14 }}>
+            Ispirati al modulo di adesione già in uso: fai rivedere entrambi da un legale o
+            consulente prima di usarli con i clienti. L&apos;informativa privacy qui è diversa da
+            quella del noleggio (tab Azienda) perché parla di dati e finalità della carta
+            fedeltà, non dell&apos;ausilio noleggiato.
+          </p>
           <div className="field">
-            <label>Regolamento fedeltà (stampato sul modulo di adesione)</label>
+            <label>Regolamento fedeltà</label>
             <textarea
               rows={6}
               value={settings.regolamentoFedelta}
               onChange={(e) => setSettings({ ...settings, regolamentoFedelta: e.target.value })}
             />
-            <p className="hint">
-              Fai rivedere questo testo da un consulente prima di usarlo con i clienti.
-            </p>
           </div>
 
           <div className="field">
-            <label>Informativa privacy fedeltà (stampata sul modulo di adesione)</label>
+            <label>Informativa privacy fedeltà</label>
             <textarea
               rows={6}
               value={settings.informativaPrivacyFedelta}
               onChange={(e) => setSettings({ ...settings, informativaPrivacyFedelta: e.target.value })}
             />
-            <p className="hint">
-              Ispirato al modulo di adesione già in uso: fai rivedere questo testo da un
-              legale prima di usarlo con i clienti — è diverso dall&apos;informativa privacy del
-              noleggio (Azienda) perché parla di dati e finalità della carta fedeltà, non
-              dell&apos;ausilio noleggiato.
-            </p>
           </div>
 
           <div className="card-actions">
