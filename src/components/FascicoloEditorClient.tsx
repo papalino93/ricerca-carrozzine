@@ -428,10 +428,10 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
   // "Anteprima", pensate per essere ristampate quante volte serve senza
   // lasciare traccia sul fascicolo.
   const STAMPA_OPTIONS: { key: TipoStampa; label: string; sub: string }[] = [
-    { key: "interna", label: "Stampa interna completa", sub: "Tutto il fascicolo, per l'archivio" },
+    { key: "interna", label: "Stampa interna fascicolo", sub: "Tutto il fascicolo, per l'archivio" },
     { key: "cliente", label: "Stampa cliente — primo appuntamento", sub: "Anagrafica, privacy, condizioni, prezzo" },
-    { key: "conformita", label: "Dichiarazione di conformità e consegna", sub: "Da consegnare col plantare" },
-    { key: "controllo", label: "Visita di controllo", sub: "Riepilogo delle visite registrate" },
+    { key: "conformita", label: "Stampa cliente — consegna plantari", sub: "Conformità, libretto d'uso, avvenuta consegna" },
+    { key: "controllo", label: "Stampa visita di controllo", sub: "Riepilogo delle visite registrate" },
   ];
 
   async function handleStampa(tipo: TipoStampa) {
@@ -638,7 +638,7 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
         </div>
       </div>
       <p className="hint" style={{ marginTop: -6, marginBottom: 14 }}>
-        &quot;Anteprima interna&quot; è libera, non lascia traccia. Solo la &quot;Stampa interna completa&quot; nel
+        &quot;Anteprima interna&quot; è libera, non lascia traccia. Solo la &quot;Stampa interna fascicolo&quot; nel
         menu finalizza davvero: incrementa la versione del fascicolo (oggi alla {fascicolo.versione}ª) e, se
         configurato, lo archivia su Drive — le altre tre stampe si possono rigenerare quante volte serve.
       </p>
