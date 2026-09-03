@@ -4292,3 +4292,55 @@ tr.clickable-row {
 .search-result-item:hover {
   background: var(--accent-bg);
 }
+
+/* Sostituisce il popup nativo di <input list>/<datalist>, non stilabile e
+   posizionato dal browser invece che dal layout (vedi AutocompleteInput). */
+.autocomplete {
+  position: relative;
+}
+
+.autocomplete-menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 260px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 16px 34px -18px rgba(23, 48, 27, 0.4);
+}
+
+.autocomplete-option {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 9px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.autocomplete-option:hover,
+.autocomplete-option.active {
+  background: var(--accent-bg);
+}
+
+.autocomplete-option-label {
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.autocomplete-option-sub {
+  font-size: 12px;
+  color: var(--ink-soft);
+}

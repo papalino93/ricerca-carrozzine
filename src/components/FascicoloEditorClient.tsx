@@ -23,6 +23,7 @@ import type { FascicoloAllegatoMeta } from "@/lib/fascicoli-allegati";
 import { networkErrorMessage, readJson } from "@/lib/fetch-json";
 import { IconAnteprima, IconSalva, IconScarica, IconStampa } from "./ReceptionIcons";
 import { Toast } from "./Toast";
+import { AutocompleteInput } from "./AutocompleteInput";
 
 interface FascicoloEditorClientProps {
   initialFascicolo: FascicoloRecord;
@@ -747,19 +748,12 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
                 <input value={fascicolo.operatore ?? ""} onChange={(e) => updateTop({ operatore: e.target.value || null })} />
               </Field>
               <Field label="Commessa collegata">
-                <input
-                  list="fascicolo-commesse-list"
+                <AutocompleteInput
                   value={fascicolo.commessa ?? ""}
-                  onChange={(e) => updateTop({ commessa: e.target.value || null })}
+                  onChange={(v) => updateTop({ commessa: v || null })}
+                  options={commesse.map((cm) => ({ value: cm.numero, sublabel: cm.cliente }))}
                   placeholder="Numero commessa, se già aperta in Amministrazione"
                 />
-                <datalist id="fascicolo-commesse-list">
-                  {commesse.map((cm) => (
-                    <option key={cm.numero} value={cm.numero}>
-                      {cm.cliente}
-                    </option>
-                  ))}
-                </datalist>
                 <p className="hint">
                   Digitando compaiono i numeri delle commesse già aperte in Amministrazione → Commesse (con il
                   relativo cliente): è solo un testo di collegamento, non un vincolo, quindi puoi anche scriverne uno

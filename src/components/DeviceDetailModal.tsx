@@ -24,6 +24,7 @@ import { parseNumero } from "@/lib/importo";
 import { Toast } from "./Toast";
 import { useConfirm } from "./ConfirmDialog";
 import { useModalA11y } from "./useModalA11y";
+import { AutocompleteInput } from "./AutocompleteInput";
 
 // Deve combaciare con MAX_PHOTOS_PER_DEVICE in src/lib/photos.ts (server-only,
 // non importabile qui): solo per mostrare il conteggio, il limite reale è
@@ -690,29 +691,20 @@ export function DeviceDetailModal({
           ) : null}
           <div className="field">
             <label>Cliente</label>
-            <input
-              list="rent-clienti-list"
+            <AutocompleteInput
               value={rentCliente}
-              onChange={(e) => {
-                const nome = e.target.value;
-                // Se il nome digitato corrisponde esattamente a un cliente
-                // già in anagrafica e il telefono è ancora vuoto, lo
-                // precompila: evita di ridigitarlo per chi è già cliente,
-                // senza sovrascrivere un numero già scritto.
-                const match = !rentTelefono
-                  ? clienti.find((c) => c.nome.trim().toLowerCase() === nome.trim().toLowerCase())
-                  : null;
-                setRentCliente(nome);
-                if (match?.telefono) setRentTelefono(match.telefono);
+              onChange={setRentCliente}
+              options={clienti.map((c) => ({ value: c.nome, sublabel: c.telefono }))}
+              onSelect={(o) => {
+                // Non sovrascrive un telefono già scritto a mano.
+                if (!rentTelefono) {
+                  const match = clienti.find((c) => c.nome === o.value);
+                  if (match?.telefono) setRentTelefono(match.telefono);
+                }
               }}
               placeholder="Nome e cognome"
               autoFocus
             />
-            <datalist id="rent-clienti-list">
-              {clienti.map((c) => (
-                <option key={c.nome} value={c.nome} />
-              ))}
-            </datalist>
           </div>
           <div className="field">
             <label>Telefono</label>
@@ -813,17 +805,12 @@ export function DeviceDetailModal({
         <div className="field-row">
           <div className="field">
             <label>Sottocategoria (facoltativa)</label>
-            <input
-              list="detail-sottocategorie-list"
+            <AutocompleteInput
               value={form.sottocategoria ?? ""}
-              onChange={(e) => setForm({ ...form, sottocategoria: e.target.value || null })}
+              onChange={(v) => setForm({ ...form, sottocategoria: v || null })}
+              options={sottocategorie.map((s) => ({ value: s }))}
               placeholder="es. Autospinta, Transito, Bimbi…"
             />
-            <datalist id="detail-sottocategorie-list">
-              {sottocategorie.map((s) => (
-                <option key={s} value={s} />
-              ))}
-            </datalist>
           </div>
           <div className="field">
             <label>Stato</label>
@@ -858,16 +845,11 @@ export function DeviceDetailModal({
         <div className="field-row">
           <div className="field">
             <label>Marca</label>
-            <input
-              list="detail-marche-list"
+            <AutocompleteInput
               value={form.marca}
-              onChange={(e) => setForm({ ...form, marca: e.target.value })}
+              onChange={(v) => setForm({ ...form, marca: v })}
+              options={marche.map((m) => ({ value: m }))}
             />
-            <datalist id="detail-marche-list">
-              {marche.map((m) => (
-                <option key={m} value={m} />
-              ))}
-            </datalist>
           </div>
           <div className="field">
             <label>Modello</label>

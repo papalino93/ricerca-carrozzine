@@ -5,6 +5,7 @@ import { networkErrorMessage, readJson } from "@/lib/fetch-json";
 import { todayIso } from "@/lib/dates";
 import { parseNumero } from "@/lib/importo";
 import { useModalA11y } from "./useModalA11y";
+import { AutocompleteInput } from "./AutocompleteInput";
 import type { Device } from "@/lib/device-types";
 import {
   calcolaTotale,
@@ -173,25 +174,19 @@ export function QuickRentModal({ device, tariffe, clienti, onClose, onRented }: 
         >
           <div className="field">
             <label>Cliente</label>
-            <input
-              list="quick-rent-clienti-list"
+            <AutocompleteInput
               value={cliente}
-              onChange={(e) => {
-                const nome = e.target.value;
-                const match = !telefono
-                  ? clienti.find((c) => c.nome.trim().toLowerCase() === nome.trim().toLowerCase())
-                  : null;
-                setCliente(nome);
-                if (match?.telefono) setTelefono(match.telefono);
+              onChange={setCliente}
+              options={clienti.map((c) => ({ value: c.nome, sublabel: c.telefono }))}
+              onSelect={(o) => {
+                if (!telefono) {
+                  const match = clienti.find((c) => c.nome === o.value);
+                  if (match?.telefono) setTelefono(match.telefono);
+                }
               }}
               placeholder="Nome e cognome"
               autoFocus
             />
-            <datalist id="quick-rent-clienti-list">
-              {clienti.map((c) => (
-                <option key={c.nome} value={c.nome} />
-              ))}
-            </datalist>
           </div>
           <div className="field">
             <label>Telefono</label>

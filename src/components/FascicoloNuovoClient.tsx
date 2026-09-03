@@ -8,6 +8,7 @@ import { matchesQuery } from "@/lib/search-match";
 import { CODICE_FISCALE_LUNGHEZZA, codiceFiscaleAvviso } from "@/lib/codice-fiscale";
 import { networkErrorMessage, readJson } from "@/lib/fetch-json";
 import { IconCerca } from "./ReceptionIcons";
+import { AutocompleteInput } from "./AutocompleteInput";
 
 interface FascicoloNuovoClientProps {
   clients: ClientRecord[];
@@ -150,19 +151,12 @@ export function FascicoloNuovoClient({ clients, fascicoli, commesse, initialClie
         </div>
         <div className="field">
           <label>Commessa collegata</label>
-          <input
-            list="fascicolo-nuovo-commesse-list"
+          <AutocompleteInput
             value={commessa}
-            onChange={(e) => setCommessa(e.target.value)}
+            onChange={setCommessa}
+            options={commesse.map((cm) => ({ value: cm.numero, sublabel: cm.cliente }))}
             placeholder="Facoltativo, se già aperta in Commesse"
           />
-          <datalist id="fascicolo-nuovo-commesse-list">
-            {commesse.map((cm) => (
-              <option key={cm.numero} value={cm.numero}>
-                {cm.cliente}
-              </option>
-            ))}
-          </datalist>
         </div>
       </div>
     </div>
