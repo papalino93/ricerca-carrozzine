@@ -76,6 +76,9 @@ interface DeviceDetailModalProps {
   sottocategorie: string[];
   marche: string[];
   tariffe: Tariffa[];
+  /** Anagrafica clienti, solo nome e telefono: suggerisce i nomi già noti nel
+   * campo Cliente e precompila il telefono se corrisponde esattamente. */
+  clienti: { nome: string; telefono: string | null }[];
   existingCodici: string[];
   onClose: () => void;
   onSaved: (devices: Device[]) => void;
@@ -101,6 +104,7 @@ export function DeviceDetailModal({
   sottocategorie,
   marche,
   tariffe,
+  clienti,
   existingCodici,
   onClose,
   onSaved,
@@ -640,7 +644,17 @@ export function DeviceDetailModal({
   const mainContent = (
     <div className="detail-main">
       {renting ? (
-        <form className="panel" onSubmit={handleConfirmRent} style={{ margin: "0 0 16px" }}>
+        <form
+          className="panel"
+          onSubmit={handleConfirmRent}
+          style={{ margin: "0 0 16px" }}
+          onKeyDown={(e) => {
+            const tag = (e.target as HTMLElement).tagName;
+            if (e.key === "Enter" && tag !== "TEXTAREA" && tag !== "BUTTON") {
+              e.preventDefault();
+            }
+          }}
+        >
           <h2>Assegna a un cliente</h2>
           {mismatchSottocategoria ? (
             <div className="banner" style={{ marginBottom: 12 }}>
@@ -677,11 +691,28 @@ export function DeviceDetailModal({
           <div className="field">
             <label>Cliente</label>
             <input
+              list="rent-clienti-list"
               value={rentCliente}
-              onChange={(e) => setRentCliente(e.target.value)}
+              onChange={(e) => {
+                const nome = e.target.value;
+                // Se il nome digitato corrisponde esattamente a un cliente
+                // già in anagrafica e il telefono è ancora vuoto, lo
+                // precompila: evita di ridigitarlo per chi è già cliente,
+                // senza sovrascrivere un numero già scritto.
+                const match = !rentTelefono
+                  ? clienti.find((c) => c.nome.trim().toLowerCase() === nome.trim().toLowerCase())
+                  : null;
+                setRentCliente(nome);
+                if (match?.telefono) setRentTelefono(match.telefono);
+              }}
               placeholder="Nome e cognome"
               autoFocus
             />
+            <datalist id="rent-clienti-list">
+              {clienti.map((c) => (
+                <option key={c.nome} value={c.nome} />
+              ))}
+            </datalist>
           </div>
           <div className="field">
             <label>Telefono</label>
@@ -753,7 +784,20 @@ export function DeviceDetailModal({
       ) : null}
 
       {isNew || tab === "dati" ? (
-      <form onSubmit={handleSave}>
+      <form
+        onSubmit={handleSave}
+        // Un campo con datalist (es. Marca/Sottocategoria) sottomette il
+        // form all'Invio che chiude il suggerimento del browser, anche se
+        // l'operatore stava solo scegliendo un'opzione o passando al campo
+        // successivo — non solo un problema del campo Marca, di qualunque
+        // campo di questo form tranne il bottone di submit vero e proprio.
+        onKeyDown={(e) => {
+          const tag = (e.target as HTMLElement).tagName;
+          if (e.key === "Enter" && tag !== "TEXTAREA" && tag !== "BUTTON") {
+            e.preventDefault();
+          }
+        }}
+      >
         <div className="field-row">
           <div className="field">
             <label>Codice</label>

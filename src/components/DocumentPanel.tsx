@@ -154,7 +154,7 @@ export function DocumentPanel({ device, onClose, forcedTipo }: DocumentPanelProp
             <input value={numeroContratto} onChange={(e) => setNumeroContratto(e.target.value)} />
           </div>
           <div className="field">
-            <label>{tipo === "consegna" ? "Data di consegna" : "Data di restituzione"}</label>
+            <label>{tipo === "consegna" ? "Data di inizio noleggio" : "Data di restituzione"}</label>
             <input type="date" value={data} onChange={(e) => setData(e.target.value)} />
           </div>
         </div>

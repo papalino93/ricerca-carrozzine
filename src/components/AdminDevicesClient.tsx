@@ -70,9 +70,12 @@ interface AdminDevicesClientProps {
   initialDevices: Device[];
   categories: string[];
   tariffe: Tariffa[];
+  /** Anagrafica clienti, solo nome e telefono: suggerisce i nomi già noti
+   * quando si noleggia un ausilio, come già in Commesse. */
+  clienti: { nome: string; telefono: string | null }[];
 }
 
-export function AdminDevicesClient({ initialDevices, categories, tariffe }: AdminDevicesClientProps) {
+export function AdminDevicesClient({ initialDevices, categories, tariffe, clienti }: AdminDevicesClientProps) {
   const confirmAction = useConfirm();
   const [devices, setDevices] = useState(initialDevices);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
@@ -705,6 +708,7 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
           sottocategorie={sottocategorie}
           marche={marche}
           tariffe={tariffe}
+          clienti={clienti}
           existingCodici={devices.map((d) => d.codice)}
           onClose={() => setDetail(null)}
           onSaved={(updated) => setDevices(updated)}
