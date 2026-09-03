@@ -7,7 +7,7 @@ import {
   removeFascicoloAllegato,
 } from "@/lib/fascicoli-allegati";
 import { imageToDataUri } from "@/lib/image-to-data-uri";
-import { isFascicoliDriveConfigured, uploadFascicoloPdf } from "@/lib/drive";
+import { isFascicoliDriveConfigured, uploadFascicoloAllegato } from "@/lib/drive";
 
 export const runtime = "nodejs";
 
@@ -65,12 +65,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ num
       }
       const buffer = Buffer.from(await file.arrayBuffer());
       const filename = `allegato-${numero}-${Date.now()}-${file.name}`;
-      const driveUrl = await uploadFascicoloPdf(filename, buffer);
+      const { id: driveFileId, url: driveUrl } = await uploadFascicoloAllegato(filename, buffer);
       const allegati = await addFascicoloAllegatoPdf({
         numero,
         etichetta: etichettaStr,
         nome: file.name,
         driveUrl,
+        driveFileId,
       });
       return NextResponse.json({ allegati });
     }

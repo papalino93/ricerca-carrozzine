@@ -55,10 +55,6 @@ export function AutocompleteInput({
       : [];
 
   useEffect(() => {
-    setHighlight(0);
-  }, [value]);
-
-  useEffect(() => {
     function onDocMouseDown(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setOpen(false);
@@ -84,6 +80,7 @@ export function AutocompleteInput({
         onChange={(e) => {
           onChange(e.target.value);
           setOpen(true);
+          setHighlight(0);
         }}
         onFocus={() => setOpen(true)}
         onKeyDown={(e) => {

@@ -98,3 +98,34 @@ function getFascicoliFolderId(): string {
 export async function uploadFascicoloPdf(filename: string, pdf: Buffer): Promise<string> {
   return uploadToFolder(filename, pdf, getFascicoliFolderId());
 }
+
+/** Come uploadFascicoloPdf, ma restituisce anche l'id del file (non solo il
+ * link "webViewLink", una pagina HTML non scaricabile direttamente): serve
+ * per poter poi riscaricare i byte veri del PDF con downloadDriveFile,
+ * quando si uniscono gli allegati alla stampa interna completa. */
+export async function uploadFascicoloAllegato(filename: string, pdf: Buffer): Promise<{ id: string; url: string }> {
+  const drive = getDriveApi();
+  const res = await drive.files.create({
+    requestBody: { name: filename, parents: [getFascicoliFolderId()] },
+    media: { mimeType: "application/pdf", body: Readable.from(pdf) },
+    fields: "id, webViewLink",
+  });
+  const url = res.data.webViewLink;
+  const id = res.data.id;
+  if (!url || !id) {
+    throw new Error("Caricamento su Drive riuscito ma senza id/link restituito da Google.");
+  }
+  return { id, url };
+}
+
+/** Scarica i byte grezzi di un file Drive già caricato (es. un allegato PDF),
+ * per unirlo a un altro PDF: "webViewLink" è una pagina HTML di anteprima,
+ * non il contenuto del file, va per forza richiesto per id con alt=media. */
+export async function downloadDriveFile(fileId: string): Promise<Buffer> {
+  const drive = getDriveApi();
+  const res = await drive.files.get(
+    { fileId, alt: "media" },
+    { responseType: "arraybuffer" }
+  );
+  return Buffer.from(res.data as ArrayBuffer);
+}

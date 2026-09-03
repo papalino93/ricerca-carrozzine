@@ -16,7 +16,7 @@ import { MAX_ALLEGATI_PER_FASCICOLO } from "./fascicoli-types";
  *   photos.ts), va bene per una foto/scansione singola.
  * - "pdf": il file resta troppo grande per una cella di Google Sheets (il
  *   limite è ~50.000 caratteri, e un PDF multipagina in base64 lo supera
- *   facilmente) — viene caricato su Drive e qui si tiene solo il link.
+ *   facilmente) — viene caricato su Drive e qui si tiene link e id.
  */
 export interface FascicoloAllegatoMeta {
   id: string;
@@ -26,28 +26,32 @@ export interface FascicoloAllegatoMeta {
   /** Nome del file originale, per mostrarlo in elenco e nel download. */
   nome: string;
   formato: "immagine" | "pdf";
-  /** Link Drive, solo per formato "pdf". */
+  /** Link Drive apribile in un browser, solo per formato "pdf". */
   driveUrl: string | null;
+  /** Id del file su Drive, solo per formato "pdf": serve a riscaricarne i
+   * byte grezzi (drive.ts downloadDriveFile) per unirlo alla stampa interna
+   * completa — "driveUrl" è una pagina HTML di anteprima, non basta. */
+  driveFileId: string | null;
   /** Data di caricamento, ISO yyyy-mm-dd. */
   data: string;
 }
 
 const TAB = "AllegatiFascicoli";
-const HEADER = ["Id", "Numero", "Etichetta", "Nome", "Formato", "Immagine", "DriveUrl", "Data"];
+const HEADER = ["Id", "Numero", "Etichetta", "Nome", "Formato", "Immagine", "DriveUrl", "DriveFileId", "Data"];
 
 /**
  * Legge le sole colonne leggere, saltando la colonna F (Immagine) che
- * contiene il data URI: due letture strette (A:E e G:H) invece di una
+ * contiene il data URI: due letture strette (A:E e G:I) invece di una
  * pesante che scaricherebbe ogni volta tutte le immagini di ogni fascicolo.
  */
 async function readAllegatiMeta(): Promise<(FascicoloAllegatoMeta & { row: number })[]> {
-  const [ae, gh] = await Promise.all([readRange(`${TAB}!A:E`), readRange(`${TAB}!G:H`)]);
+  const [ae, gi] = await Promise.all([readRange(`${TAB}!A:E`), readRange(`${TAB}!G:I`)]);
 
   const out: (FascicoloAllegatoMeta & { row: number })[] = [];
   for (let i = 1; i < ae.length; i++) {
     const [id, numero, etichetta, nome, formato] = ae[i] ?? [];
     if (!id || !numero) continue;
-    const [driveUrl, data] = gh[i] ?? [];
+    const [driveUrl, driveFileId, data] = gi[i] ?? [];
     out.push({
       id,
       numero,
@@ -55,6 +59,7 @@ async function readAllegatiMeta(): Promise<(FascicoloAllegatoMeta & { row: numbe
       nome: nome || "",
       formato: formato === "pdf" ? "pdf" : "immagine",
       driveUrl: driveUrl || null,
+      driveFileId: driveFileId || null,
       data: data || "",
       row: i + 1, // riga nel foglio, base 1 (riga 1 = intestazione)
     });
@@ -67,13 +72,14 @@ export async function listFascicoloAllegati(numero: string): Promise<FascicoloAl
   const all = await readAllegatiMeta();
   return all
     .filter((a) => a.numero === numero)
-    .map(({ id, numero: n, etichetta, nome, formato, driveUrl, data }) => ({
+    .map(({ id, numero: n, etichetta, nome, formato, driveUrl, driveFileId, data }) => ({
       id,
       numero: n,
       etichetta,
       nome,
       formato,
       driveUrl,
+      driveFileId,
       data,
     }));
 }
@@ -114,11 +120,22 @@ export async function addFascicoloAllegatoImmagine(input: {
     nome: input.nome,
     formato: "immagine",
     driveUrl: null,
+    driveFileId: null,
     data: new Date().toISOString().slice(0, 10),
   };
   await appendRow(
     TAB,
-    [allegato.id, allegato.numero, allegato.etichetta, allegato.nome, "immagine", input.immagine, "", allegato.data],
+    [
+      allegato.id,
+      allegato.numero,
+      allegato.etichetta,
+      allegato.nome,
+      "immagine",
+      input.immagine,
+      "",
+      "",
+      allegato.data,
+    ],
     HEADER
   );
   return listFascicoloAllegati(input.numero);
@@ -129,6 +146,7 @@ export async function addFascicoloAllegatoPdf(input: {
   etichetta: string;
   nome: string;
   driveUrl: string;
+  driveFileId: string;
 }): Promise<FascicoloAllegatoMeta[]> {
   await assertRoom(input.numero);
   const allegato: FascicoloAllegatoMeta = {
@@ -138,11 +156,22 @@ export async function addFascicoloAllegatoPdf(input: {
     nome: input.nome,
     formato: "pdf",
     driveUrl: input.driveUrl,
+    driveFileId: input.driveFileId,
     data: new Date().toISOString().slice(0, 10),
   };
   await appendRow(
     TAB,
-    [allegato.id, allegato.numero, allegato.etichetta, allegato.nome, "pdf", "", input.driveUrl, allegato.data],
+    [
+      allegato.id,
+      allegato.numero,
+      allegato.etichetta,
+      allegato.nome,
+      "pdf",
+      "",
+      input.driveUrl,
+      input.driveFileId,
+      allegato.data,
+    ],
     HEADER
   );
   return listFascicoloAllegati(input.numero);

@@ -1,12 +1,37 @@
 import { NextRequest, NextResponse } from "next/server";
+import { PDFDocument } from "pdf-lib";
 import { requireBasicAuth } from "@/lib/basic-auth";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { getSettings } from "@/lib/settings";
 import { getFascicolo, updateFascicolo } from "@/lib/fascicoli";
 import { listClients, normalizeName, EMPTY_CLIENT_TEMPLATE } from "@/lib/clients";
 import { FascicoloDocument } from "@/lib/pdf/FascicoloDocument";
-import { isFascicoliDriveConfigured, uploadFascicoloPdf } from "@/lib/drive";
+import { isFascicoliDriveConfigured, uploadFascicoloPdf, downloadDriveFile } from "@/lib/drive";
 import { appendFascicoloPdfLog } from "@/lib/fascicoli-pdf-log";
+import { getFascicoloAllegatoImmagine, listFascicoloAllegati } from "@/lib/fascicoli-allegati";
+
+/**
+ * Unisce ai byte del PDF già renderizzato le pagine dei PDF allegati
+ * (prescrizioni/autorizzazioni caricate come PDF, non come immagine): solo
+ * nella stampa interna completa. Best-effort per allegato — se uno non si
+ * riesce a scaricare da Drive, si salta e si prosegue con gli altri invece
+ * di far fallire l'intera generazione del fascicolo.
+ */
+async function mergeAllegatiPdf(baseBuffer: Buffer, allegatiPdf: { driveFileId: string; etichetta: string }[]): Promise<Buffer> {
+  if (allegatiPdf.length === 0) return baseBuffer;
+  const merged = await PDFDocument.load(baseBuffer);
+  for (const a of allegatiPdf) {
+    try {
+      const bytes = await downloadDriveFile(a.driveFileId);
+      const toMerge = await PDFDocument.load(bytes);
+      const pages = await merged.copyPages(toMerge, toMerge.getPageIndices());
+      for (const page of pages) merged.addPage(page);
+    } catch (err) {
+      console.error(`Allegato PDF "${a.etichetta}" non incluso nella stampa interna:`, err);
+    }
+  }
+  return Buffer.from(await merged.save());
+}
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,12 +64,36 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ nume
       fascicolo = await updateFascicolo(numero, { incrementaVersione: true });
     }
 
-    const [settings, clients] = await Promise.all([getSettings(), listClients()]);
+    const [settings, clients, allegati] = await Promise.all([
+      getSettings(),
+      listClients(),
+      listFascicoloAllegati(numero).catch(() => []),
+    ]);
     const cliente =
       clients.find((c) => normalizeName(c.nome) === normalizeName(fascicolo.clienteNome)) ??
       EMPTY_CLIENT_TEMPLATE(fascicolo.clienteNome, fascicolo.clienteCF);
 
-    const buffer = await renderToBuffer(<FascicoloDocument settings={settings} cliente={cliente} fascicolo={fascicolo} />);
+    // Solo la stampa interna completa porta con sé gli allegati: le
+    // immagini diventano pagine extra dello stesso PDF renderizzato, i PDF
+    // vengono uniti a livello di byte dopo (vedi mergeAllegatiPdf).
+    const allegatiImmagini = (
+      await Promise.all(
+        allegati
+          .filter((a) => a.formato === "immagine")
+          .map(async (a) => ({
+            dataUri: await getFascicoloAllegatoImmagine(numero, a.id),
+            etichetta: a.etichetta,
+          }))
+      )
+    ).filter((a): a is { dataUri: string; etichetta: string } => Boolean(a.dataUri));
+    const allegatiPdf = allegati
+      .filter((a) => a.formato === "pdf" && Boolean(a.driveFileId))
+      .map((a) => ({ driveFileId: a.driveFileId as string, etichetta: a.etichetta }));
+
+    let buffer = await renderToBuffer(
+      <FascicoloDocument settings={settings} cliente={cliente} fascicolo={fascicolo} allegatiImmagini={allegatiImmagini} />
+    );
+    buffer = await mergeAllegatiPdf(buffer, allegatiPdf);
 
     let driveUrl: string | null = null;
     if (finalizza) {
