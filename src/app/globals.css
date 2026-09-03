@@ -4344,3 +4344,16 @@ tr.clickable-row {
   font-size: 12px;
   color: var(--ink-soft);
 }
+
+/* Intestazione di gruppo dentro il menu (es. "Clienti", "Commesse"): solo
+   nella ricerca globale della home, dove i risultati sono di più tipi
+   diversi mescolati per rilevanza e serve un'etichetta a dire quale è
+   quale. */
+.autocomplete-group-label {
+  padding: 8px 10px 2px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+}
