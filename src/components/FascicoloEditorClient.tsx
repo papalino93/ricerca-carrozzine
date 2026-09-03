@@ -35,6 +35,7 @@ interface FascicoloEditorClientProps {
 }
 
 type SaveState = "idle" | "saving" | "saved" | "error";
+type TipoStampa = "interna" | "cliente" | "conformita" | "controllo";
 
 const AUTOSAVE_DELAY_MS = 1500;
 
@@ -116,6 +117,8 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
   // fascicolo e scarica PDF" incrementava la versione due volte e caricava
   // due PDF distinti su Drive per una singola azione dell'operatore.
   const [azioneInCorso, setAzioneInCorso] = useState<null | "salva" | "anteprima" | "genera">(null);
+  const [stampaMenuOpen, setStampaMenuOpen] = useState(false);
+  const stampaMenuRef = useRef<HTMLDivElement>(null);
   const [dirty, setDirty] = useState(false);
   const [clienteDirty, setClienteDirty] = useState(false);
   const [clienteSaving, setClienteSaving] = useState(false);
@@ -136,6 +139,17 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
   useEffect(() => {
     fascicoloRef.current = fascicolo;
   }, [fascicolo]);
+
+  useEffect(() => {
+    if (!stampaMenuOpen) return;
+    function onDocMouseDown(e: MouseEvent) {
+      if (stampaMenuRef.current && !stampaMenuRef.current.contains(e.target as Node)) {
+        setStampaMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onDocMouseDown);
+    return () => document.removeEventListener("mousedown", onDocMouseDown);
+  }, [stampaMenuOpen]);
 
   useEffect(() => {
     fetch(`/api/fascicoli/${initialFascicolo.numero}/allegati`)
@@ -408,19 +422,35 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
     }
   }
 
-  // Finalizza (incrementa la versione, archivia su Drive se configurato) e
-  // scarica: prima erano due pulsanti separati ("Genera fascicolo" apriva
-  // inline, "Scarica PDF" scaricava) che facevano esattamente la stessa
-  // cosa lato dati — unificati per non lasciar credere che siano due azioni
-  // diverse.
-  async function handleGeneraEScarica() {
+  // Le quattro stampe possibili, scelte da un menu invece di un solo
+  // pulsante: solo "interna" finalizza davvero (incrementa la versione,
+  // archivia su Drive se configurato) — le altre tre sono libere come
+  // "Anteprima", pensate per essere ristampate quante volte serve senza
+  // lasciare traccia sul fascicolo.
+  const STAMPA_OPTIONS: { key: TipoStampa; label: string; sub: string }[] = [
+    { key: "interna", label: "Stampa interna completa", sub: "Tutto il fascicolo, per l'archivio" },
+    { key: "cliente", label: "Stampa cliente — primo appuntamento", sub: "Anagrafica, privacy, condizioni, prezzo" },
+    { key: "conformita", label: "Dichiarazione di conformità e consegna", sub: "Da consegnare col plantare" },
+    { key: "controllo", label: "Visita di controllo", sub: "Riepilogo delle visite registrate" },
+  ];
+
+  async function handleStampa(tipo: TipoStampa) {
     if (azioneInCorso) return;
+    setStampaMenuOpen(false);
     setAzioneInCorso("genera");
     try {
       const ok = await assicuraSalvato();
       if (!ok) return;
-      window.open(`/api/fascicoli/${fascicolo.numero}/documento?finalizza=1`, "_blank");
-      showToast("PDF generato");
+      const url =
+        tipo === "interna"
+          ? `/api/fascicoli/${fascicolo.numero}/documento?finalizza=1`
+          : tipo === "cliente"
+            ? `/api/fascicoli/${fascicolo.numero}/stampa-cliente`
+            : tipo === "conformita"
+              ? `/api/fascicoli/${fascicolo.numero}/dichiarazione-conformita`
+              : `/api/fascicoli/${fascicolo.numero}/visite-controllo`;
+      window.open(url, "_blank");
+      showToast(tipo === "interna" ? "PDF generato" : "PDF pronto");
     } finally {
       setAzioneInCorso(null);
     }
@@ -575,28 +605,42 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
             <span className="btn-icon"><IconSalva /></span> Salva
           </button>
           <button type="button" className="btn" onClick={handleAnteprima} disabled={Boolean(azioneInCorso)}>
-            <span className="btn-icon"><IconAnteprima /></span> Anteprima / Stampa
+            <span className="btn-icon"><IconAnteprima /></span> Anteprima interna
           </button>
-          <button
-            type="button"
-            className="btn primary"
-            onClick={handleGeneraEScarica}
-            disabled={Boolean(azioneInCorso)}
-          >
-            {azioneInCorso === "genera" ? (
-              "Generazione…"
-            ) : (
-              <>
-                <span className="btn-icon"><IconScarica /></span> Genera fascicolo e scarica PDF
-              </>
-            )}
-          </button>
+          <div className="autocomplete" ref={stampaMenuRef} style={{ display: "inline-block" }}>
+            <button
+              type="button"
+              className="btn primary"
+              onClick={() => setStampaMenuOpen((v) => !v)}
+              disabled={Boolean(azioneInCorso)}
+            >
+              {azioneInCorso === "genera" ? (
+                "Generazione…"
+              ) : (
+                <>
+                  <span className="btn-icon"><IconScarica /></span> Stampa fascicolo…
+                </>
+              )}
+            </button>
+            {stampaMenuOpen ? (
+              <ul className="autocomplete-menu" style={{ left: "auto", right: 0, minWidth: 300 }}>
+                {STAMPA_OPTIONS.map((o) => (
+                  <li key={o.key}>
+                    <button type="button" className="autocomplete-option" onClick={() => handleStampa(o.key)}>
+                      <span className="autocomplete-option-label">{o.label}</span>
+                      <span className="autocomplete-option-sub">{o.sub}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
         </div>
       </div>
       <p className="hint" style={{ marginTop: -6, marginBottom: 14 }}>
-        &quot;Anteprima / Stampa&quot; è libera, non lascia traccia. &quot;Genera fascicolo e scarica PDF&quot;
-        invece finalizza: incrementa la versione del fascicolo (oggi alla {fascicolo.versione}ª) e, se configurato,
-        lo archivia su Drive.
+        &quot;Anteprima interna&quot; è libera, non lascia traccia. Solo la &quot;Stampa interna completa&quot; nel
+        menu finalizza davvero: incrementa la versione del fascicolo (oggi alla {fascicolo.versione}ª) e, se
+        configurato, lo archivia su Drive — le altre tre stampe si possono rigenerare quante volte serve.
       </p>
 
       <div className="fascicolo-progress">
@@ -1237,16 +1281,12 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
             <h3 className="fascicolo-lato-title" style={{ marginTop: 16 }}>
               Fasi di lavorazione
             </h3>
-            {c.produzione.fasi.map((fase, i) => (
+            {c.produzione.fasi.map((fase) => (
               <div key={fase.numero} className="fascicolo-fase-row">
                 <input
                   type="checkbox"
                   checked={fase.completata}
-                  onChange={(e) => {
-                    const fasi = [...c.produzione.fasi];
-                    fasi[i] = { ...fase, completata: e.target.checked };
-                    updateContenuto("produzione", { fasi });
-                  }}
+                  onChange={(e) => updateFase(fase.numero, { completata: e.target.checked })}
                 />
                 <div>
                   <strong>
@@ -1257,20 +1297,12 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
                 <input
                   type="date"
                   value={fase.data ?? ""}
-                  onChange={(e) => {
-                    const fasi = [...c.produzione.fasi];
-                    fasi[i] = { ...fase, data: e.target.value || null };
-                    updateContenuto("produzione", { fasi });
-                  }}
+                  onChange={(e) => updateFase(fase.numero, { data: e.target.value || null })}
                 />
                 <input
                   placeholder="Operatore"
                   value={fase.operatore ?? ""}
-                  onChange={(e) => {
-                    const fasi = [...c.produzione.fasi];
-                    fasi[i] = { ...fase, operatore: e.target.value || null };
-                    updateContenuto("produzione", { fasi });
-                  }}
+                  onChange={(e) => updateFase(fase.numero, { operatore: e.target.value || null })}
                 />
               </div>
             ))}
@@ -1458,11 +1490,11 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
           fondo a qualunque sezione, non solo dalla savebar in cima: per
           riprendere in mano un fascicolo già completo (es. il cliente torna
           e chiede un'altra copia) senza dover risalire. Non finalizza a sua
-          volta — stesso comportamento libero di "Anteprima / Stampa". */}
+          volta — stesso comportamento libero di "Anteprima interna". */}
       {fascicolo.versione > 1 ? (
         <div className="card-actions" style={{ justifyContent: "flex-end", marginTop: 20 }}>
           <button type="button" className="btn" onClick={handleAnteprima} disabled={Boolean(azioneInCorso)}>
-            <span className="btn-icon"><IconStampa /></span> Ristampa PDF
+            <span className="btn-icon"><IconStampa /></span> Riapri anteprima interna
           </button>
         </div>
       ) : null}
