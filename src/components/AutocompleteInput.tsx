@@ -83,6 +83,12 @@ export function AutocompleteInput({
           setHighlight(0);
         }}
         onFocus={() => setOpen(true)}
+        // Chiude il menu anche uscendo con Tab, non solo cliccando fuori
+        // (l'ascoltatore su document sotto reagisce solo al mouse): il
+        // click su un suggerimento non arriva qui perché onMouseDown lo
+        // previene già (vedi sotto), quindi non c'è conflitto con la
+        // selezione.
+        onBlur={() => setOpen(false)}
         onKeyDown={(e) => {
           if (!showMenu) return;
           if (e.key === "ArrowDown") {

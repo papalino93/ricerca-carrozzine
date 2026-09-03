@@ -167,6 +167,10 @@ export function DeskSearch({ devices, clients, commesse, fascicoli }: DeskSearch
             setHighlight(0);
           }}
           onFocus={() => setOpen(true)}
+          // Chiude il menu anche uscendo con Tab (l'ascoltatore su document
+          // sotto reagisce solo al mouse): il click su un risultato non
+          // arriva qui perché onMouseDown lo previene già.
+          onBlur={() => setOpen(false)}
           onKeyDown={(e) => {
             if (!showMenu) return;
             if (e.key === "ArrowDown") {

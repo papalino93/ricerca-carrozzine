@@ -96,6 +96,32 @@ export async function getFascicoloAllegatoImmagine(numero: string, id: string): 
   return cell[0]?.[0] || null;
 }
 
+/**
+ * Come getFascicoloAllegatoImmagine, ma per più allegati in un colpo solo:
+ * una sola scansione dei metadati (non una per immagine) seguita da una
+ * lettura mirata per ciascuna cella Immagine. Usata dalla stampa interna
+ * completa, che deve incorporare TUTTE le immagini di un fascicolo — con
+ * la funzione singola, un fascicolo vicino al tetto di allegati generava
+ * una rilettura completa dei metadati per ognuna.
+ */
+export async function getFascicoloAllegatiImmagini(
+  numero: string,
+  ids: string[]
+): Promise<Map<string, string>> {
+  const all = await readAllegatiMeta();
+  const out = new Map<string, string>();
+  await Promise.all(
+    ids.map(async (id) => {
+      const found = all.find((a) => a.id === id && a.numero === numero && a.formato === "immagine");
+      if (!found) return;
+      const cell = await readRange(`${TAB}!F${found.row}`);
+      const dataUri = cell[0]?.[0];
+      if (dataUri) out.set(id, dataUri);
+    })
+  );
+  return out;
+}
+
 async function assertRoom(numero: string) {
   const all = await readAllegatiMeta();
   const own = all.filter((a) => a.numero === numero);
