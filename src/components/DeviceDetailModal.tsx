@@ -1,7 +1,7 @@
 "use client";
 
 import { networkErrorMessage, readJson } from "@/lib/fetch-json";
-import { addDaysIso, todayIso } from "@/lib/dates";
+import { todayIso } from "@/lib/dates";
 import { useEffect, useRef, useState } from "react";
 import {
   ARCHIVE_LABEL,
@@ -17,7 +17,6 @@ import {
   calcolaTotale,
   findTariffa,
   fmtEuro,
-  giorniTra,
   sottocategoriaSenzaTariffaSpecifica,
   type Tariffa,
 } from "@/lib/tariffe-types";
@@ -126,7 +125,7 @@ export function DeviceDetailModal({
   const [rentCliente, setRentCliente] = useState("");
   const [rentTelefono, setRentTelefono] = useState("");
   const [rentDal, setRentDal] = useState(todayIso());
-  const [rentAlPrevisto, setRentAlPrevisto] = useState(addDaysIso(todayIso(), 30));
+  const [rentNota, setRentNota] = useState("");
   // Prefillato dal tariffario, ma modificabile per questo singolo noleggio
   // (es. uno sconto concordato): vedi anche QuickRentModal, stessa idea.
   const [rentPrezzo, setRentPrezzo] = useState(() => {
@@ -321,16 +320,16 @@ export function DeviceDetailModal({
   // tariffa registrata, senza che l'operatore se ne accorga.
   const rentPrezzoNum = parseNumero(rentPrezzo) ?? NaN;
   const rentCostoConsegnaNum = parseNumero(rentCostoConsegna);
-  const rentTotaleStimato =
-    tariffa && rentAlPrevisto && rentPrezzoNum > 0
-      ? calcolaTotale(rentPrezzoNum, tariffa.unita, giorniTra(rentDal, rentAlPrevisto))
-      : null;
+  // Il rientro previsto non è più un campo del form (vedi devices.ts,
+  // rentDevice lo calcola da sé): questa stima assume gli stessi 30 giorni
+  // di default, solo per dare un'idea del totale senza promettere una data.
+  const rentTotaleStimato = tariffa && rentPrezzoNum > 0 ? calcolaTotale(rentPrezzoNum, tariffa.unita, 30) : null;
 
   function resetRentForm() {
     setRentCliente("");
     setRentTelefono("");
     setRentDal(todayIso());
-    setRentAlPrevisto(addDaysIso(todayIso(), 30));
+    setRentNota("");
     setRentPrezzo(tariffa ? String(tariffa.importo).replace(".", ",") : "");
     setRentCostoConsegna(tariffa?.costoConsegna != null ? String(tariffa.costoConsegna).replace(".", ",") : "");
   }
@@ -357,11 +356,12 @@ export function DeviceDetailModal({
           cliente: rentCliente,
           telefono: rentTelefono,
           dal: rentDal,
-          alPrevisto: rentAlPrevisto || null,
+          alPrevisto: null,
           tariffaApplicata: tariffa && rentPrezzoNum > 0 ? rentPrezzoNum : null,
           tariffaUnita: tariffa && rentPrezzoNum > 0 ? tariffa.unita : null,
           costoConsegna: rentCostoConsegnaNum,
           notaTariffa: tariffa?.nota ?? null,
+          notaNoleggio: rentNota.trim() || null,
         }),
       });
       const body = await readJson(res);
@@ -685,7 +685,7 @@ export function DeviceDetailModal({
           ) : null}
           {rentTotaleStimato != null ? (
             <p className="hint" style={{ margin: "0 0 14px" }}>
-              Totale stimato fino al rientro previsto: <b>{fmtEuro(rentTotaleStimato)}</b>
+              Totale stimato per 30 giorni: <b>{fmtEuro(rentTotaleStimato)}</b>
             </p>
           ) : null}
           <div className="field">
@@ -721,34 +721,18 @@ export function DeviceDetailModal({
           <p className="hint" style={{ margin: "0 0 12px" }}>
             Il numero di noleggio viene assegnato automaticamente alla conferma.
           </p>
-          <div className="field-row">
-            <div className="field">
-              <label>Dal</label>
-              <input type="date" value={rentDal} onChange={(e) => setRentDal(e.target.value)} />
-            </div>
-            <div className="field">
-              <label>Rientro previsto (facoltativo)</label>
-              <input
-                type="date"
-                value={rentAlPrevisto}
-                onChange={(e) => setRentAlPrevisto(e.target.value)}
-              />
-            </div>
+          <div className="field">
+            <label>Dal</label>
+            <input type="date" value={rentDal} onChange={(e) => setRentDal(e.target.value)} />
           </div>
-          <div className="chips" style={{ marginBottom: 14 }}>
-            {[15, 30, 60, 90].map((days) => (
-              <button
-                key={days}
-                type="button"
-                className="chip"
-                onClick={() => setRentAlPrevisto(addDaysIso(rentDal, days))}
-              >
-                +{days} giorni
-              </button>
-            ))}
-            <button type="button" className="chip" onClick={() => setRentAlPrevisto("")}>
-              Nessuna scadenza
-            </button>
+          <div className="field">
+            <label>Note (facoltative)</label>
+            <textarea
+              value={rentNota}
+              onChange={(e) => setRentNota(e.target.value)}
+              placeholder="Es. consegna al piano 3, ritiro concordato per venerdì…"
+              rows={2}
+            />
           </div>
           <div className="card-actions">
             <button

@@ -4248,6 +4248,27 @@ tr.clickable-row {
   }
 }
 
+.fascicolo-visita-row {
+  display: grid;
+  grid-template-columns: 80px 130px 1fr auto;
+  gap: 10px;
+  align-items: start;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.fascicolo-visita-row:last-child {
+  border-bottom: none;
+}
+
+@media (max-width: 700px) {
+  .fascicolo-visita-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+    padding: 12px 0;
+  }
+}
+
 .search-result-list {
   list-style: none;
   margin: 10px 0 0;

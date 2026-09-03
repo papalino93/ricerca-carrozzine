@@ -15,6 +15,7 @@ import {
   type FascicoloStato,
   type FaseProduzione,
   type SezioneFascicolo,
+  type VisitaControllo,
 } from "@/lib/fascicoli-types";
 import { CODICE_FISCALE_LUNGHEZZA, codiceFiscaleAvviso } from "@/lib/codice-fiscale";
 import { networkErrorMessage, readJson } from "@/lib/fetch-json";
@@ -423,6 +424,52 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
       showToast(networkErrorMessage(err));
       setDeleting(false);
     }
+  }
+
+  // Visite di controllo: numero libero (1ª, 2ª, 3ª...), aggiunte quando
+  // servono davvero, non un numero fisso deciso in partenza.
+  function addVisita() {
+    setFascicolo((prev) => {
+      const visite = prev.contenuto.consegna.visiteControllo;
+      const numero = visite.length > 0 ? Math.max(...visite.map((v) => v.numero)) + 1 : 1;
+      const nuova: VisitaControllo = { numero, data: new Date().toISOString().slice(0, 10), nota: null };
+      return {
+        ...prev,
+        contenuto: {
+          ...prev.contenuto,
+          consegna: { ...prev.contenuto.consegna, visiteControllo: [...visite, nuova] },
+        },
+      };
+    });
+    scheduleAutosave();
+  }
+
+  function updateVisita(numero: number, patch: Partial<VisitaControllo>) {
+    setFascicolo((prev) => ({
+      ...prev,
+      contenuto: {
+        ...prev.contenuto,
+        consegna: {
+          ...prev.contenuto.consegna,
+          visiteControllo: prev.contenuto.consegna.visiteControllo.map((v) => (v.numero === numero ? { ...v, ...patch } : v)),
+        },
+      },
+    }));
+    scheduleAutosave();
+  }
+
+  function removeVisita(numero: number) {
+    setFascicolo((prev) => ({
+      ...prev,
+      contenuto: {
+        ...prev.contenuto,
+        consegna: {
+          ...prev.contenuto.consegna,
+          visiteControllo: prev.contenuto.consegna.visiteControllo.filter((v) => v.numero !== numero),
+        },
+      },
+    }));
+    scheduleAutosave();
   }
 
   const c = fascicolo.contenuto;
@@ -1223,6 +1270,57 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
               Le note informative, le istruzioni per l&apos;uso e la garanzia sono un testo standard, uguale per ogni
               fascicolo: compaiono automaticamente nel PDF, non c&apos;è nulla da scrivere qui.
             </p>
+          </>
+        ) : null}
+
+        {tab === "controlli" ? (
+          <>
+            <h2>Visite di controllo</h2>
+            <p className="hint">
+              Una riga per ogni visita successiva alla consegna (1ª, 2ª, 3ª…): aggiungine quante servono davvero, non
+              c&apos;è un numero previsto in partenza.
+            </p>
+            {c.consegna.visiteControllo.length === 0 ? (
+              <p className="empty">
+                <b>Nessuna visita registrata</b>
+                Aggiungi la prima visita di controllo con il pulsante qui sotto.
+              </p>
+            ) : (
+              [...c.consegna.visiteControllo]
+                .sort((a, b) => a.numero - b.numero)
+                .map((v) => (
+                  <div key={v.numero} className="fascicolo-visita-row">
+                    <strong>{v.numero}ª</strong>
+                    <input type="date" value={v.data ?? ""} onChange={(e) => updateVisita(v.numero, { data: e.target.value || null })} />
+                    <input
+                      placeholder="Nota del tecnico"
+                      value={v.nota ?? ""}
+                      onChange={(e) => updateVisita(v.numero, { nota: e.target.value || null })}
+                    />
+                    <button type="button" className="btn-link" onClick={() => removeVisita(v.numero)}>
+                      Rimuovi
+                    </button>
+                  </div>
+                ))
+            )}
+            <div className="card-actions" style={{ marginTop: 14 }}>
+              <button type="button" className="btn" onClick={addVisita}>
+                + Aggiungi visita
+              </button>
+              {c.consegna.visiteControllo.length > 0 ? (
+                <a
+                  className="btn"
+                  href={`/api/fascicoli/${fascicolo.numero}/visite-controllo`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <span className="btn-icon">
+                    <IconStampa />
+                  </span>{" "}
+                  Stampa visite di controllo
+                </a>
+              ) : null}
+            </div>
           </>
         ) : null}
 

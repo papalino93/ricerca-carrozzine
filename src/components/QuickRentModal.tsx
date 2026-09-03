@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { networkErrorMessage, readJson } from "@/lib/fetch-json";
-import { addDaysIso, todayIso } from "@/lib/dates";
+import { todayIso } from "@/lib/dates";
 import { parseNumero } from "@/lib/importo";
 import { useModalA11y } from "./useModalA11y";
 import type { Device } from "@/lib/device-types";
@@ -10,7 +10,6 @@ import {
   calcolaTotale,
   findTariffa,
   fmtEuro,
-  giorniTra,
   sottocategoriaSenzaTariffaSpecifica,
   type Tariffa,
 } from "@/lib/tariffe-types";
@@ -59,7 +58,7 @@ export function QuickRentModal({ device, tariffe, clienti, onClose, onRented }: 
   const [costoConsegna, setCostoConsegna] = useState(
     tariffa?.costoConsegna != null ? String(tariffa.costoConsegna).replace(".", ",") : ""
   );
-  const [alPrevisto, setAlPrevisto] = useState(addDaysIso(todayIso(), 30));
+  const [nota, setNota] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -69,10 +68,11 @@ export function QuickRentModal({ device, tariffe, clienti, onClose, onRented }: 
   // tariffa registrata, senza che l'operatore se ne accorga.
   const prezzoNum = parseNumero(prezzo) ?? NaN;
   const costoConsegnaNum = parseNumero(costoConsegna);
+  // Il rientro previsto non è più un campo del form (vedi devices.ts,
+  // rentDevice lo calcola da sé): questa stima assume gli stessi 30 giorni
+  // di default, solo per dare un'idea del totale senza promettere una data.
   const totaleStimato =
-    tariffa && alPrevisto && prezzoNum > 0
-      ? calcolaTotale(prezzoNum, tariffa.unita, giorniTra(dal, alPrevisto))
-      : null;
+    tariffa && prezzoNum > 0 ? calcolaTotale(prezzoNum, tariffa.unita, 30) : null;
 
   async function handleConfirm(e: React.FormEvent) {
     e.preventDefault();
@@ -91,11 +91,12 @@ export function QuickRentModal({ device, tariffe, clienti, onClose, onRented }: 
           cliente,
           telefono,
           dal,
-          alPrevisto: alPrevisto || null,
+          alPrevisto: null,
           tariffaApplicata: tariffa && prezzoNum > 0 ? prezzoNum : null,
           tariffaUnita: tariffa && prezzoNum > 0 ? tariffa.unita : null,
           costoConsegna: costoConsegnaNum,
           notaTariffa: tariffa?.nota ?? null,
+          notaNoleggio: nota.trim() || null,
         }),
       });
       const body = await readJson(res);
@@ -157,7 +158,7 @@ export function QuickRentModal({ device, tariffe, clienti, onClose, onRented }: 
         ) : null}
         {totaleStimato != null ? (
           <p className="hint" style={{ margin: "0 0 14px" }}>
-            Totale stimato fino al rientro previsto: <b>{fmtEuro(totaleStimato)}</b>
+            Totale stimato per 30 giorni: <b>{fmtEuro(totaleStimato)}</b>
           </p>
         ) : null}
 
@@ -196,30 +197,18 @@ export function QuickRentModal({ device, tariffe, clienti, onClose, onRented }: 
             <label>Telefono</label>
             <input value={telefono} onChange={(e) => setTelefono(e.target.value)} />
           </div>
-          <div className="field-row">
-            <div className="field">
-              <label>Dal</label>
-              <input type="date" value={dal} onChange={(e) => setDal(e.target.value)} />
-            </div>
-            <div className="field">
-              <label>Rientro previsto (facoltativo)</label>
-              <input type="date" value={alPrevisto} onChange={(e) => setAlPrevisto(e.target.value)} />
-            </div>
+          <div className="field">
+            <label>Dal</label>
+            <input type="date" value={dal} onChange={(e) => setDal(e.target.value)} />
           </div>
-          <div className="chips" style={{ marginBottom: 14 }}>
-            {[15, 30, 60, 90].map((days) => (
-              <button
-                key={days}
-                type="button"
-                className="chip"
-                onClick={() => setAlPrevisto(addDaysIso(dal, days))}
-              >
-                +{days} giorni
-              </button>
-            ))}
-            <button type="button" className="chip" onClick={() => setAlPrevisto("")}>
-              Nessuna scadenza
-            </button>
+          <div className="field">
+            <label>Note (facoltative)</label>
+            <textarea
+              value={nota}
+              onChange={(e) => setNota(e.target.value)}
+              placeholder="Es. consegna al piano 3, ritiro concordato per venerdì…"
+              rows={2}
+            />
           </div>
           <div className="card-actions">
             <button className="btn ghost" type="button" onClick={onClose}>
