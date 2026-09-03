@@ -5,6 +5,7 @@ import { useState } from "react";
 import { parseNumero } from "@/lib/importo";
 import { fmtEuro, fmtTariffa, type Tariffa, type TariffaUnita } from "@/lib/tariffe-types";
 import { useConfirm } from "./ConfirmDialog";
+import { AutocompleteInput } from "./AutocompleteInput";
 
 interface TariffeManagerProps {
   initialTariffe: Tariffa[];
@@ -52,6 +53,13 @@ export function TariffeManager({ initialTariffe, categories }: TariffeManagerPro
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
+    // La AutocompleteInput non porta l'attributo HTML "required" del
+    // vecchio <input>: senza questo controllo, il browser non avrebbe più
+    // bloccato da solo l'invio con categoria vuota.
+    if (!form.categoria.trim()) {
+      setError("La categoria è obbligatoria");
+      return;
+    }
     // parseNumero, non Number(x.replace(",", ".")): un importo ≥ 1000€
     // scritto con il punto delle migliaia (es. "1.500,00") diventerebbe
     // altrimenti NaN, respinto dal server con un messaggio fuorviante
@@ -175,18 +183,12 @@ export function TariffeManager({ initialTariffe, categories }: TariffeManagerPro
         <div className="field-row">
           <div className="field">
             <label>Categoria</label>
-            <input
-              list="tariffe-categorie-list"
+            <AutocompleteInput
               value={form.categoria}
-              onChange={(e) => setForm({ ...form, categoria: e.target.value })}
+              onChange={(v) => setForm({ ...form, categoria: v })}
+              options={categories.map((c) => ({ value: c }))}
               disabled={Boolean(editing)}
-              required
             />
-            <datalist id="tariffe-categorie-list">
-              {categories.map((c) => (
-                <option key={c} value={c} />
-              ))}
-            </datalist>
           </div>
           <div className="field">
             <label>Sottocategoria (facoltativa)</label>
