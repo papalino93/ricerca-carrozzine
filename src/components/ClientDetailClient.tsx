@@ -8,6 +8,7 @@ import type { HistoryEvent } from "@/lib/history";
 import type { Device } from "@/lib/device-types";
 import { FASCICOLO_STATO_LABEL, type FascicoloRecord } from "@/lib/fascicoli-types";
 import { COMMESSA_STATUS_LABEL, type CommessaRecord } from "@/lib/commesse-types";
+import { CODICE_FISCALE_LUNGHEZZA, codiceFiscaleAvviso } from "@/lib/codice-fiscale";
 import { networkErrorMessage, readJson } from "@/lib/fetch-json";
 import { IconModifica } from "./ReceptionIcons";
 import { Toast } from "./Toast";
@@ -367,8 +368,12 @@ export function ClientDetailClient({
                 <label>Codice fiscale</label>
                 <input
                   value={form.codiceFiscale}
+                  maxLength={CODICE_FISCALE_LUNGHEZZA}
                   onChange={(e) => setForm({ ...form, codiceFiscale: e.target.value.toUpperCase() })}
                 />
+                {codiceFiscaleAvviso(form.codiceFiscale) ? (
+                  <p className="hint">{codiceFiscaleAvviso(form.codiceFiscale)}</p>
+                ) : null}
               </div>
               <div className="field">
                 <label>Data di nascita</label>

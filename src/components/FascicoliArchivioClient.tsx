@@ -35,9 +35,20 @@ export function FascicoliArchivioClient({ fascicoli }: FascicoliArchivioClientPr
   const [dataDa, setDataDa] = useState("");
   const [dataA, setDataA] = useState("");
   const [operatore, setOperatore] = useState("");
+  const [anno, setAnno] = useState("");
 
   const operatoriDisponibili = useMemo(
     () => [...new Set(fascicoli.map((f) => f.operatore).filter((o): o is string => Boolean(o)))].sort(),
+    [fascicoli]
+  );
+
+  // Sottofiltro rapido per anno, più veloce da usare del range di date
+  // completo quando si cerca semplicemente "i fascicoli del 2024".
+  const anniDisponibili = useMemo(
+    () =>
+      [...new Set(fascicoli.map((f) => localDateFromIso(f.dataCreazione).slice(0, 4)).filter(Boolean))].sort(
+        (a, b) => b.localeCompare(a)
+      ),
     [fascicoli]
   );
 
@@ -55,6 +66,7 @@ export function FascicoliArchivioClient({ fascicoli }: FascicoliArchivioClientPr
     return fascicoli.filter((f) => {
       if (statiAttivi.size > 0 && !statiAttivi.has(f.stato)) return false;
       if (operatore && f.operatore !== operatore) return false;
+      if (anno && localDateFromIso(f.dataCreazione).slice(0, 4) !== anno) return false;
       if (dataDa && localDateFromIso(f.dataCreazione) < dataDa) return false;
       if (dataA && localDateFromIso(f.dataCreazione) > dataA) return false;
       if (q) {
@@ -63,7 +75,7 @@ export function FascicoliArchivioClient({ fascicoli }: FascicoliArchivioClientPr
       }
       return true;
     });
-  }, [fascicoli, query, statiAttivi, dataDa, dataA, operatore]);
+  }, [fascicoli, query, statiAttivi, dataDa, dataA, operatore, anno]);
 
   return (
     <div className="wrap wide">
@@ -96,6 +108,17 @@ export function FascicoliArchivioClient({ fascicoli }: FascicoliArchivioClientPr
         </div>
 
         <div className="form-grid" style={{ marginTop: 14 }}>
+          <div className="field">
+            <label htmlFor="fascicoli-anno">Anno</label>
+            <select id="fascicoli-anno" value={anno} onChange={(e) => setAnno(e.target.value)}>
+              <option value="">Tutti</option>
+              {anniDisponibili.map((a) => (
+                <option key={a} value={a}>
+                  {a}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="field">
             <label htmlFor="fascicoli-data-da">Creato dal</label>
             <input id="fascicoli-data-da" type="date" value={dataDa} onChange={(e) => setDataDa(e.target.value)} />

@@ -13,8 +13,10 @@ import {
   type FascicoloContenuto,
   type FascicoloRecord,
   type FascicoloStato,
+  type FaseProduzione,
   type SezioneFascicolo,
 } from "@/lib/fascicoli-types";
+import { CODICE_FISCALE_LUNGHEZZA, codiceFiscaleAvviso } from "@/lib/codice-fiscale";
 import { networkErrorMessage, readJson } from "@/lib/fetch-json";
 import { IconAnteprima, IconSalva, IconScarica, IconStampa } from "./ReceptionIcons";
 import { Toast } from "./Toast";
@@ -22,6 +24,10 @@ import { Toast } from "./Toast";
 interface FascicoloEditorClientProps {
   initialFascicolo: FascicoloRecord;
   initialCliente: ClientRecord;
+  /** Numeri commessa già aperti in Amministrazione → Commesse, per
+   * l'autocompletamento: il fascicolo può comunque restare abbinato a un
+   * testo libero se la commessa non è (ancora) stata aperta lì. */
+  commesse: { numero: string; cliente: string }[];
 }
 
 type SaveState = "idle" | "saving" | "saved" | "error";
@@ -95,7 +101,7 @@ function CheckLine({ checked, label, onChange }: { checked: boolean; label: stri
 
 const DITA_OPTIONS = [1, 2, 3, 4, 5];
 
-export function FascicoloEditorClient({ initialFascicolo, initialCliente }: FascicoloEditorClientProps) {
+export function FascicoloEditorClient({ initialFascicolo, initialCliente, commesse }: FascicoloEditorClientProps) {
   const router = useRouter();
   const [fascicolo, setFascicolo] = useState(initialFascicolo);
   const [cliente, setCliente] = useState(initialCliente);
@@ -258,6 +264,64 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
     updateContenuto("esamePiede", {
       [lato]: { ...fascicolo.contenuto.esamePiede[lato], ...patch },
     } as Partial<FascicoloContenuto["esamePiede"]>);
+  }
+
+  // Data ordine, data privacy, data inizio lavori e data 1° appuntamento
+  // coincidono quasi sempre nella pratica reale: la prima che viene
+  // compilata si ripropone automaticamente in quelle ancora vuote, così non
+  // va reinserita a mano su ogni tab. Restano indipendenti la data di
+  // prescrizione medica (arriva spesso in un giorno diverso dall'ordine) e
+  // le date rivolte in avanti (consegna prevista/effettiva, follow-up,
+  // visite di controllo).
+  function updateDataSincronizzata(
+    value: string | null,
+    campo: "dataOrdine" | "dataConsenso" | "dataInizioLavori" | "dataPrimoAppuntamento"
+  ) {
+    setFascicolo((prev) => {
+      const cc = prev.contenuto;
+      const valori = {
+        dataOrdine: cc.prescrizione.dataOrdine,
+        dataConsenso: cc.consensi.dataConsenso,
+        dataInizioLavori: cc.produzione.dataInizioLavori,
+        dataPrimoAppuntamento: cc.consegna.dataPrimoAppuntamento,
+      };
+      valori[campo] = value;
+      if (value) {
+        for (const k of Object.keys(valori) as (keyof typeof valori)[]) {
+          if (k !== campo && !valori[k]) valori[k] = value;
+        }
+      }
+      return {
+        ...prev,
+        contenuto: {
+          ...cc,
+          prescrizione: { ...cc.prescrizione, dataOrdine: valori.dataOrdine },
+          consensi: { ...cc.consensi, dataConsenso: valori.dataConsenso },
+          produzione: { ...cc.produzione, dataInizioLavori: valori.dataInizioLavori },
+          consegna: { ...cc.consegna, dataPrimoAppuntamento: valori.dataPrimoAppuntamento },
+        },
+      };
+    });
+    scheduleAutosave();
+  }
+
+  // Aggiorna una singola fase leggendo lo stato PIÙ RECENTE (funzione di
+  // aggiornamento, non la "c" catturata dalla chiusura del render): due
+  // checkbox diverse spuntate a distanza ravvicinata (doppio tap, tastiera)
+  // partivano altrimenti dalla stessa "fasi" di partenza, e l'ultima a
+  // scrivere sovrascriveva silenziosamente la modifica dell'altra.
+  function updateFase(numero: number, patch: Partial<FaseProduzione>) {
+    setFascicolo((prev) => ({
+      ...prev,
+      contenuto: {
+        ...prev.contenuto,
+        produzione: {
+          ...prev.contenuto.produzione,
+          fasi: prev.contenuto.produzione.fasi.map((f) => (f.numero === numero ? { ...f, ...patch } : f)),
+        },
+      },
+    }));
+    scheduleAutosave();
   }
 
   async function handleSalva() {
@@ -474,11 +538,15 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
               <Field label="Codice fiscale">
                 <input
                   value={cliente.codiceFiscale ?? ""}
+                  maxLength={CODICE_FISCALE_LUNGHEZZA}
                   onChange={(e) => {
                     setCliente({ ...cliente, codiceFiscale: e.target.value.toUpperCase() || null });
                     setClienteDirty(true);
                   }}
                 />
+                {codiceFiscaleAvviso(cliente.codiceFiscale) ? (
+                  <p className="hint">{codiceFiscaleAvviso(cliente.codiceFiscale)}</p>
+                ) : null}
               </Field>
               <Field label="Data di nascita">
                 <input
@@ -579,7 +647,24 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
                 <input value={fascicolo.operatore ?? ""} onChange={(e) => updateTop({ operatore: e.target.value || null })} />
               </Field>
               <Field label="Commessa collegata">
-                <input value={fascicolo.commessa ?? ""} onChange={(e) => updateTop({ commessa: e.target.value || null })} />
+                <input
+                  list="fascicolo-commesse-list"
+                  value={fascicolo.commessa ?? ""}
+                  onChange={(e) => updateTop({ commessa: e.target.value || null })}
+                  placeholder="Numero commessa, se già aperta in Amministrazione"
+                />
+                <datalist id="fascicolo-commesse-list">
+                  {commesse.map((cm) => (
+                    <option key={cm.numero} value={cm.numero}>
+                      {cm.cliente}
+                    </option>
+                  ))}
+                </datalist>
+                <p className="hint">
+                  Digitando compaiono i numeri delle commesse già aperte in Amministrazione → Commesse (con il
+                  relativo cliente): è solo un testo di collegamento, non un vincolo, quindi puoi anche scriverne uno
+                  non ancora aperto lì.
+                </p>
               </Field>
             </div>
           </>
@@ -591,12 +676,12 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
             <CheckLine
               checked={c.consensi.consensoTrattamentoDati}
               label="Consenso al trattamento dei dati personali e particolari"
-              onChange={(v) =>
-                updateContenuto("consensi", {
-                  consensoTrattamentoDati: v,
-                  dataConsenso: v && !c.consensi.dataConsenso ? new Date().toISOString().slice(0, 10) : c.consensi.dataConsenso,
-                })
-              }
+              onChange={(v) => {
+                updateContenuto("consensi", { consensoTrattamentoDati: v });
+                if (v && !c.consensi.dataConsenso) {
+                  updateDataSincronizzata(new Date().toISOString().slice(0, 10), "dataConsenso");
+                }
+              }}
             />
             <CheckLine
               checked={c.consensi.presaVisioneInformativa}
@@ -612,7 +697,7 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
               <input
                 type="date"
                 value={c.consensi.dataConsenso ?? ""}
-                onChange={(e) => updateContenuto("consensi", { dataConsenso: e.target.value || null })}
+                onChange={(e) => updateDataSincronizzata(e.target.value || null, "dataConsenso")}
               />
             </Field>
             <p className="hint" style={{ marginTop: 10 }}>
@@ -894,7 +979,7 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
                 <input
                   type="date"
                   value={c.prescrizione.dataOrdine ?? ""}
-                  onChange={(e) => updateContenuto("prescrizione", { dataOrdine: e.target.value || null })}
+                  onChange={(e) => updateDataSincronizzata(e.target.value || null, "dataOrdine")}
                 />
               </Field>
             </div>
@@ -969,7 +1054,7 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
                 <input
                   type="date"
                   value={c.produzione.dataInizioLavori ?? ""}
-                  onChange={(e) => updateContenuto("produzione", { dataInizioLavori: e.target.value || null })}
+                  onChange={(e) => updateDataSincronizzata(e.target.value || null, "dataInizioLavori")}
                 />
               </Field>
               <Field label="Data pronta consegna">
@@ -1072,7 +1157,7 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
                 <input
                   type="date"
                   value={c.consegna.dataPrimoAppuntamento ?? ""}
-                  onChange={(e) => updateContenuto("consegna", { dataPrimoAppuntamento: e.target.value || null })}
+                  onChange={(e) => updateDataSincronizzata(e.target.value || null, "dataPrimoAppuntamento")}
                 />
               </Field>
               <Field label="Data prova/consegna prevista">

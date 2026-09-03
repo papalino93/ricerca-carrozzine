@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import type { ClientRecord } from "@/lib/clients";
 import type { FascicoloRecord } from "@/lib/fascicoli-types";
 import { matchesQuery } from "@/lib/search-match";
+import { CODICE_FISCALE_LUNGHEZZA, codiceFiscaleAvviso } from "@/lib/codice-fiscale";
 import { networkErrorMessage, readJson } from "@/lib/fetch-json";
 import { IconCerca } from "./ReceptionIcons";
 
 interface FascicoloNuovoClientProps {
   clients: ClientRecord[];
   fascicoli: FascicoloRecord[];
+  commesse: { numero: string; cliente: string }[];
   /** Precompila la ricerca e seleziona subito il cliente se il nome
    * corrisponde esattamente — usato da "Crea nuovo fascicolo per questo
    * cliente" (duplicazione intelligente: recupera solo il cliente, MAI
@@ -35,7 +37,7 @@ function emptyNewClientForm() {
   };
 }
 
-export function FascicoloNuovoClient({ clients, fascicoli, initialClienteNome }: FascicoloNuovoClientProps) {
+export function FascicoloNuovoClient({ clients, fascicoli, commesse, initialClienteNome }: FascicoloNuovoClientProps) {
   const router = useRouter();
   const [query, setQuery] = useState(initialClienteNome ?? "");
   const [selected, setSelected] = useState<ClientRecord | null>(
@@ -44,7 +46,9 @@ export function FascicoloNuovoClient({ clients, fascicoli, initialClienteNome }:
   const [creatingNew, setCreatingNew] = useState(false);
   const [newClient, setNewClient] = useState(emptyNewClientForm());
   const [tipoDispositivo, setTipoDispositivo] = useState("Plantari su misura");
-  const [operatore, setOperatore] = useState("");
+  // Operatrice che apre quasi tutti i fascicoli: precompilato ma modificabile,
+  // evita di doverlo digitare ogni volta.
+  const [operatore, setOperatore] = useState("Claudia Amulfi");
   const [commessa, setCommessa] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -146,7 +150,19 @@ export function FascicoloNuovoClient({ clients, fascicoli, initialClienteNome }:
         </div>
         <div className="field">
           <label>Commessa collegata</label>
-          <input value={commessa} onChange={(e) => setCommessa(e.target.value)} placeholder="Facoltativo, se già aperta in Commesse" />
+          <input
+            list="fascicolo-nuovo-commesse-list"
+            value={commessa}
+            onChange={(e) => setCommessa(e.target.value)}
+            placeholder="Facoltativo, se già aperta in Commesse"
+          />
+          <datalist id="fascicolo-nuovo-commesse-list">
+            {commesse.map((cm) => (
+              <option key={cm.numero} value={cm.numero}>
+                {cm.cliente}
+              </option>
+            ))}
+          </datalist>
         </div>
       </div>
     </div>
@@ -163,7 +179,26 @@ export function FascicoloNuovoClient({ clients, fascicoli, initialClienteNome }:
 
       {error ? <div className="banner error">{error}</div> : null}
 
-      {!creatingNew ? (
+      {!creatingNew && selected ? (
+        <div className="panel">
+          <div className="banner">
+            Cliente selezionato: <strong>{selected.nome}</strong>
+            {selected.codiceFiscale ? ` (CF ${selected.codiceFiscale})` : ""}
+          </div>
+          <div className="card-actions" style={{ marginTop: 10 }}>
+            <button
+              type="button"
+              className="btn-link"
+              onClick={() => {
+                setSelected(null);
+                setQuery("");
+              }}
+            >
+              ← Cambia cliente
+            </button>
+          </div>
+        </div>
+      ) : !creatingNew ? (
         <div className="panel">
           <h2><span className="btn-icon"><IconCerca /></span> Cerca cliente</h2>
           <input
@@ -185,6 +220,11 @@ export function FascicoloNuovoClient({ clients, fascicoli, initialClienteNome }:
                 const nFascicoli = fascicoliPerCliente.get(c.nome.trim().toLowerCase()) ?? 0;
                 return (
                   <li key={c.nome}>
+                    {/* Un solo click: seleziona E fa avanzare subito alla
+                        scheda dati fascicolo, sotto — prima serviva un
+                        secondo click su un pulsante distinto in fondo alla
+                        pagina, con nessun segnale che il primo click avesse
+                        fatto qualcosa. */}
                     <button
                       type="button"
                       className="search-result-item"
@@ -202,13 +242,6 @@ export function FascicoloNuovoClient({ clients, fascicoli, initialClienteNome }:
               })}
             </ul>
           )}
-
-          {selected ? (
-            <div className="banner" style={{ marginTop: 14 }}>
-              Cliente già presente: <strong>{selected.nome}</strong>
-              {selected.codiceFiscale ? ` (CF ${selected.codiceFiscale})` : ""}
-            </div>
-          ) : null}
 
           <div className="card-actions" style={{ marginTop: 14 }}>
             <button type="button" className="btn" onClick={() => setCreatingNew(true)}>
@@ -238,9 +271,13 @@ export function FascicoloNuovoClient({ clients, fascicoli, initialClienteNome }:
                 <label>Codice fiscale</label>
                 <input
                   value={newClient.codiceFiscale}
+                  maxLength={CODICE_FISCALE_LUNGHEZZA}
                   onChange={(e) => setNewClient({ ...newClient, codiceFiscale: e.target.value.toUpperCase() })}
                   placeholder="Facoltativo"
                 />
+                {codiceFiscaleAvviso(newClient.codiceFiscale) ? (
+                  <p className="hint">{codiceFiscaleAvviso(newClient.codiceFiscale)}</p>
+                ) : null}
               </div>
               <div className="field">
                 <label>Data di nascita</label>
@@ -319,7 +356,7 @@ export function FascicoloNuovoClient({ clients, fascicoli, initialClienteNome }:
           {datiFascicoloForm}
           <div className="card-actions">
             <button type="button" className="btn primary" disabled={submitting} onClick={handleUsaEsistente}>
-              {submitting ? "Creazione in corso…" : "Usa cliente esistente e crea fascicolo"}
+              {submitting ? "Creazione in corso…" : "Crea fascicolo"}
             </button>
           </div>
         </>
