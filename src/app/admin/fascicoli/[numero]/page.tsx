@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getFascicolo } from "@/lib/fascicoli";
 import { listClients, normalizeName, EMPTY_CLIENT_TEMPLATE } from "@/lib/clients";
+import { listCommesse } from "@/lib/commesse";
 import { FascicoloEditorClient } from "@/components/FascicoloEditorClient";
 
 export const dynamic = "force-dynamic";
@@ -20,15 +21,24 @@ export default async function FascicoloPage({ params }: { params: Promise<{ nume
   }
   if (!fascicolo) notFound();
 
-  const clients = await listClients().catch(() => []);
+  const [clients, commesse] = await Promise.all([
+    listClients().catch(() => []),
+    listCommesse().catch(() => []),
+  ]);
   const cliente =
     clients.find((c) => normalizeName(c.nome) === normalizeName(fascicolo.clienteNome)) ??
     EMPTY_CLIENT_TEMPLATE(fascicolo.clienteNome, fascicolo.clienteCF);
+  const commesseOptions = commesse.map((c) => ({ numero: c.numero, cliente: c.cliente }));
 
   return (
     // key: forza il rimontaggio passando da un fascicolo all'altro, così
     // lo stato interno (useState(initialFascicolo)) non resta agganciato
     // al fascicolo precedente se la navigazione avviene lato client.
-    <FascicoloEditorClient key={fascicolo.numero} initialFascicolo={fascicolo} initialCliente={cliente} />
+    <FascicoloEditorClient
+      key={fascicolo.numero}
+      initialFascicolo={fascicolo}
+      initialCliente={cliente}
+      commesse={commesseOptions}
+    />
   );
 }
