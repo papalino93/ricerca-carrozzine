@@ -329,10 +329,67 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
     scheduleAutosave();
   }
 
-  function updateLato(lato: "sinistro" | "destro", patch: Partial<EsamePiedeLato>) {
-    updateContenuto("esamePiede", {
-      [lato]: { ...fascicolo.contenuto.esamePiede[lato], ...patch },
-    } as Partial<FascicoloContenuto["esamePiede"]>);
+  // Le tre funzioni qui sotto aggiornano un oggetto ANNIDATO dentro
+  // "esamePiede" (un piede, la destinazione d'uso, la calzatura di
+  // collegamento) leggendo lo stato PIÙ RECENTE via setFascicolo, non un
+  // valore catturato dalla chiusura del render: due campi diversi dello
+  // stesso oggetto annidato toccati in rapida successione (es. due
+  // checkbox della stessa calzatura) partivano altrimenti dallo stesso
+  // valore di partenza, e l'ultimo a scrivere cancellava l'altro — stessa
+  // corsa critica già vista e risolta per le fasi di lavorazione.
+  // Il patch può anche essere una funzione: serve per i campi doppiamente
+  // annidati (tallone, ulcerazioni), il cui aggiornamento parte a sua volta
+  // dal valore del sotto-oggetto — passando una funzione lo si legge dallo
+  // stato più recente al momento dell'aggiornamento, non da quello
+  // catturato al render, altrimenti la stessa corsa critica si sposta solo
+  // di un livello più sotto.
+  function updateLato(
+    lato: "sinistro" | "destro",
+    patch: Partial<EsamePiedeLato> | ((prevLato: EsamePiedeLato) => Partial<EsamePiedeLato>)
+  ) {
+    setFascicolo((prev) => {
+      const prevLato = prev.contenuto.esamePiede[lato];
+      const resolved = typeof patch === "function" ? patch(prevLato) : patch;
+      return {
+        ...prev,
+        contenuto: {
+          ...prev.contenuto,
+          esamePiede: {
+            ...prev.contenuto.esamePiede,
+            [lato]: { ...prevLato, ...resolved },
+          },
+        },
+      };
+    });
+    scheduleAutosave();
+  }
+
+  function updateDestinazioneUso(patch: Partial<FascicoloContenuto["esamePiede"]["destinazioneUso"]>) {
+    setFascicolo((prev) => ({
+      ...prev,
+      contenuto: {
+        ...prev.contenuto,
+        esamePiede: {
+          ...prev.contenuto.esamePiede,
+          destinazioneUso: { ...prev.contenuto.esamePiede.destinazioneUso, ...patch },
+        },
+      },
+    }));
+    scheduleAutosave();
+  }
+
+  function updateCalzaturaCollegamento(patch: Partial<FascicoloContenuto["esamePiede"]["calzaturaCollegamento"]>) {
+    setFascicolo((prev) => ({
+      ...prev,
+      contenuto: {
+        ...prev.contenuto,
+        esamePiede: {
+          ...prev.contenuto.esamePiede,
+          calzaturaCollegamento: { ...prev.contenuto.esamePiede.calzaturaCollegamento, ...patch },
+        },
+      },
+    }));
+    scheduleAutosave();
   }
 
   // Data ordine, data privacy, data inizio lavori e data 1° appuntamento
@@ -969,12 +1026,12 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
                       <CheckLine
                         checked={l.tallone.talalgie}
                         label="Talalgie"
-                        onChange={(v) => updateLato(lato, { tallone: { ...l.tallone, talalgie: v } })}
+                        onChange={(v) => updateLato(lato, (prevLato) => ({ tallone: { ...prevLato.tallone, talalgie: v } }))}
                       />
                       <CheckLine
                         checked={l.tallone.spinaCalcaneare}
                         label="Spina calcaneare"
-                        onChange={(v) => updateLato(lato, { tallone: { ...l.tallone, spinaCalcaneare: v } })}
+                        onChange={(v) => updateLato(lato, (prevLato) => ({ tallone: { ...prevLato.tallone, spinaCalcaneare: v } }))}
                       />
                     </Field>
                     <Field label="Ginocchio">
@@ -999,17 +1056,17 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
                       <CheckLine
                         checked={l.ulcerazioni.dorsali}
                         label="Dorsali"
-                        onChange={(v) => updateLato(lato, { ulcerazioni: { ...l.ulcerazioni, dorsali: v } })}
+                        onChange={(v) => updateLato(lato, (prevLato) => ({ ulcerazioni: { ...prevLato.ulcerazioni, dorsali: v } }))}
                       />
                       <CheckLine
                         checked={l.ulcerazioni.plantari}
                         label="Plantari"
-                        onChange={(v) => updateLato(lato, { ulcerazioni: { ...l.ulcerazioni, plantari: v } })}
+                        onChange={(v) => updateLato(lato, (prevLato) => ({ ulcerazioni: { ...prevLato.ulcerazioni, plantari: v } }))}
                       />
                       <CheckLine
                         checked={l.ulcerazioni.calcaneari}
                         label="Calcaneari"
-                        onChange={(v) => updateLato(lato, { ulcerazioni: { ...l.ulcerazioni, calcaneari: v } })}
+                        onChange={(v) => updateLato(lato, (prevLato) => ({ ulcerazioni: { ...prevLato.ulcerazioni, calcaneari: v } }))}
                       />
                     </Field>
                     <Field label="Traumi">
@@ -1027,31 +1084,19 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
               <Field label="Attività lavorativa">
                 <input
                   value={c.esamePiede.destinazioneUso.attivitaLavorativa ?? ""}
-                  onChange={(e) =>
-                    updateContenuto("esamePiede", {
-                      destinazioneUso: { ...c.esamePiede.destinazioneUso, attivitaLavorativa: e.target.value || null },
-                    })
-                  }
+                  onChange={(e) => updateDestinazioneUso({ attivitaLavorativa: e.target.value || null })}
                 />
               </Field>
               <Field label="Attività sportiva">
                 <input
                   value={c.esamePiede.destinazioneUso.attivitaSportiva ?? ""}
-                  onChange={(e) =>
-                    updateContenuto("esamePiede", {
-                      destinazioneUso: { ...c.esamePiede.destinazioneUso, attivitaSportiva: e.target.value || null },
-                    })
-                  }
+                  onChange={(e) => updateDestinazioneUso({ attivitaSportiva: e.target.value || null })}
                 />
               </Field>
               <Field label="Attività tempo libero">
                 <input
                   value={c.esamePiede.destinazioneUso.attivitaTempoLibero ?? ""}
-                  onChange={(e) =>
-                    updateContenuto("esamePiede", {
-                      destinazioneUso: { ...c.esamePiede.destinazioneUso, attivitaTempoLibero: e.target.value || null },
-                    })
-                  }
+                  onChange={(e) => updateDestinazioneUso({ attivitaTempoLibero: e.target.value || null })}
                 />
               </Field>
             </div>
@@ -1059,30 +1104,22 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
               <CheckLine
                 checked={c.esamePiede.calzaturaCollegamento.ciabattaPredisposta}
                 label="Ciabatta predisposta"
-                onChange={(v) =>
-                  updateContenuto("esamePiede", { calzaturaCollegamento: { ...c.esamePiede.calzaturaCollegamento, ciabattaPredisposta: v } })
-                }
+                onChange={(v) => updateCalzaturaCollegamento({ ciabattaPredisposta: v })}
               />
               <CheckLine
                 checked={c.esamePiede.calzaturaCollegamento.scarpaPredisposta}
                 label="Scarpa predisposta"
-                onChange={(v) =>
-                  updateContenuto("esamePiede", { calzaturaCollegamento: { ...c.esamePiede.calzaturaCollegamento, scarpaPredisposta: v } })
-                }
+                onChange={(v) => updateCalzaturaCollegamento({ scarpaPredisposta: v })}
               />
               <CheckLine
                 checked={c.esamePiede.calzaturaCollegamento.antinfortunistica}
                 label="Antinfortunistica"
-                onChange={(v) =>
-                  updateContenuto("esamePiede", { calzaturaCollegamento: { ...c.esamePiede.calzaturaCollegamento, antinfortunistica: v } })
-                }
+                onChange={(v) => updateCalzaturaCollegamento({ antinfortunistica: v })}
               />
               <CheckLine
                 checked={c.esamePiede.calzaturaCollegamento.scarpaGinnastica}
                 label="Scarpa da ginnastica"
-                onChange={(v) =>
-                  updateContenuto("esamePiede", { calzaturaCollegamento: { ...c.esamePiede.calzaturaCollegamento, scarpaGinnastica: v } })
-                }
+                onChange={(v) => updateCalzaturaCollegamento({ scarpaGinnastica: v })}
               />
             </Field>
           </>

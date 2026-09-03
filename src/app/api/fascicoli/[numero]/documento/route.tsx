@@ -8,7 +8,7 @@ import { listClients, normalizeName, EMPTY_CLIENT_TEMPLATE } from "@/lib/clients
 import { FascicoloDocument } from "@/lib/pdf/FascicoloDocument";
 import { isFascicoliDriveConfigured, uploadFascicoloPdf, downloadDriveFile } from "@/lib/drive";
 import { appendFascicoloPdfLog } from "@/lib/fascicoli-pdf-log";
-import { getFascicoloAllegatoImmagine, listFascicoloAllegati } from "@/lib/fascicoli-allegati";
+import { getFascicoloAllegatiImmagini, listFascicoloAllegati } from "@/lib/fascicoli-allegati";
 
 /**
  * Unisce ai byte del PDF già renderizzato le pagine dei PDF allegati
@@ -76,16 +76,17 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ nume
     // Solo la stampa interna completa porta con sé gli allegati: le
     // immagini diventano pagine extra dello stesso PDF renderizzato, i PDF
     // vengono uniti a livello di byte dopo (vedi mergeAllegatiPdf).
-    const allegatiImmagini = (
-      await Promise.all(
-        allegati
-          .filter((a) => a.formato === "immagine")
-          .map(async (a) => ({
-            dataUri: await getFascicoloAllegatoImmagine(numero, a.id),
-            etichetta: a.etichetta,
-          }))
-      )
-    ).filter((a): a is { dataUri: string; etichetta: string } => Boolean(a.dataUri));
+    // Una sola scansione dei metadati per tutte le immagini insieme (vedi
+    // getFascicoloAllegatiImmagini), non una per immagine: con più
+    // allegati era una rilettura completa ripetuta per ognuno.
+    const allegatiImmaginiMeta = allegati.filter((a) => a.formato === "immagine");
+    const immaginiPerId = await getFascicoloAllegatiImmagini(
+      numero,
+      allegatiImmaginiMeta.map((a) => a.id)
+    );
+    const allegatiImmagini = allegatiImmaginiMeta
+      .map((a) => ({ dataUri: immaginiPerId.get(a.id), etichetta: a.etichetta }))
+      .filter((a): a is { dataUri: string; etichetta: string } => Boolean(a.dataUri));
     const allegatiPdf = allegati
       .filter((a) => a.formato === "pdf" && Boolean(a.driveFileId))
       .map((a) => ({ driveFileId: a.driveFileId as string, etichetta: a.etichetta }));

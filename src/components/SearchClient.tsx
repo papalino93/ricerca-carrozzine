@@ -74,10 +74,17 @@ export function SearchClient({
   const [widthTolerance, setWidthTolerance] = useState(2);
   const [category, setCategory] = useState("Tutte");
   const [subcategory, setSubcategory] = useState("Tutte");
-  // Solo "disponibile" di default: chi apre questa pagina vuole noleggiare
-  // qualcosa subito, non farsi distrarre da ciò che è già fuori o da
-  // sistemare — quello resta a un tocco di distanza sui filtri sopra.
-  const [statuses, setStatuses] = useState<Set<string>>(new Set(["disponibile"]));
+  // Solo "disponibile" di default: chi apre questa pagina senza una ricerca
+  // già in mano vuole noleggiare qualcosa subito, non farsi distrarre da
+  // ciò che è già fuori o da sistemare — quello resta a un tocco di
+  // distanza sui filtri sopra. Ma arrivando con una ricerca già scritta
+  // (es. dalla ricerca globale in home, o da un link "Da tenere d'occhio"),
+  // filtrare comunque solo i disponibili nascondeva esattamente il
+  // dispositivo appena cercato se non lo era: in quel caso si parte da
+  // tutti gli stati.
+  const [statuses, setStatuses] = useState<Set<string>>(
+    () => new Set(initialQuery?.trim() ? ALL_STATUSES : ["disponibile"])
+  );
   const [query, setQuery] = useState(initialQuery ?? "");
   const [sortBy, setSortBy] = useState<SortKey>("larghezza");
   const [visibleCount, setVisibleCount] = useState(DEVICES_PAGE_SIZE);
