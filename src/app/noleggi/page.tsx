@@ -1,6 +1,7 @@
 import { listDevices } from "@/lib/devices";
 import { listCategories } from "@/lib/categories";
 import { listTariffe } from "@/lib/tariffe";
+import { listClients } from "@/lib/clients";
 import { SearchClient } from "@/components/SearchClient";
 import { FrontBar } from "@/components/FrontBar";
 
@@ -15,7 +16,7 @@ export default async function HomePage({
   // Le letture sono indipendenti fra loro: eseguirle in parallelo invece
   // che in serie evita di sommare più round-trip verso Google Sheets a
   // ogni apertura della pagina.
-  const [devicesResult, categories, tariffe] = await Promise.all([
+  const [devicesResult, categories, tariffe, clients] = await Promise.all([
     listDevices().then(
       (d) => ({ devices: d, error: null as string | null }),
       (err: Error) => ({
@@ -25,7 +26,9 @@ export default async function HomePage({
     ),
     listCategories().catch(() => []),
     listTariffe().catch(() => []),
+    listClients().catch(() => []),
   ]);
+  const clienti = clients.map((c) => ({ nome: c.nome, telefono: c.telefono || c.cellulare || null }));
 
   if (devicesResult.error) {
     // Anche qui la FrontBar: senza, da una pagina in errore non ci sarebbe
@@ -54,6 +57,7 @@ export default async function HomePage({
         categories={categories}
         tariffe={tariffe}
         initialQuery={q}
+        clienti={clienti}
       />
     </>
   );

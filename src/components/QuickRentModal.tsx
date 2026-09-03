@@ -18,6 +18,9 @@ import {
 interface QuickRentModalProps {
   device: Device;
   tariffe: Tariffa[];
+  /** Anagrafica clienti, solo nome e telefono: suggerisce i nomi già noti nel
+   * campo Cliente e precompila il telefono se corrisponde esattamente. */
+  clienti: { nome: string; telefono: string | null }[];
   onClose: () => void;
   /**
    * L'elenco aggiornato dopo il noleggio. Il chiamante decide cosa fare
@@ -35,7 +38,7 @@ interface QuickRentModalProps {
 // dalla card di un ausilio disponibile — nessun dato nuovo, nessun
 // permesso nuovo: chi arriva qui è già autenticato come chiunque acceda
 // all'amministrazione (un solo livello di accesso in questo sito).
-export function QuickRentModal({ device, tariffe, onClose, onRented }: QuickRentModalProps) {
+export function QuickRentModal({ device, tariffe, clienti, onClose, onRented }: QuickRentModalProps) {
   const dialogRef = useModalA11y(onClose);
   const [cliente, setCliente] = useState("");
   const [telefono, setTelefono] = useState("");
@@ -158,15 +161,36 @@ export function QuickRentModal({ device, tariffe, onClose, onRented }: QuickRent
           </p>
         ) : null}
 
-        <form onSubmit={handleConfirm}>
+        <form
+          onSubmit={handleConfirm}
+          onKeyDown={(e) => {
+            const tag = (e.target as HTMLElement).tagName;
+            if (e.key === "Enter" && tag !== "TEXTAREA" && tag !== "BUTTON") {
+              e.preventDefault();
+            }
+          }}
+        >
           <div className="field">
             <label>Cliente</label>
             <input
+              list="quick-rent-clienti-list"
               value={cliente}
-              onChange={(e) => setCliente(e.target.value)}
+              onChange={(e) => {
+                const nome = e.target.value;
+                const match = !telefono
+                  ? clienti.find((c) => c.nome.trim().toLowerCase() === nome.trim().toLowerCase())
+                  : null;
+                setCliente(nome);
+                if (match?.telefono) setTelefono(match.telefono);
+              }}
               placeholder="Nome e cognome"
               autoFocus
             />
+            <datalist id="quick-rent-clienti-list">
+              {clienti.map((c) => (
+                <option key={c.nome} value={c.nome} />
+              ))}
+            </datalist>
           </div>
           <div className="field">
             <label>Telefono</label>

@@ -40,6 +40,9 @@ interface SearchClientProps {
    * nell'indirizzo, così quello che l'operatore ha scritto al banco non va
    * perso nel passaggio da una pagina all'altra. */
   initialQuery?: string;
+  /** Anagrafica clienti, solo nome e telefono: suggerisce i nomi già noti
+   * quando si noleggia un ausilio, come già in Commesse. */
+  clienti: { nome: string; telefono: string | null }[];
 }
 
 type SortKey = "larghezza" | "codice" | "marca" | "stato" | "cliente";
@@ -59,6 +62,7 @@ export function SearchClient({
   categories,
   tariffe,
   initialQuery,
+  clienti,
 }: SearchClientProps) {
   const confirmAction = useConfirm();
   const [devices, setDevices] = useState(initialDevices);
@@ -70,12 +74,10 @@ export function SearchClient({
   const [widthTolerance, setWidthTolerance] = useState(2);
   const [category, setCategory] = useState("Tutte");
   const [subcategory, setSubcategory] = useState("Tutte");
-  // "da_verificare" incluso di default: ora si può risolvere direttamente
-  // da qui (vedi DevicePublicViewModal), quindi deve essere visibile senza
-  // dover prima toccare il filtro stato.
-  const [statuses, setStatuses] = useState<Set<string>>(
-    new Set(["disponibile", "da_pulire", "da_verificare"])
-  );
+  // Solo "disponibile" di default: chi apre questa pagina vuole noleggiare
+  // qualcosa subito, non farsi distrarre da ciò che è già fuori o da
+  // sistemare — quello resta a un tocco di distanza sui filtri sopra.
+  const [statuses, setStatuses] = useState<Set<string>>(new Set(["disponibile"]));
   const [query, setQuery] = useState(initialQuery ?? "");
   const [sortBy, setSortBy] = useState<SortKey>("larghezza");
   const [visibleCount, setVisibleCount] = useState(DEVICES_PAGE_SIZE);
@@ -569,6 +571,7 @@ export function SearchClient({
         <QuickRentModal
           device={rentingDevice}
           tariffe={tariffe}
+          clienti={clienti}
           onClose={() => setRentingDevice(null)}
           onRented={(updated) => {
             setDevices(updated);

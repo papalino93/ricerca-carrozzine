@@ -216,7 +216,7 @@ const TITLE: Record<DocumentoTipo, string> = {
 };
 
 const DATE_LABEL: Record<DocumentoTipo, string> = {
-  consegna: "Data di consegna",
+  consegna: "Data di inizio noleggio",
   restituzione: "Data di restituzione",
 };
 
