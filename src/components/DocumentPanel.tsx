@@ -205,6 +205,20 @@ export function DocumentPanel({ device, onClose, forcedTipo }: DocumentPanelProp
           </div>
         ) : null}
 
+        {device.notaNoleggio ? (
+          <div className="internal-note">
+            <b>Nota di questo noleggio</b> — resta in magazzino, NON viene stampata sul documento:
+            <div>{device.notaNoleggio}</div>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => setNote((n) => (n ? `${n}\n${device.notaNoleggio}` : device.notaNoleggio ?? ""))}
+            >
+              Copia nelle note del documento
+            </button>
+          </div>
+        ) : null}
+
         <div className="field">
           <label>Note da stampare sul documento</label>
           <textarea

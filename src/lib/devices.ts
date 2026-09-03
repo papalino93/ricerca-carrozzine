@@ -7,7 +7,7 @@ import { nextNumeroNoleggio } from "./counter";
 import { removeAllDevicePhotos } from "./photos";
 import { STATUS_LABEL, STATUS_OPTIONS, type ArchiveStatus, type Device, type DeviceStatus } from "./device-types";
 import type { TariffaUnita } from "./tariffe-types";
-import { todayIso } from "./dates";
+import { addDaysIso, todayIso } from "./dates";
 
 export type { Device, DeviceStatus, ArchiveStatus } from "./device-types";
 export { STATUS_COLOR, STATUS_LABEL, STATUS_OPTIONS, ARCHIVE_LABEL } from "./device-types";
@@ -43,6 +43,7 @@ const HEADER = [
   "DataPrimoNoleggio",
   "CostoConsegna",
   "NotaTariffa",
+  "NotaNoleggio",
 ];
 
 const VALID_ARCHIVE_STATUSES = ["venduto", "rottamato"];
@@ -77,6 +78,7 @@ function toDevice(row: string[]): Device {
     dataPrimoNoleggio,
     costoConsegna,
     notaTariffa,
+    notaNoleggio,
   ] = row;
 
   return {
@@ -105,6 +107,7 @@ function toDevice(row: string[]): Device {
     dataPrimoNoleggio: dataPrimoNoleggio || null,
     costoConsegna: numOrNull(costoConsegna),
     notaTariffa: notaTariffa || null,
+    notaNoleggio: notaNoleggio || null,
   };
 }
 
@@ -133,6 +136,7 @@ function toRow(d: Device): string[] {
     d.dataPrimoNoleggio ?? "",
     d.costoConsegna != null ? String(d.costoConsegna) : "",
     d.notaTariffa ?? "",
+    d.notaNoleggio ?? "",
   ];
 }
 
@@ -252,7 +256,11 @@ export interface RentDeviceInput {
   cliente: string;
   telefono: string | null;
   dal: string | null;
-  /** Data di rientro prevista, ISO yyyy-mm-dd (facoltativa). */
+  /** Data di rientro prevista, ISO yyyy-mm-dd. Non più un campo del form di
+   * noleggio (l'operatore non la vede né la sceglie): se assente, rentDevice
+   * la calcola da sé (dal + 30 giorni) solo per alimentare "Da tenere
+   * d'occhio" — resta comunque modificabile in un secondo momento dalla
+   * scheda del dispositivo noleggiato. */
   alPrevisto: string | null;
   /** Tariffa per questo specifico noleggio: prefillata dal tariffario in
    * base a categoria/sottocategoria, ma l'operatore può cambiarla (es. uno
@@ -265,6 +273,9 @@ export interface RentDeviceInput {
   /** Nota accessoria della tariffa (testo libero, non un importo): copiata
    * dal tariffario per essere mostrata sul verbale, mai calcolata. */
   notaTariffa: string | null;
+  /** Nota libera di questo noleggio (es. "consegna al piano 3"): azzerata al
+   * rientro, a differenza della nota fissa di magazzino. */
+  notaNoleggio: string | null;
 }
 
 /**
@@ -296,11 +307,14 @@ export async function rentDevice(codice: string, input: RentDeviceInput): Promis
     telefono: input.telefono,
     contratto,
     dal,
-    alPrevisto: input.alPrevisto,
+    // Non più scelta dall'operatore: calcolata in automatico, serve solo ad
+    // alimentare "Da tenere d'occhio" (vedi watchlist.ts).
+    alPrevisto: input.alPrevisto || addDaysIso(dal, 30),
     tariffaApplicata: input.tariffaApplicata,
     tariffaUnita: input.tariffaUnita,
     costoConsegna: input.costoConsegna,
     notaTariffa: input.notaTariffa,
+    notaNoleggio: input.notaNoleggio,
   };
   // Registra prima lo storico e solo dopo muta il dispositivo: se il
   // salvataggio del dispositivo falisce, resta comunque una traccia che il
@@ -360,6 +374,7 @@ export async function returnDevice(codice: string): Promise<Device[]> {
     tariffaUnita: null,
     costoConsegna: null,
     notaTariffa: null,
+    notaNoleggio: null,
   };
   await appendHistoryEvent({
     data: todayIso(),

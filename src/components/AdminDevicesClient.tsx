@@ -38,6 +38,7 @@ const EMPTY_FORM: Device = {
   dataPrimoNoleggio: null,
   costoConsegna: null,
   notaTariffa: null,
+  notaNoleggio: null,
 };
 
 type IssueFilter = "stale" | "incomplete" | "overdue" | "duesoon" | "longrental" | null;

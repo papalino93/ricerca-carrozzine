@@ -83,6 +83,10 @@ export interface Device {
   /** Data ultima sanificazione, ISO yyyy-mm-dd. */
   sanificazione: string | null;
   nota: string | null;
+  /** Nota del singolo noleggio in corso (es. "consegna al piano 3", "cliente
+   * richiede ritiro venerdì"): a differenza di `nota` (annotazione fissa di
+   * magazzino), viene azzerata al rientro come cliente/telefono/contratto. */
+  notaNoleggio: string | null;
   /** Foto del dispositivo, come data URI (vedi image-to-data-uri.ts). */
   foto: string | null;
   /** Prezzo di acquisto del dispositivo, in euro. */
