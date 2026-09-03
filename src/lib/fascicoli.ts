@@ -2,6 +2,7 @@ import "server-only";
 import { readSheet, writeSheet } from "./sheets";
 import { nextNumeroFascicolo } from "./counter";
 import { normalizeName } from "./clients";
+import { removeAllFascicoloAllegati } from "./fascicoli-allegati";
 import {
   emptyFascicoloContenuto,
   FASCICOLO_STATO_OPTIONS,
@@ -289,4 +290,10 @@ export async function deleteFascicolo(numero: string): Promise<void> {
     throw new Error(`Fascicolo ${numero} non trovato`);
   }
   await writeSheet(TAB, [HEADER, ...next.map(toRow)]);
+  try {
+    await removeAllFascicoloAllegati(numero);
+  } catch {
+    // best-effort: il fascicolo è comunque eliminato, gli allegati orfani
+    // non bloccano né vanno ricreati.
+  }
 }

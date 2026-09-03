@@ -8,6 +8,7 @@ import {
   calcolaCompletamento,
   FASCICOLO_STATO_LABEL,
   FASCICOLO_STATO_OPTIONS,
+  MAX_ALLEGATI_PER_FASCICOLO,
   SEZIONI_FASCICOLO,
   type EsamePiedeLato,
   type FascicoloContenuto,
@@ -18,6 +19,7 @@ import {
   type VisitaControllo,
 } from "@/lib/fascicoli-types";
 import { CODICE_FISCALE_LUNGHEZZA, codiceFiscaleAvviso } from "@/lib/codice-fiscale";
+import type { FascicoloAllegatoMeta } from "@/lib/fascicoli-allegati";
 import { networkErrorMessage, readJson } from "@/lib/fetch-json";
 import { IconAnteprima, IconSalva, IconScarica, IconStampa } from "./ReceptionIcons";
 import { Toast } from "./Toast";
@@ -122,6 +124,10 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [allegati, setAllegati] = useState<FascicoloAllegatoMeta[]>([]);
+  const [allegatoEtichetta, setAllegatoEtichetta] = useState("");
+  const [uploadingAllegato, setUploadingAllegato] = useState(false);
+  const [allegatoError, setAllegatoError] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fascicoloRef = useRef(fascicolo);
@@ -129,6 +135,53 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
   useEffect(() => {
     fascicoloRef.current = fascicolo;
   }, [fascicolo]);
+
+  useEffect(() => {
+    fetch(`/api/fascicoli/${initialFascicolo.numero}/allegati`)
+      .then((res) => readJson(res))
+      .then((body) => setAllegati(body.allegati ?? []))
+      .catch(() => {});
+  }, [initialFascicolo.numero]);
+
+  async function handleAllegatoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploadingAllegato(true);
+    setAllegatoError(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("etichetta", allegatoEtichetta);
+      const res = await fetch(`/api/fascicoli/${fascicolo.numero}/allegati`, { method: "POST", body: fd });
+      const body = await readJson(res);
+      if (!res.ok) throw new Error(body.error || "Caricamento allegato non riuscito");
+      setAllegati(body.allegati);
+      setAllegatoEtichetta("");
+    } catch (err) {
+      setAllegatoError(networkErrorMessage(err));
+    } finally {
+      setUploadingAllegato(false);
+    }
+  }
+
+  async function handleAllegatoRemove(id: string) {
+    setUploadingAllegato(true);
+    setAllegatoError(null);
+    try {
+      const res = await fetch(
+        `/api/fascicoli/${fascicolo.numero}/allegati?id=${encodeURIComponent(id)}`,
+        { method: "DELETE" }
+      );
+      const body = await readJson(res);
+      if (!res.ok) throw new Error(body.error || "Rimozione allegato non riuscita");
+      setAllegati(body.allegati);
+    } catch (err) {
+      setAllegatoError(networkErrorMessage(err));
+    } finally {
+      setUploadingAllegato(false);
+    }
+  }
 
   function showToast(msg: string) {
     setToast(msg);
@@ -1078,6 +1131,77 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
             <Field label="Note">
               <textarea value={c.prescrizione.note ?? ""} onChange={(e) => updateContenuto("prescrizione", { note: e.target.value || null })} />
             </Field>
+
+            <h3 className="fascicolo-lato-title" style={{ marginTop: 18 }}>
+              Allegati ({allegati.length}/{MAX_ALLEGATI_PER_FASCICOLO})
+            </h3>
+            <p className="hint" style={{ marginBottom: 10 }}>
+              Prescrizione medica, autorizzazione ASL o altra documentazione: immagini o PDF. Finiscono nella stampa
+              interna completa del fascicolo, non negli altri tipi di stampa.
+            </p>
+            {allegatoError ? <div className="banner error">{allegatoError}</div> : null}
+            {allegati.length > 0 ? (
+              <div className="gallery-grid" style={{ marginBottom: 12 }}>
+                {allegati.map((a) => (
+                  <div key={a.id} className="gallery-item">
+                    {a.formato === "immagine" ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={`/api/fascicoli/${fascicolo.numero}/allegati/${a.id}`}
+                        alt={a.etichetta || a.nome || "Allegato"}
+                        className="gallery-thumb"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <a
+                        href={a.driveUrl ?? "#"}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="gallery-thumb"
+                        style={{ display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}
+                      >
+                        Apri PDF ↗
+                      </a>
+                    )}
+                    <div className="gallery-caption">{a.etichetta || a.nome || "—"}</div>
+                    <button
+                      className="btn danger"
+                      type="button"
+                      onClick={() => handleAllegatoRemove(a.id)}
+                      disabled={uploadingAllegato}
+                    >
+                      Rimuovi
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="hint">Nessun allegato caricato.</p>
+            )}
+            {allegati.length < MAX_ALLEGATI_PER_FASCICOLO ? (
+              <div className="card-actions">
+                <input
+                  value={allegatoEtichetta}
+                  onChange={(e) => setAllegatoEtichetta(e.target.value)}
+                  placeholder="Etichetta (facoltativa): es. Prescrizione medica, Autorizzazione ASL…"
+                  style={{ maxWidth: 320 }}
+                />
+                <label className="btn">
+                  {uploadingAllegato ? "Caricamento…" : "Aggiungi allegato"}
+                  <input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    onChange={handleAllegatoUpload}
+                    disabled={uploadingAllegato}
+                    style={{ display: "none" }}
+                  />
+                </label>
+              </div>
+            ) : (
+              <p className="hint">
+                Limite di {MAX_ALLEGATI_PER_FASCICOLO} allegati raggiunto: rimuovine uno per aggiungerne altri.
+              </p>
+            )}
           </>
         ) : null}
 
