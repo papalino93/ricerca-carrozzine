@@ -8,6 +8,11 @@
 // Ogni campo qui è annotato con la sua provenienza nel documento originale,
 // utile a chi in futuro deve verificare che non manchi nulla.
 
+/** Tetto al numero di allegati per fascicolo (vedi fascicoli-allegati.ts):
+ * condiviso qui, non in quel file (che ha "server-only"), perché serve
+ * anche al componente client per disabilitare il pulsante di upload. */
+export const MAX_ALLEGATI_PER_FASCICOLO = 12;
+
 export type FascicoloStato =
   | "bozza"
   | "in_lavorazione"
