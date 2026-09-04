@@ -582,6 +582,7 @@ export function ClientDetailClient({
             </p>
             <div className="card-actions">
               <input
+                className="input-inline"
                 value={deleteConfirmText}
                 onChange={(e) => setDeleteConfirmText(e.target.value)}
                 placeholder={client.nome}

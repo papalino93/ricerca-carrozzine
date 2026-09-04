@@ -1074,6 +1074,7 @@ export function DeviceDetailModal({
           {gallery.length < MAX_GALLERY_PHOTOS ? (
             <div className="card-actions" style={{ marginTop: 12 }}>
               <input
+                className="input-inline"
                 value={galleryTipo}
                 onChange={(e) => setGalleryTipo(e.target.value)}
                 placeholder="Etichetta (facoltativa): es. Laterale, Etichetta, Difetto…"
@@ -1205,6 +1206,7 @@ export function DeviceDetailModal({
               </p>
               <div className="card-actions">
                 <input
+                  className="input-inline"
                   value={deleteConfirmText}
                   onChange={(e) => setDeleteConfirmText(e.target.value)}
                   placeholder={form.codice}
