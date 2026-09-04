@@ -6,14 +6,13 @@ import Link from "next/link";
 import type { ClientRecord } from "@/lib/clients";
 import {
   calcolaCompletamento,
+  deriveStatoAttivo,
   FASCICOLO_STATO_LABEL,
-  FASCICOLO_STATO_OPTIONS,
   MAX_ALLEGATI_PER_FASCICOLO,
   SEZIONI_FASCICOLO,
   type EsamePiedeLato,
   type FascicoloContenuto,
   type FascicoloRecord,
-  type FascicoloStato,
   type FaseProduzione,
   type SezioneFascicolo,
   type VisitaControllo,
@@ -247,7 +246,13 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          stato: current.stato,
+          // Lo stato non si manda più scelto a mano: il server lo
+          // ricalcola sempre dal contenuto (vedi deriveStatoAttivo in
+          // fascicoli-types.ts). L'unica leva che resta lato client è
+          // l'archiviazione, esplicita e "sticky" — qui si riconferma
+          // sempre quella già nota, il pulsante Archivia/Riattiva la
+          // cambia aggiornando prima lo stato locale (vedi handleToggleArchiviato).
+          archiviato: current.stato === "archiviato",
           commessa: current.commessa,
           tipoDispositivo: current.tipoDispositivo,
           operatore: current.operatore,
@@ -329,8 +334,23 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
     };
   }, []);
 
-  function updateTop(patch: Partial<Pick<FascicoloRecord, "stato" | "commessa" | "tipoDispositivo" | "operatore">>) {
+  function updateTop(patch: Partial<Pick<FascicoloRecord, "commessa" | "tipoDispositivo" | "operatore">>) {
     setFascicolo((prev) => ({ ...prev, ...patch }));
+    scheduleAutosave();
+  }
+
+  // Lo stato non si sceglie più a mano: si ricalcola dal contenuto
+  // (deriveStatoAttivo, la stessa funzione usata dal server — vedi
+  // fascicoli.ts) e resta sempre coerente con le sezioni compilate. Resta
+  // manuale solo l'archiviazione, una decisione dell'operatore non
+  // deducibile da nessun dato: qui si aggiorna subito lo stato locale
+  // (per un riscontro immediato) e si passa dall'autosave come ogni altro
+  // campo, che invierà "archiviato: true/false" nel prossimo salvataggio.
+  function handleToggleArchiviato() {
+    setFascicolo((prev) => ({
+      ...prev,
+      stato: prev.stato === "archiviato" ? deriveStatoAttivo(prev) : "archiviato",
+    }));
     scheduleAutosave();
   }
 
@@ -645,19 +665,20 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
         <div className="page-header-text">
           <div className="page-title-row">
             <h1>{fascicolo.numero}</h1>
-            <select
-              value={fascicolo.stato}
-              onChange={(e) => updateTop({ stato: e.target.value as FascicoloStato })}
-              style={{ maxWidth: 220 }}
+            <span
+              className={`pill fascicolo-${fascicolo.stato}`}
+              title="Calcolato automaticamente in base ai dati compilati nelle sezioni sottostanti"
             >
-              {FASCICOLO_STATO_OPTIONS.map((o) => (
-                <option key={o.key} value={o.key}>
-                  {FASCICOLO_STATO_LABEL[o.key]}
-                </option>
-              ))}
-            </select>
+              {FASCICOLO_STATO_LABEL[fascicolo.stato]}
+            </span>
+            <button type="button" className="btn ghost" onClick={handleToggleArchiviato}>
+              {fascicolo.stato === "archiviato" ? "Riattiva" : "Archivia"}
+            </button>
           </div>
           <p className="sub">{fascicolo.clienteNome}</p>
+          <p className="hint" style={{ marginTop: 2 }}>
+            Lo stato si aggiorna da solo mano a mano che le sezioni vengono compilate.
+          </p>
         </div>
         <div className="fascicolo-savestate-wrap">
           {saveLabel[saveState].text ? (
