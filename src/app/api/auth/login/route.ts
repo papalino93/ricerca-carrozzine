@@ -4,7 +4,7 @@ import { createSessionToken, SESSION_COOKIE, SESSION_MAX_AGE } from "@/lib/sessi
 import {
   createPendingTwoFactorToken,
   isTrustedDevice,
-  isTwoFactorEnabled,
+  isTwoFactorEnabledForLogin,
   PENDING_2FA_COOKIE,
   PENDING_2FA_MAX_AGE,
   TRUSTED_DEVICE_COOKIE,
@@ -38,11 +38,18 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // Se Google Sheets non risponde qui, si considera il 2FA non attivo
-    // invece di bloccare l'accesso: stessa scelta già fatta altrove nel
-    // progetto (vedi basic-auth.ts) di non far dipendere l'ingresso nel
-    // gestionale dalla disponibilità del foglio.
-    const twoFactorOn = await isTwoFactorEnabled(username).catch(() => false);
+    // Se Google Sheets non risponde, NON si assume "2FA disattivo": vedi
+    // isTwoFactorEnabledForLogin, che usa l'ultimo esito confermato per
+    // questo utente invece di lasciar entrare con la sola password
+    // chiunque abbia il 2FA attivo durante un banale intoppo di rete.
+    const twoFactorState = await isTwoFactorEnabledForLogin(username);
+    if (twoFactorState === "verifica-fallita") {
+      return NextResponse.json(
+        { error: "Google Sheets non risponde: riprova tra qualche secondo." },
+        { status: 503, headers: { "Retry-After": "5" } }
+      );
+    }
+    const twoFactorOn = twoFactorState;
     const trusted =
       twoFactorOn && isTrustedDevice(req.cookies.get(TRUSTED_DEVICE_COOKIE)?.value, username);
 

@@ -42,6 +42,35 @@ export async function isTwoFactorEnabled(username: string): Promise<boolean> {
   return Boolean(records.find((r) => r.username.toLowerCase() === username.toLowerCase())?.confirmed);
 }
 
+/** Ultimo esito CONFERMATO (non da un fallback) di isTwoFactorEnabled per
+ * utente, usato solo da isTwoFactorEnabledForLogin qui sotto. */
+const ENABLED_CACHE_MS = 300_000;
+let enabledCache: { username: string; enabled: boolean; expires: number } | null = null;
+
+/**
+ * Come isTwoFactorEnabled, ma per la verifica al login: se Google Sheets
+ * non risponde, non si può semplicemente assumere "2FA disattivo" — chi ha
+ * il 2FA attivo entrerebbe con la sola password durante un banale intoppo
+ * di rete verso Google, saltando del tutto il secondo fattore. Si usa
+ * invece l'ultimo esito confermato per questo utente, se recente;
+ * altrimenti si segnala "verifica-fallita" e tocca al chiamante decidere
+ * se bloccare l'accesso (di norma sì).
+ */
+export async function isTwoFactorEnabledForLogin(username: string): Promise<boolean | "verifica-fallita"> {
+  const usernameKey = username.toLowerCase();
+  try {
+    const enabled = await isTwoFactorEnabled(username);
+    enabledCache = { username: usernameKey, enabled, expires: Date.now() + ENABLED_CACHE_MS };
+    return enabled;
+  } catch {
+    const cached = enabledCache;
+    if (cached && cached.username === usernameKey && cached.expires > Date.now()) {
+      return cached.enabled;
+    }
+    return "verifica-fallita";
+  }
+}
+
 /** Elenco degli utenti con 2FA attivo, per mostrarlo in Impostazioni > Utenti. */
 export async function listTwoFactorUsernames(): Promise<string[]> {
   const records = await readRecords();

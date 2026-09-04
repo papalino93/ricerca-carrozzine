@@ -34,7 +34,19 @@ function registerFailedAttempt(key: string): void {
   }
 }
 
+// Senza pulizia, ogni username che abbia mai sbagliato un codice
+// resterebbe per sempre in memoria per tutta la vita dell'istanza: una
+// voce scaduta non blocca più nessuno (tooManyAttempts la ignora già), va
+// solo tolta.
+function sweepAttempts(): void {
+  const now = Date.now();
+  for (const [key, entry] of attempts) {
+    if (entry.resetAt <= now) attempts.delete(key);
+  }
+}
+
 export async function POST(req: NextRequest) {
+  sweepAttempts();
   const pending = readPendingTwoFactorToken(req.cookies.get(PENDING_2FA_COOKIE)?.value);
   if (!pending) {
     return NextResponse.json({ error: "Sessione di accesso scaduta: rifai il login." }, { status: 401 });
