@@ -4,9 +4,21 @@ import { createHash, createHmac, timingSafeEqual } from "crypto";
 export const SESSION_COOKIE = "medical_center_session";
 export const SESSION_MAX_AGE = 60 * 60 * 12;
 
-interface SessionPayload {
+/** Ogni quanto ricontrollare, mentre la sessione è in uso, che l'account
+ * esista ancora (vedi needsRevalidation): non a ogni richiesta — sarebbe
+ * una chiamata a Google Sheets su ogni pagina, immagine e chiamata API di
+ * chiunque stia usando il gestionale — ma abbastanza spesso perché
+ * rimuovere un utente o revocare un accesso abbia effetto in minuti,
+ * non fino a 12 ore dopo. */
+export const SESSION_REVALIDATE_MS = 15 * 60 * 1000;
+
+export interface SessionPayload {
   username: string;
   expiresAt: number;
+  /** Ultima volta che si è confermato (contro Google Sheets) che l'account
+   * esiste ancora. Assente nei token creati prima di questo campo: trattata
+   * come "va rivalidata subito", non come sessione non valida. */
+  verifiedAt?: number;
 }
 
 function sessionSecret(): Buffer {
@@ -34,6 +46,7 @@ export function createSessionToken(username: string): string {
   const payload: SessionPayload = {
     username,
     expiresAt: Date.now() + SESSION_MAX_AGE * 1000,
+    verifiedAt: Date.now(),
   };
   const encoded = Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
   return `${encoded}.${signature(encoded)}`;
@@ -63,4 +76,12 @@ export function readSessionToken(token: string | undefined): SessionPayload | nu
   } catch {
     return null;
   }
+}
+
+/** True se è ora di ricontrollare contro Google Sheets che l'account di
+ * questa sessione esista ancora (vedi SESSION_REVALIDATE_MS). I token
+ * creati prima dell'aggiunta di "verifiedAt" non ce l'hanno: si
+ * rivalidano alla prima occasione invece di restare per sempre esenti. */
+export function needsRevalidation(payload: SessionPayload): boolean {
+  return !payload.verifiedAt || Date.now() - payload.verifiedAt > SESSION_REVALIDATE_MS;
 }
