@@ -29,6 +29,12 @@ const CACHE_OK_MS = 300_000;
 const CACHE_NO_MS = 30_000;
 let cache: { key: string; ok: boolean; expires: number } | null = null;
 
+/** Ultimo esito CONFERMATO (non da un fallback) di "esiste un override sul
+ * foglio per l'account d'ambiente?", per lo stesso account d'ambiente.
+ * Serve solo al ramo qui sotto quando Google non risponde: vedi commento
+ * lì per il motivo. */
+let envOverrideCache: { username: string; overridePresente: boolean; expires: number } | null = null;
+
 /** Esito della verifica. "verifica-fallita" non è un rifiuto: vuol dire che
  * non è stato possibile controllare — Google Sheets non ha risposto — e va
  * tenuto distinto, perché rispondere "credenziali errate" a chi le ha
@@ -60,16 +66,28 @@ export async function verifyCredentials(username: string, password: string): Pro
   const envUser = process.env.ADMIN_USER;
   const envPass = process.env.ADMIN_PASSWORD;
   if (envUser && envPass && safeEqual(username.toLowerCase(), envUser.toLowerCase())) {
+    const usernameKey = username.toLowerCase();
     try {
       const sheetState = await verifySheetCredentialState(username, password);
       // Un account omonimo nel foglio è l'override creato dal recupero: la
       // vecchia password d'ambiente non deve continuare a funzionare.
+      envOverrideCache = { username: usernameKey, overridePresente: sheetState !== "absent", expires: Date.now() + CACHE_OK_MS };
       if (sheetState === "valid") return "ok";
       if (sheetState === "invalid") return "negato";
     } catch {
-      // L'account d'ambiente resta la rete di sicurezza se Google non è
-      // raggiungibile e non è possibile controllare l'eventuale override.
-      return safeEqual(password, envPass) ? "ok" : "verifica-fallita";
+      // Se un controllo recente ha confermato che NON esiste un override
+      // (il caso comune, nessun recupero è mai stato fatto), l'account
+      // d'ambiente resta la rete di sicurezza quando Google non risponde.
+      // Ma se l'ultimo controllo ha trovato un override (qualcuno ha
+      // recuperato l'accesso proprio per revocare questa password) — o non
+      // sappiamo nulla perché non è mai stato possibile controllare — un
+      // intoppo di Google non deve far accettare una password che potrebbe
+      // essere esattamente quella appena revocata.
+      const cached = envOverrideCache;
+      if (cached && cached.username === usernameKey && cached.expires > Date.now() && !cached.overridePresente) {
+        return safeEqual(password, envPass) ? "ok" : "verifica-fallita";
+      }
+      return "verifica-fallita";
     }
     return safeEqual(password, envPass) ? "ok" : "negato";
   }

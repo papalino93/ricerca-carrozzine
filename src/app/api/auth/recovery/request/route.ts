@@ -5,7 +5,19 @@ import { sendRecoveryEmail } from "@/lib/recovery-email";
 const attempts = new Map<string, number>();
 const WAIT_MS = 10 * 60 * 1000;
 
+// Senza pulizia, ogni IP distinto che abbia mai chiamato questa rotta
+// resterebbe per sempre in memoria per tutta la vita dell'istanza: una
+// voce scaduta non serve più a nulla (il confronto sotto la ignorerebbe
+// comunque), va solo tolta.
+function sweepAttempts(): void {
+  const cutoff = Date.now() - WAIT_MS;
+  for (const [ip, ts] of attempts) {
+    if (ts < cutoff) attempts.delete(ip);
+  }
+}
+
 export async function POST(req: NextRequest) {
+  sweepAttempts();
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
   const last = attempts.get(ip) ?? 0;
   if (Date.now() - last < WAIT_MS) {
