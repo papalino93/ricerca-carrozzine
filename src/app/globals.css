@@ -2204,6 +2204,28 @@ h1 {
   cursor: not-allowed;
 }
 
+/* Input isolato fuori da un .field (dentro un .card-actions: etichetta
+   allegato, testo di conferma eliminazione...): senza questa regola un
+   <input> nudo prende la larghezza intrinseca del browser (~20 caratteri)
+   e un placeholder lungo appare troncato — "maxWidth" da solo non basta,
+   limita la crescita ma non imposta una larghezza reale di partenza. */
+.input-inline {
+  flex: 1 1 240px;
+  min-width: 180px;
+  padding: 11px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  font-size: 14px;
+  font-family: var(--sans);
+  color: var(--ink);
+  background: var(--surface);
+}
+
+.input-inline:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
 /* Campo prezzo: "€" fisso a sinistra, il numero digitato non lo spinge via. */
 .field-euro {
   position: relative;

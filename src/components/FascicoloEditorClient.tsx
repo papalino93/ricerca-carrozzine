@@ -132,6 +132,12 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
   const [allegatoEtichetta, setAllegatoEtichetta] = useState("");
   const [uploadingAllegato, setUploadingAllegato] = useState(false);
   const [allegatoError, setAllegatoError] = useState<string | null>(null);
+  // Sapere PRIMA di un caricamento se Drive è configurato per i PDF (vedi
+  // drive.ts, isFascicoliDriveConfigured) evita che l'unico avviso sia un
+  // banner rosso dopo un tentativo fallito: qui si mostra subito un
+  // suggerimento neutro (le immagini funzionano comunque, solo i PDF
+  // richiedono Drive).
+  const [driveConfigured, setDriveConfigured] = useState(true);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fascicoloRef = useRef(fascicolo);
@@ -157,6 +163,13 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
       .then((body) => setAllegati(body.allegati ?? []))
       .catch(() => {});
   }, [initialFascicolo.numero]);
+
+  useEffect(() => {
+    fetch("/api/drive-status")
+      .then((res) => res.json())
+      .then((body) => setDriveConfigured(Boolean(body.fascicoliConfigurato)))
+      .catch(() => setDriveConfigured(true));
+  }, []);
 
   async function handleAllegatoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -1213,8 +1226,21 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
             <p className="hint" style={{ marginBottom: 10 }}>
               Prescrizione medica, autorizzazione ASL o altra documentazione: immagini o PDF. Finiscono nella stampa
               interna completa del fascicolo, non negli altri tipi di stampa.
+              {!driveConfigured ? " Google Drive non è configurato: puoi caricare solo immagini, non PDF." : ""}
             </p>
-            {allegatoError ? <div className="banner error">{allegatoError}</div> : null}
+            {allegatoError ? (
+              <div className="banner error" style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                <span style={{ flex: 1 }}>{allegatoError}</span>
+                <button
+                  type="button"
+                  className="btn ghost"
+                  style={{ padding: "2px 8px" }}
+                  onClick={() => setAllegatoError(null)}
+                >
+                  ✕
+                </button>
+              </div>
+            ) : null}
             {allegati.length > 0 ? (
               <div className="gallery-grid" style={{ marginBottom: 12 }}>
                 {allegati.map((a) => (
@@ -1256,6 +1282,7 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
             {allegati.length < MAX_ALLEGATI_PER_FASCICOLO ? (
               <div className="card-actions">
                 <input
+                  className="input-inline"
                   value={allegatoEtichetta}
                   onChange={(e) => setAllegatoEtichetta(e.target.value)}
                   placeholder="Etichetta (facoltativa): es. Prescrizione medica, Autorizzazione ASL…"
@@ -1557,6 +1584,7 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
             </p>
             <div className="card-actions">
               <input
+                className="input-inline"
                 value={deleteConfirmText}
                 onChange={(e) => setDeleteConfirmText(e.target.value)}
                 placeholder={fascicolo.numero}
