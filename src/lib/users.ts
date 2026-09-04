@@ -43,6 +43,37 @@ export async function listUsers(): Promise<AdminUser[]> {
   return users.map((u) => ({ username: u.username }));
 }
 
+// Una pagina con più immagini (galleria dispositivo, allegati fascicolo)
+// genera una richiesta per ognuna, ognuna passa dal middleware: proprio nel
+// momento in cui una sessione va rivalidata, tutte queste richieste quasi
+// simultanee vedrebbero la stessa sessione "da rivalidare" e interrogherebbero
+// Google Sheets ognuna per conto proprio. Una cache brevissima fa sì che la
+// prima richiesta di una raffica controlli davvero, le altre riusino il
+// risultato appena trovato invece di ripetere la stessa domanda a Google.
+const EXISTS_CACHE_MS = 60_000;
+let existsCache: { username: string; exists: boolean; expires: number } | null = null;
+
+/**
+ * Vero se questo username corrisponde ancora a un account valido: usata
+ * per rivalidare periodicamente le sessioni già aperte (vedi session.ts,
+ * needsRevalidation), non per il login stesso. L'account d'ambiente
+ * (ADMIN_USER) esiste finché è configurato nel deploy — non lo si rimuove
+ * da qui, resta la rete di sicurezza anche quando non compare nel foglio.
+ */
+export async function accountStillExists(username: string): Promise<boolean> {
+  const envUser = process.env.ADMIN_USER?.trim();
+  if (envUser && username.toLowerCase() === envUser.toLowerCase()) return true;
+
+  const usernameKey = username.toLowerCase();
+  if (existsCache && existsCache.username === usernameKey && existsCache.expires > Date.now()) {
+    return existsCache.exists;
+  }
+  const users = await readUsers();
+  const exists = users.some((u) => u.username.toLowerCase() === usernameKey);
+  existsCache = { username: usernameKey, exists, expires: Date.now() + EXISTS_CACHE_MS };
+  return exists;
+}
+
 export async function addUser(username: string, password: string): Promise<AdminUser[]> {
   const clean = username.trim();
   if (!clean) throw new Error("Username obbligatorio");

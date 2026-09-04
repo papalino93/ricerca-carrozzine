@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireBasicAuth } from "@/lib/basic-auth";
-import { readSessionToken, SESSION_COOKIE } from "@/lib/session";
+import { accountStillExists } from "@/lib/users";
+import { createSessionToken, needsRevalidation, readSessionToken, SESSION_COOKIE, SESSION_MAX_AGE } from "@/lib/session";
 
 const SITE_URL = "https://medical-center-scandicci.vercel.app";
 const TITLE = "Medical Center";
@@ -85,8 +86,42 @@ export default async function proxy(req: NextRequest) {
     req.nextUrl.pathname.startsWith("/api/auth/recovery/");
   if (isLoginRoute) return NextResponse.next();
 
-  if (readSessionToken(req.cookies.get(SESSION_COOKIE)?.value)) {
-    return NextResponse.next();
+  // Il token è autoconsistente (username + scadenza, firmato): valido non
+  // vuol dire "l'account esiste ancora davvero". Senza ricontrollarlo mai,
+  // rimuovere un utente o revocare un accesso non aveva alcun effetto sulle
+  // sessioni già aperte fino alla scadenza naturale (fino a 12 ore). Non lo
+  // si ricontrolla ad OGNI richiesta — sarebbe una chiamata a Google Sheets
+  // su ogni pagina, immagine e chiamata API di chiunque stia lavorando — ma
+  // solo ogni SESSION_REVALIDATE_MS di attività (vedi needsRevalidation).
+  let sessionRevocata = false;
+  const sessionPayload = readSessionToken(req.cookies.get(SESSION_COOKIE)?.value);
+  if (sessionPayload) {
+    if (!needsRevalidation(sessionPayload)) {
+      return NextResponse.next();
+    }
+    try {
+      if (await accountStillExists(sessionPayload.username)) {
+        // Token rinnovato con un nuovo "verificato il": la prossima
+        // rivalidazione sarà tra SESSION_REVALIDATE_MS, non alla
+        // richiesta successiva.
+        const res = NextResponse.next();
+        res.cookies.set(SESSION_COOKIE, createSessionToken(sessionPayload.username), {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+          path: "/",
+          maxAge: SESSION_MAX_AGE,
+        });
+        return res;
+      }
+      sessionRevocata = true;
+    } catch {
+      // Google Sheets non raggiungibile in questo momento: non è motivo per
+      // disconnettere chi sta già lavorando. Il token non viene rinnovato,
+      // quindi resta "da rivalidare" e si riprova alla prossima richiesta
+      // utile, non fra 12 ore.
+      return NextResponse.next();
+    }
   }
 
   // Compatibilità per integrazioni o postazioni che inviano già
@@ -98,12 +133,16 @@ export default async function proxy(req: NextRequest) {
   }
 
   if (req.nextUrl.pathname.startsWith("/api/")) {
-    return NextResponse.json({ error: "Sessione scaduta: accedi di nuovo." }, { status: 401 });
+    const res = NextResponse.json({ error: "Sessione scaduta: accedi di nuovo." }, { status: 401 });
+    if (sessionRevocata) res.cookies.delete(SESSION_COOKIE);
+    return res;
   }
 
   const loginUrl = new URL("/login", req.url);
   loginUrl.searchParams.set("next", `${req.nextUrl.pathname}${req.nextUrl.search}`);
-  return NextResponse.redirect(loginUrl);
+  const res = NextResponse.redirect(loginUrl);
+  if (sessionRevocata) res.cookies.delete(SESSION_COOKIE);
+  return res;
 }
 
 // Il matcher deve essere una stringa statica (Next.js lo analizza a
