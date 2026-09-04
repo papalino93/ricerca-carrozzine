@@ -417,3 +417,31 @@ export function calcolaCompletamento(f: Pick<FascicoloRecord, "clienteNome" | "c
     controlli: c.consegna.visiteControllo.length > 0,
   };
 }
+
+/**
+ * Stato "attivo" del fascicolo (tutti tranne "archiviato", l'unica
+ * decisione manuale — vedi sotto), derivato dai dati realmente compilati
+ * invece che scelto a mano: prima lo stato era un menu libero senza alcun
+ * legame con anamnesi/prescrizione/produzione/consegna, quindi poteva
+ * restare "Bozza" su un fascicolo già consegnato, o "Consegnato" senza che
+ * nessuna data di consegna fosse mai stata inserita — bastava dimenticarsi
+ * di aggiornarlo. Le soglie ricalcano lo stesso indicatore di completamento
+ * per sezione già mostrato nell'editor (calcolaCompletamento), così le due
+ * cose raccontano sempre la stessa storia invece di poter contraddirsi.
+ * "Archiviato" resta invece una scelta esplicita dell'operatore (vedi
+ * updateFascicolo in fascicoli.ts): non è implicito in nessun dato, un
+ * fascicolo può restare "Consegnato" per anni senza mai essere archiviato,
+ * o essere archiviato anche se abbandonato a metà.
+ */
+export function deriveStatoAttivo(
+  f: Pick<FascicoloRecord, "clienteNome" | "contenuto">
+): Exclude<FascicoloStato, "archiviato"> {
+  const done = calcolaCompletamento(f);
+  if (done.consegna) return "consegnato";
+  if (f.contenuto.produzione.controlloFinale != null) return "prodotto";
+  if (done.anamnesi && done.esamePiede && done.prescrizione) return "completo";
+  if (done.anamnesi || done.esamePiede || done.prescrizione || f.contenuto.produzione.dataInizioLavori) {
+    return "in_lavorazione";
+  }
+  return "bozza";
+}
