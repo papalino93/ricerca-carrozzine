@@ -59,7 +59,7 @@ export function DichiarazioneConformitaDocument({ settings, cliente, fascicolo }
           </View>
         </View>
 
-        <View break>
+        <View>
           <Text style={sharedStyles.sectionLabel}>Note informative, istruzioni per l&apos;uso e garanzia</Text>
           <Text style={sharedStyles.legalTitle}>1 — Descrizione</Text>
           <Text style={sharedStyles.para}>{NOTE_INFORMATIVE_USO.descrizione}</Text>
@@ -76,7 +76,7 @@ export function DichiarazioneConformitaDocument({ settings, cliente, fascicolo }
         </View>
 
         {c.prescrizione.praticaAsl ? (
-          <View break>
+          <View>
             <Text style={sharedStyles.sectionLabel}>Comunicazione di avvenuta consegna</Text>
             <Text style={sharedStyles.para}>
               Con la presente si comunica che in data odierna è stato consegnato alla/al Sig.ra/Sig.{" "}

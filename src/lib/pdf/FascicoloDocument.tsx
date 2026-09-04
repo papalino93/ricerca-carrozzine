@@ -52,11 +52,13 @@ const styles = StyleSheet.create({
  * Stampa interna completa: TUTTO il fascicolo, per l'archiviazione su
  * PC/Drive o la stampa cartacea da tenere in negozio — mai quella data al
  * cliente (per quella vedi StampaClienteDocument e
- * DichiarazioneConformitaDocument). Ogni sezione numerata inizia su una
- * pagina pulita: prima due sezioni diverse potevano trovarsi spezzate a
- * metà pagina l'una dentro l'altra (Dichiarazione di conformità + Scheda
- * di produzione condividevano un solo blocco "break", e mancava del tutto
- * il break tra Privacy e consensi e le Note informative finali).
+ * DichiarazioneConformitaDocument). Le sezioni scorrono in modo naturale
+ * (nessun "break" forzato tra l'una e l'altra): con contenuti di lunghezza
+ * variabile un'interruzione pagina obbligatoria prima di ogni sezione
+ * lasciava spesso gran parte della pagina bianca. React-pdf sposta comunque
+ * una sezione sulla pagina successiva se non ci sta per intero. Il break
+ * resta solo prima dell'Allegato A, un annesso corposo e a sé stante che
+ * ha comunque quasi sempre bisogno di una pagina dedicata.
  */
 export function FascicoloDocument({ settings, cliente, fascicolo, allegatiImmagini }: FascicoloDocumentProps) {
   const c = fascicolo.contenuto;
@@ -138,7 +140,7 @@ export function FascicoloDocument({ settings, cliente, fascicolo, allegatiImmagi
         ))}
 
         {/* 4 · ESAME DEL PIEDE */}
-        <View break>
+        <View>
           <Text style={sharedStyles.sectionLabel}>4 · Scheda rilevazione obiettiva</Text>
           {c.esamePiede.motivoVisita ? <Text style={sharedStyles.para}>Motivo della visita: {c.esamePiede.motivoVisita}</Text> : null}
           <View style={sharedStyles.twoCol}>
@@ -208,7 +210,7 @@ export function FascicoloDocument({ settings, cliente, fascicolo, allegatiImmagi
         </View>
 
         {/* 6 · DICHIARAZIONE DI CONFORMITÀ */}
-        <View break>
+        <View>
           <Text style={sharedStyles.sectionLabel}>6 · Dichiarazione di conformità — Regolamento (UE) 2017/745</Text>
           <Text style={sharedStyles.para}>{DICHIARAZIONE_CONFORMITA_TESTO}</Text>
           <Text style={[sharedStyles.para, { marginTop: 6 }]}>
@@ -227,11 +229,8 @@ export function FascicoloDocument({ settings, cliente, fascicolo, allegatiImmagi
           </View>
         </View>
 
-        {/* 7 · SCHEDA DI PRODUZIONE — pagina propria: prima condivideva il
-            break della sezione 6, e la tabella delle fasi finiva per
-            spezzarsi in modo imprevedibile a seconda di quanto testo aveva
-            la dichiarazione di conformità sopra. */}
-        <View break>
+        {/* 7 · SCHEDA DI PRODUZIONE */}
+        <View>
           <Text style={sharedStyles.sectionLabel}>7 · Scheda di produzione — Commessa</Text>
           <View style={sharedStyles.table}>
             <Field label="Nome dispositivo" value={fascicolo.tipoDispositivo} />
@@ -280,7 +279,7 @@ export function FascicoloDocument({ settings, cliente, fascicolo, allegatiImmagi
 
         {/* 8 · COMUNICAZIONE AVVENUTA CONSEGNA — solo per pratiche ASL/SSN */}
         {c.prescrizione.praticaAsl ? (
-          <View break>
+          <View>
             <Text style={sharedStyles.sectionLabel}>8 · Comunicazione di avvenuta consegna</Text>
             <Text style={sharedStyles.para}>
               Con la presente si comunica che in data odierna è stato consegnato alla/al Sig.ra/Sig.{" "}
@@ -302,13 +301,13 @@ export function FascicoloDocument({ settings, cliente, fascicolo, allegatiImmagi
         ) : null}
 
         {/* 9 · CONDIZIONI GENERALI DI FORNITURA */}
-        <View break>
+        <View>
           <Text style={sharedStyles.sectionLabel}>9 · Condizioni generali di fornitura</Text>
           <Text style={sharedStyles.para}>{CONDIZIONI_GENERALI_FORNITURA}</Text>
         </View>
 
         {/* 10 · PRIVACY E CONSENSI */}
-        <View break>
+        <View>
           <Text style={sharedStyles.sectionLabel}>10 · Informativa privacy e consenso al trattamento dati</Text>
           <Text style={sharedStyles.para}>{INFORMATIVA_PRIVACY_FASCICOLO}</Text>
           <Check checked={c.consensi.consensoTrattamentoDati} label="Acconsento al trattamento dei miei dati personali e particolari alle condizioni previste nell'informativa" />
@@ -330,11 +329,8 @@ export function FascicoloDocument({ settings, cliente, fascicolo, allegatiImmagi
           </View>
         </View>
 
-        {/* 11 · NOTE INFORMATIVE / GARANZIA — pagina propria: prima
-            seguiva la sezione 10 sulla stessa pagina, senza alcun break,
-            e finiva per iniziare a metà di una pagina già occupata dalla
-            firma privacy. */}
-        <View break>
+        {/* 11 · NOTE INFORMATIVE / GARANZIA */}
+        <View>
           <Text style={sharedStyles.sectionLabel}>11 · Note informative, istruzioni per l&apos;uso e garanzia</Text>
           <Text style={sharedStyles.legalTitle}>1 — Descrizione</Text>
           <Text style={sharedStyles.para}>{NOTE_INFORMATIVE_USO.descrizione}</Text>

@@ -79,7 +79,7 @@ export function StampaClienteDocument({ settings, cliente, fascicolo }: StampaCl
           </>
         ) : null}
 
-        <View break>
+        <View>
           <Text style={sharedStyles.sectionLabel}>Informativa privacy e consenso al trattamento dati</Text>
           <Text style={sharedStyles.para}>{INFORMATIVA_PRIVACY_FASCICOLO}</Text>
           <Check checked={c.consensi.consensoTrattamentoDati} label="Acconsento al trattamento dei miei dati personali e particolari alle condizioni previste nell'informativa" />
@@ -96,7 +96,7 @@ export function StampaClienteDocument({ settings, cliente, fascicolo }: StampaCl
           </View>
         </View>
 
-        <View break>
+        <View>
           <Text style={sharedStyles.sectionLabel}>Condizioni generali di fornitura</Text>
           <Text style={sharedStyles.para}>{CONDIZIONI_GENERALI_FORNITURA}</Text>
         </View>
