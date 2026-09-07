@@ -3,9 +3,11 @@ import { requireBasicAuth } from "@/lib/basic-auth";
 import {
   addFascicoloAllegatoImmagine,
   addFascicoloAllegatoPdf,
+  assertFascicoloAllegatoRoom,
   listFascicoloAllegati,
   removeFascicoloAllegato,
 } from "@/lib/fascicoli-allegati";
+import { getFascicolo } from "@/lib/fascicoli";
 import { imageToDataUri } from "@/lib/image-to-data-uri";
 import { isFascicoliDriveConfigured, uploadFascicoloAllegato } from "@/lib/drive";
 
@@ -33,6 +35,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ num
 
   try {
     const { numero } = await params;
+    if (!(await getFascicolo(numero))) {
+      return NextResponse.json({ error: `Fascicolo ${numero} non trovato` }, { status: 404 });
+    }
+
     const form = await req.formData();
     const file = form.get("file");
     const etichetta = form.get("etichetta");
@@ -41,6 +47,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ num
     if (!(file instanceof File)) {
       return NextResponse.json({ error: "Nessun file ricevuto" }, { status: 400 });
     }
+
+    // Controllato PRIMA di comprimere l'immagine o caricare il PDF su
+    // Drive: farlo dopo (come faceva addFascicoloAllegatoPdf/Immagine da
+    // sole) sprecava il lavoro e, per i PDF, lasciava un file orfano su
+    // Drive ogni volta che si riprovava oltre il limite.
+    await assertFascicoloAllegatoRoom(numero);
 
     if (file.type.startsWith("image/")) {
       const dataUri = await imageToDataUri(Buffer.from(await file.arrayBuffer()));
