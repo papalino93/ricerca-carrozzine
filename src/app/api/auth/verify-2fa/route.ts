@@ -52,7 +52,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Sessione di accesso scaduta: rifai il login." }, { status: 401 });
   }
 
-  if (tooManyAttempts(pending.username)) {
+  // Chiave in minuscolo: la verifica di credenziali/codice è case-insensitive
+  // (vedi verifyTwoFactorCode/verifySheetCredentialState), ma lo username nel
+  // cookie mantiene la scrittura esatta digitata al login. Usare quella
+  // com'è renderebbe il limite di tentativi aggirabile provando varianti di
+  // maiuscole/minuscole dello stesso account, ognuna con il proprio contatore.
+  const throttleKey = pending.username.toLowerCase();
+
+  if (tooManyAttempts(throttleKey)) {
     return NextResponse.json(
       { error: "Troppi tentativi: rifai il login e riprova tra qualche minuto." },
       { status: 429 }
@@ -82,10 +89,10 @@ export async function POST(req: NextRequest) {
   }
 
   if (!valid) {
-    registerFailedAttempt(pending.username);
+    registerFailedAttempt(throttleKey);
     return NextResponse.json({ error: "Codice non valido" }, { status: 401 });
   }
-  attempts.delete(pending.username);
+  attempts.delete(throttleKey);
 
   const response = NextResponse.json({ ok: true });
   response.cookies.set(SESSION_COOKIE, createSessionToken(pending.username), {
