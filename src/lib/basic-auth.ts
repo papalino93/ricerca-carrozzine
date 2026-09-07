@@ -133,12 +133,22 @@ async function isAuthorized(req: NextRequest): Promise<EsitoAuth> {
  * richiede le credenziali facendo credere che siano da rifare, e senza
  * cache, quindi al ricaricamento successivo si entra.
  */
-export async function requireBasicAuth(req: NextRequest): Promise<NextResponse | null> {
+export async function requireBasicAuth(
+  req: NextRequest,
+  options?: { trustSessionCookie?: boolean }
+): Promise<NextResponse | null> {
   // Le rotte API storiche chiamano ancora questo helper direttamente. Una
   // sessione valida deve quindi essere riconosciuta anche qui, non soltanto
   // dal proxy, altrimenti l'interfaccia si apre ma le operazioni vengono
   // respinte subito dopo il nuovo login.
-  if (readSessionToken(req.cookies.get(SESSION_COOKIE)?.value)) return null;
+  //
+  // trustSessionCookie: false disattiva questa scorciatoia — usato dal
+  // proxy quando ha già accertato che la sessione va rifiutata (account
+  // revocato dopo la rivalidazione periodica): senza questo, il ramo di
+  // compatibilità Basic Auth del proxy rileggerebbe lo stesso cookie qui
+  // sotto e lo considererebbe comunque valido, vanificando la rivalidazione.
+  const trustSessionCookie = options?.trustSessionCookie ?? true;
+  if (trustSessionCookie && readSessionToken(req.cookies.get(SESSION_COOKIE)?.value)) return null;
 
   const esito = await isAuthorized(req);
   if (esito === "ok") return null;

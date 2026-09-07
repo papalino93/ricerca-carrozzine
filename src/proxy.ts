@@ -127,8 +127,14 @@ export default async function proxy(req: NextRequest) {
   // Compatibilità per integrazioni o postazioni che inviano già
   // Authorization: Basic. In assenza dell'header non restituiamo più 401
   // con WWW-Authenticate, quindi il browser non apre la vecchia finestrella.
+  //
+  // trustSessionCookie: false — se siamo arrivati fin qui è perché sopra
+  // NON c'era una sessione valida da rivalidare (nessun cookie, oppure
+  // l'account risulta revocato): requireBasicAuth rileggerebbe altrimenti
+  // lo stesso cookie di sessione e lo considererebbe comunque valido,
+  // riammettendo un account appena revocato attraverso questo ramo.
   if (req.headers.get("authorization")?.startsWith("Basic ")) {
-    const unauthorized = await requireBasicAuth(req);
+    const unauthorized = await requireBasicAuth(req, { trustSessionCookie: false });
     if (!unauthorized) return NextResponse.next();
   }
 
