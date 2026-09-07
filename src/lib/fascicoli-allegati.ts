@@ -122,6 +122,15 @@ export async function getFascicoloAllegatiImmagini(
   return out;
 }
 
+/** Esposta a parte così il chiamante (la rotta POST) può controllare il
+ * limite PRIMA di comprimere un'immagine o caricare un PDF su Drive, invece
+ * di scoprirlo solo dopo aver già fatto (e sprecato) quel lavoro — vedi
+ * addFascicoloAllegatoImmagine/Pdf sotto, che la richiamano comunque anche
+ * loro come ultima rete di sicurezza. */
+export async function assertFascicoloAllegatoRoom(numero: string): Promise<void> {
+  return assertRoom(numero);
+}
+
 async function assertRoom(numero: string) {
   const all = await readAllegatiMeta();
   const own = all.filter((a) => a.numero === numero);
@@ -214,7 +223,23 @@ export async function removeFascicoloAllegato(numero: string, id: string): Promi
   // Il file PDF eventualmente già caricato su Drive non viene rimosso da
   // qui: resta lì, orfano ma innocuo, invece di rischiare di cancellare un
   // documento condiviso o riusato altrove.
-  return all.filter((a) => a.numero === numero && a.id !== id);
+  //
+  // Spogliato di "row" come fa listFascicoloAllegati: oltre a essere un
+  // dettaglio interno che non deve uscire dall'API, dopo la deleteRows qui
+  // sopra i numeri di riga di quanto segue si sono già spostati di uno,
+  // quindi il valore non rifletterebbe nemmeno più lo stato reale del foglio.
+  return all
+    .filter((a) => a.numero === numero && a.id !== id)
+    .map(({ id, numero: n, etichetta, nome, formato, driveUrl, driveFileId, data }) => ({
+      id,
+      numero: n,
+      etichetta,
+      nome,
+      formato,
+      driveUrl,
+      driveFileId,
+      data,
+    }));
 }
 
 /** Rimuove tutti gli allegati di un fascicolo (usata quando il fascicolo viene eliminato). */
