@@ -281,6 +281,36 @@ a {
   accent-color: var(--accent);
 }
 
+/* Indicatore di versione (BuildInfo): "fixed" in fondo allo schermo va bene
+   su desktop, dove c'è sempre un margine di rispetto, ma su mobile finisce
+   presto o tardi per sovrapporsi a contenuto vero — una card corta, un
+   elenco vuoto — che nel flusso normale della pagina arriva già vicino al
+   bordo inferiore dello schermo alla prima apertura, senza bisogno di
+   scorrere. Il "padding-bottom" già usato per il banner PWA qui non basta:
+   quello aiuta solo una volta arrivati in fondo scorrendo, non quando il
+   contenuto corto tocca già il bordo del viewport iniziale. */
+.build-info {
+  position: fixed;
+  bottom: 4px;
+  right: 6px;
+  font-size: 10px;
+  line-height: 1;
+  color: #8a938c;
+  opacity: 0.55;
+  pointer-events: none;
+  z-index: 9999;
+  font-family: var(--mono, monospace);
+}
+
+@media (max-width: 720px) {
+  .build-info {
+    position: static;
+    display: block;
+    text-align: right;
+    padding: 6px 12px 10px;
+  }
+}
+
 /* Conferme in-app: sostituiscono le finestre grigie del browser, con una
    gerarchia chiara anche su tablet e telefono. */
 .confirm-backdrop {

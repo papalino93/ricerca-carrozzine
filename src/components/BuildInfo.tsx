@@ -22,25 +22,14 @@ function fmt(iso: string): string {
 }
 
 export function BuildInfo() {
-  const version = process.env.NEXT_PUBLIC_APP_VERSION ?? "1.0.22";
+  const version = process.env.NEXT_PUBLIC_APP_VERSION ?? "1.0.23";
   const sha = process.env.NEXT_PUBLIC_BUILD_SHA;
   const time = fmt(process.env.NEXT_PUBLIC_BUILD_TIME ?? "");
+  // Stile in globals.css (.build-info), non più inline: su mobile diventa
+  // parte del normale flusso della pagina invece di restare "fixed" in
+  // fondo allo schermo, vedi il commento lì per il perché.
   return (
-    <div
-      aria-hidden="true"
-      style={{
-        position: "fixed",
-        bottom: 4,
-        right: 6,
-        fontSize: 10,
-        lineHeight: 1,
-        color: "#8a938c",
-        opacity: 0.55,
-        pointerEvents: "none",
-        zIndex: 9999,
-        fontFamily: "monospace",
-      }}
-    >
+    <div aria-hidden="true" className="build-info">
       v{version}
       {sha ? ` · ${sha}` : ""}
       {time ? ` · ${time}` : ""}

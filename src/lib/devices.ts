@@ -298,6 +298,13 @@ export async function rentDevice(codice: string, input: RentDeviceInput): Promis
       `${codice} non è disponibile (stato attuale: ${STATUS_LABEL[device.stato]}). Ricarica la pagina prima di noleggiarlo.`
     );
   }
+  // Stesso limite già applicato a "nota" in upsertDevice: senza, una nota
+  // troppo lunga fa fallire saveAllDevices() più sotto DOPO che lo storico
+  // ha già registrato il noleggio (vedi commento lì sotto), lasciando lo
+  // stato del dispositivo disallineato da quanto lo storico racconta.
+  if ((input.notaTariffa?.length ?? 0) > MAX_NOTA_LENGTH || (input.notaNoleggio?.length ?? 0) > MAX_NOTA_LENGTH) {
+    throw new Error(`La nota supera i ${MAX_NOTA_LENGTH} caratteri: abbreviala prima di salvare.`);
+  }
   const dal = input.dal || todayIso();
   const contratto = await nextNumeroNoleggio();
   devices[idx] = {

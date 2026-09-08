@@ -7,8 +7,11 @@ import { readSessionToken, SESSION_COOKIE } from "./session";
 const REALM = "Area amministrazione";
 
 /** Confronto a tempo costante, per non far filtrare la lunghezza corretta
- * delle credenziali d'ambiente tramite il tempo di risposta. */
-function safeEqual(a: string, b: string): boolean {
+ * delle credenziali d'ambiente tramite il tempo di risposta. Esportata
+ * perché serve anche fuori da questo file (vedi api/backup/route.ts, che
+ * confronta CRON_SECRET — un segreto di lunga durata come le credenziali
+ * qui sopra, con la stessa esposizione a un confronto "===" non costante). */
+export function safeEqual(a: string, b: string): boolean {
   const ah = createHash("sha256").update(a).digest();
   const bh = createHash("sha256").update(b).digest();
   return timingSafeEqual(ah, bh);

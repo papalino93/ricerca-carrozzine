@@ -127,6 +127,13 @@ export async function setRecoveredPassword(username: string, newPassword: string
 export async function removeUser(username: string): Promise<AdminUser[]> {
   const users = await readUsers();
   const remaining = users.filter((u) => u.username.toLowerCase() !== username.toLowerCase());
+  // Senza questo controllo, uno username sbagliato (stato dell'interfaccia
+  // non aggiornato, un altro amministratore l'ha già tolto) tornava 200 con
+  // l'elenco invariato: sembrava un account revocato con successo, e non lo
+  // era — vedi deleteDevice in devices.ts per lo stesso controllo.
+  if (remaining.length === users.length) {
+    throw new Error(`Utente "${username}" non trovato`);
+  }
   await writeSheet(TAB, [HEADER, ...remaining.map((u) => [u.username, u.hash])]);
   return remaining.map((u) => ({ username: u.username }));
 }
