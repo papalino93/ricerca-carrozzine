@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireBasicAuth } from "@/lib/basic-auth";
+import { requireBasicAuth, safeEqual } from "@/lib/basic-auth";
 import { createSnapshot } from "@/lib/snapshot";
 
 export const runtime = "nodejs";
@@ -17,7 +17,7 @@ export const maxDuration = 60;
  */
 export async function GET(req: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
-  const isCron = Boolean(cronSecret) && req.headers.get("authorization") === `Bearer ${cronSecret}`;
+  const isCron = Boolean(cronSecret) && safeEqual(req.headers.get("authorization") ?? "", `Bearer ${cronSecret}`);
 
   if (!isCron) {
     const unauthorized = await requireBasicAuth(req);

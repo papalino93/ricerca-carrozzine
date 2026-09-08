@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireBasicAuth } from "@/lib/basic-auth";
+import { requireBasicAuth, safeEqual } from "@/lib/basic-auth";
 import { accountStillExists } from "@/lib/users";
 import { createSessionToken, needsRevalidation, readSessionToken, SESSION_COOKIE, SESSION_MAX_AGE } from "@/lib/session";
 
@@ -57,7 +57,10 @@ export default async function proxy(req: NextRequest) {
   // sempre 401 prima ancora di arrivare al gestore.
   if (req.nextUrl.pathname === "/api/backup") {
     const cronSecret = process.env.CRON_SECRET;
-    if (cronSecret && req.headers.get("authorization") === `Bearer ${cronSecret}`) {
+    // safeEqual (stessa usata in basic-auth.ts per le credenziali
+    // d'ambiente), non "===": CRON_SECRET è un segreto di lunga durata come
+    // le altre, con la stessa esposizione a un confronto non a tempo costante.
+    if (cronSecret && safeEqual(req.headers.get("authorization") ?? "", `Bearer ${cronSecret}`)) {
       return NextResponse.next();
     }
     return NextResponse.json({ error: "Accesso non autorizzato" }, { status: 401 });
