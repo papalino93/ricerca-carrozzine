@@ -99,21 +99,8 @@ a {
 }
 
 .login-welcome {
-  position: relative;
   padding: 38px 0;
   max-width: 490px;
-}
-
-.login-welcome::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: -32px;
-  width: 76px;
-  height: 76px;
-  border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
-  border-radius: 50%;
-  box-shadow: 0 0 0 16px color-mix(in srgb, var(--accent-bg) 68%, transparent);
 }
 
 .login-welcome-kicker {
