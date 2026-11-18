@@ -8,6 +8,7 @@ import { DocumentPanel } from "./DocumentPanel";
 import type { DocumentoTipo } from "@/lib/pdf/VerbaleDocument";
 import type { Tariffa } from "@/lib/tariffe-types";
 import { StatTiles } from "./StatTiles";
+import { DeviceYearlyStats } from "./DeviceYearlyStats";
 import { Toast } from "./Toast";
 import { useAutoRefresh } from "@/lib/use-auto-refresh";
 import { matchesQuery } from "@/lib/search-match";
@@ -38,6 +39,8 @@ const EMPTY_FORM: Device = {
   dataPrimoNoleggio: null,
   costoConsegna: null,
   notaTariffa: null,
+  dataInserimento: null,
+  dataArchiviazione: null,
 };
 
 type IssueFilter = "stale" | "incomplete" | "overdue" | "duesoon" | "longrental" | null;
@@ -478,6 +481,8 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
           </div>
         )}
       </div>
+
+      <DeviceYearlyStats devices={devices} />
 
       <div className="panel" id="device-list">
         <input

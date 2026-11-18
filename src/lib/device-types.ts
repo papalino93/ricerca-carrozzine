@@ -96,6 +96,15 @@ export interface Device {
    * `dal` (che è la data di inizio del noleggio IN CORSO e si azzera a ogni
    * rientro), questa non cambia mai una volta impostata. */
   dataPrimoNoleggio: string | null;
+  /** Data di inserimento in magazzino, ISO yyyy-mm-dd: impostata una sola
+   * volta alla creazione della scheda, mai più modificata. Serve alle
+   * statistiche annuali in Amministrazione (vedi device-stats.ts). */
+  dataInserimento: string | null;
+  /** Data in cui l'ausilio è stato archiviato come venduto o rottamato
+   * (vedi archiveDevice), azzerata se viene ripristinato in magazzino. Serve
+   * alle statistiche annuali, separata da `archiviato` perché quel campo da
+   * solo non dice IN QUALE anno è avvenuta la vendita. */
+  dataArchiviazione: string | null;
 }
 
 /* Qui viveva toPublicDevice, che nella pagina di ricerca azzerava telefono,

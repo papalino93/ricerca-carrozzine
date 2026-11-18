@@ -43,6 +43,8 @@ const HEADER = [
   "DataPrimoNoleggio",
   "CostoConsegna",
   "NotaTariffa",
+  "DataInserimento",
+  "DataArchiviazione",
 ];
 
 const VALID_ARCHIVE_STATUSES = ["venduto", "rottamato"];
@@ -77,6 +79,8 @@ function toDevice(row: string[]): Device {
     dataPrimoNoleggio,
     costoConsegna,
     notaTariffa,
+    dataInserimento,
+    dataArchiviazione,
   ] = row;
 
   return {
@@ -105,6 +109,8 @@ function toDevice(row: string[]): Device {
     dataPrimoNoleggio: dataPrimoNoleggio || null,
     costoConsegna: numOrNull(costoConsegna),
     notaTariffa: notaTariffa || null,
+    dataInserimento: dataInserimento || null,
+    dataArchiviazione: dataArchiviazione || null,
   };
 }
 
@@ -133,6 +139,8 @@ function toRow(d: Device): string[] {
     d.dataPrimoNoleggio ?? "",
     d.costoConsegna != null ? String(d.costoConsegna) : "",
     d.notaTariffa ?? "",
+    d.dataInserimento ?? "",
+    d.dataArchiviazione ?? "",
   ];
 }
 
@@ -165,7 +173,7 @@ export async function upsertDevice(device: Device): Promise<Device[]> {
   const devices = await listDevices();
   const idx = devices.findIndex((d) => d.codice === device.codice);
   if (idx >= 0) devices[idx] = device;
-  else devices.push(device);
+  else devices.push({ ...device, dataInserimento: device.dataInserimento || todayIso() });
   await saveAllDevices(devices);
   return devices;
 }
@@ -468,6 +476,7 @@ export async function archiveDevice(codice: string, tipo: ArchiveStatus): Promis
     ...device,
     archiviato: tipo,
     nota,
+    dataArchiviazione: todayIso(),
   };
   await saveAllDevices(devices);
   return devices;
@@ -477,7 +486,7 @@ export async function archiveDevice(codice: string, tipo: ArchiveStatus): Promis
 export async function unarchiveDevice(codice: string): Promise<Device[]> {
   const devices = await listDevices();
   const { idx, device } = findOrThrow(devices, codice);
-  devices[idx] = { ...device, archiviato: null };
+  devices[idx] = { ...device, archiviato: null, dataArchiviazione: null };
   await saveAllDevices(devices);
   return devices;
 }
