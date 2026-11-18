@@ -8,6 +8,7 @@ import { FASCICOLO_STATO_LABEL, type FascicoloRecord } from "@/lib/fascicoli-typ
 import { matchesQuery } from "@/lib/search-match";
 import { IconCerca, IconFascicoli } from "./ReceptionIcons";
 import { StatTiles } from "./StatTiles";
+import { FascicoliYearlyStats } from "./FascicoliYearlyStats";
 
 interface FascicoliDashboardClientProps {
   fascicoli: FascicoloRecord[];
@@ -89,6 +90,8 @@ export function FascicoliDashboardClient({ fascicoli, clients }: FascicoliDashbo
           }}
         />
       </div>
+
+      <FascicoliYearlyStats fascicoli={fascicoli} />
 
       <div className="panel">
         <h2><span className="btn-icon"><IconCerca /></span> Cerca cliente o fascicolazione</h2>
