@@ -43,6 +43,9 @@ export interface CommessaRecord {
 
 export const COMMESSA_STATUS_LABEL: Record<CommessaRecord["stato"], string> = {
   in_lavorazione: "In lavorazione",
-  pronta: "Pronta per la consegna",
+  // Il valore interno resta "pronta" (dati già salvati nel foglio, vedi
+  // commesse.ts): cambia solo l'etichetta mostrata, da "merce arrivata" a
+  // "cliente avvisato" — è quello il passaggio che conta per chi lavora al banco.
+  pronta: "Avvisata",
   ritirata: "Ritirata",
 };

@@ -28,6 +28,9 @@ interface CommesseClientProps {
   /** Anagrafica clienti, solo nome e telefono: suggerisce i nomi già noti nel
    * campo Cliente e precompila il telefono se corrisponde esattamente. */
   clienti: { nome: string; telefono: string | null }[];
+  /** Elenco gestito da Impostazioni → Utenti: evita di scrivere a mano il
+   * nome di chi ha preso l'ordine ogni volta. */
+  operatori: string[];
 }
 
 const STATUS_PILL: Record<CommessaRecord["stato"], string> = {
@@ -46,15 +49,15 @@ function emptyForm() {
     indirizzo: "",
     telefono: "",
     cellulare: "",
-    vendita: false,
+    // Di default "Vendita": è il caso più frequente, un clic la cambia in
+    // "Riparazione" quando serve.
+    vendita: true,
     riparazione: false,
     operatore: "",
     fornitore: "",
     numeroOrdineCliente: "",
     richiesteParticolari: "",
     dataOrdine: todayIso(),
-    consegnaPrevista: "",
-    acconto: "",
     saldo: "",
     richiestaMedica: false,
     documentazione: false,
@@ -68,7 +71,7 @@ type EditForm = {
   noteChiusura: string;
   prontaIl: string;
   ritirataIl: string;
-  acconto: string;
+  operatore: string;
   saldo: string;
 };
 
@@ -78,12 +81,12 @@ function toEditForm(c: CommessaRecord): EditForm {
     noteChiusura: c.noteChiusura ?? "",
     prontaIl: c.prontaIl ?? "",
     ritirataIl: c.ritirataIl ?? "",
-    acconto: c.acconto != null ? String(c.acconto) : "",
+    operatore: c.operatore ?? "",
     saldo: c.saldo != null ? String(c.saldo) : "",
   };
 }
 
-export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery, clienti }: CommesseClientProps) {
+export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery, clienti, operatori }: CommesseClientProps) {
   const confirmAction = useConfirm();
   const [commesse, setCommesse] = useState(initialCommesse);
   const [query, setQuery] = useState(initialQuery ?? "");
@@ -175,10 +178,9 @@ export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery, cl
     // Stesso controllo del riquadro di modifica: un importo digitato male
     // diventerebbe altrimenti un campo vuoto, e al ritiro la scheda non
     // genererebbe punti fedeltà senza che nessuno se ne accorga.
-    const acconto = parseImporto(form.acconto);
     const saldo = parseImporto(form.saldo);
-    if (acconto === "errore" || saldo === "errore") {
-      showToast("Importo non valido in Acconto o Saldo: correggilo prima di continuare");
+    if (saldo === "errore") {
+      showToast("Importo non valido nel prezzo da saldare: correggilo prima di continuare");
       return;
     }
     setSaving(true);
@@ -193,8 +195,8 @@ export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery, cl
         numeroOrdineCliente: form.numeroOrdineCliente || null,
         richiesteParticolari: form.richiesteParticolari || null,
         dataOrdine: form.dataOrdine || null,
-        consegnaPrevista: form.consegnaPrevista || null,
-        acconto,
+        consegnaPrevista: null,
+        acconto: null,
         saldo,
         controlloFinale: null,
         noteChiusura: null,
@@ -281,17 +283,16 @@ export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery, cl
 
   // Converte i campi modificabili nel riquadro dettaglio nel formato del
   // PATCH. Usata sia dal salvataggio esplicito che dai cambi di stato: se
-  // l'operatore ha digitato acconto/saldo o le note prima di premere "Segna
-  // pronta"/"Segna ritirata" (invece di premere prima "Salva modifiche"),
+  // l'operatore ha digitato il saldo o le note prima di premere "Segna
+  // avvisata"/"Segna ritirata" (invece di premere prima "Salva modifiche"),
   // quei valori non vanno persi né saltare l'accredito punti fedeltà.
-  // Restituisce null (mostrando un avviso) se acconto/saldo non sono numeri
-  // validi, invece di farli sparire silenziosamente come null.
+  // Restituisce null (mostrando un avviso) se il saldo non è un numero
+  // valido, invece di farlo sparire silenziosamente come null.
   function editFormPatch(): Partial<CommessaRecord> | null {
     if (!editForm) return {};
-    const acconto = parseImporto(editForm.acconto);
     const saldo = parseImporto(editForm.saldo);
-    if (acconto === "errore" || saldo === "errore") {
-      showToast("Importo non valido in Acconto o Saldo: correggilo prima di continuare");
+    if (saldo === "errore") {
+      showToast("Importo non valido nel prezzo da saldare: correggilo prima di continuare");
       return null;
     }
     return {
@@ -299,7 +300,7 @@ export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery, cl
       noteChiusura: editForm.noteChiusura || null,
       prontaIl: editForm.prontaIl || null,
       ritirataIl: editForm.ritirataIl || null,
-      acconto,
+      operatore: editForm.operatore || null,
       saldo,
     };
   }
@@ -388,7 +389,14 @@ export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery, cl
             </div>
             <div className="field">
               <label>Operatore</label>
-              <input value={form.operatore} onChange={(e) => setForm({ ...form, operatore: e.target.value })} />
+              <select value={form.operatore} onChange={(e) => setForm({ ...form, operatore: e.target.value })}>
+                <option value="">—</option>
+                {operatori.map((o) => (
+                  <option key={o} value={o}>
+                    {o}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="field-row">
               <div className="field">
@@ -426,25 +434,7 @@ export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery, cl
                 />
               </div>
               <div className="field">
-                <label>Consegna prevista il</label>
-                <input
-                  type="date"
-                  value={form.consegnaPrevista}
-                  onChange={(e) => setForm({ ...form, consegnaPrevista: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="field-row">
-              <div className="field">
-                <label>Acconto €</label>
-                <input
-                  inputMode="decimal"
-                  value={form.acconto}
-                  onChange={(e) => setForm({ ...form, acconto: e.target.value })}
-                />
-              </div>
-              <div className="field">
-                <label>Saldo da pagare €</label>
+                <label>Prezzo da saldare alla consegna €</label>
                 <input
                   inputMode="decimal"
                   value={form.saldo}
@@ -532,8 +522,7 @@ export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery, cl
                   <th>Cliente</th>
                   <th>Fornitore</th>
                   <th>Tipo</th>
-                  <th>Consegna prevista</th>
-                  <th>Saldo</th>
+                  <th>Prezzo da saldare</th>
                   <th>Stato</th>
                 </tr>
               </thead>
@@ -548,7 +537,6 @@ export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery, cl
                         <td>{c.cliente}</td>
                         <td>{c.fornitore ?? "—"}</td>
                         <td>{[c.vendita && "Vendita", c.riparazione && "Riparazione"].filter(Boolean).join(" + ") || "—"}</td>
-                        <td>{fmtDate(c.consegnaPrevista)}</td>
                         <td>{fmtEuro(c.saldo)}</td>
                         <td>
                           <span className={`pill ${STATUS_PILL[c.stato]}`}>{COMMESSA_STATUS_LABEL[c.stato]}</span>
@@ -556,7 +544,7 @@ export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery, cl
                       </tr>
                       {isOpen && editForm ? (
                         <tr>
-                          <td colSpan={8}>
+                          <td colSpan={7}>
                             <div className="client-history">
                               <div className="status-steps">
                                 {commessaSteps(c.stato).map((s) => (
@@ -573,7 +561,6 @@ export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery, cl
                                 {c.fornitore ? `Fornitore: ${c.fornitore} · ` : ""}
                                 {c.numeroOrdineCliente ? `N. ordine cliente: ${c.numeroOrdineCliente} · ` : ""}
                                 Ordinato il {fmtDate(c.dataOrdine)}
-                                {c.consegnaPrevista ? ` · Consegna prevista il ${fmtDate(c.consegnaPrevista)}` : ""}
                                 {c.richiesteParticolari ? ` · Richieste: ${c.richiesteParticolari}` : ""}
                                 {[
                                   c.richiestaMedica && "Prescrizione medica",
@@ -597,11 +584,11 @@ export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery, cl
                                         c,
                                         "pronta",
                                         { prontaIl: editForm?.prontaIl || todayIso() },
-                                        `Scheda n. ${c.numero} pronta per la consegna`
+                                        `Scheda n. ${c.numero} avvisata`
                                       )
                                     }
                                   >
-                                    Segna pronta
+                                    Segna avvisata
                                   </button>
                                 ) : null}
                                 {c.stato !== "ritirata" ? (
@@ -637,16 +624,22 @@ export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery, cl
 
                               <div className="field-row">
                                 <div className="field">
-                                  <label>Acconto €</label>
-                                  <input
-                                    inputMode="decimal"
-                                    value={editForm.acconto}
-                                    onChange={(e) => setEditForm({ ...editForm, acconto: e.target.value })}
+                                  <label>Operatore</label>
+                                  <select
+                                    value={editForm.operatore}
+                                    onChange={(e) => setEditForm({ ...editForm, operatore: e.target.value })}
                                     disabled={savingEdit}
-                                  />
+                                  >
+                                    <option value="">—</option>
+                                    {operatori.map((o) => (
+                                      <option key={o} value={o}>
+                                        {o}
+                                      </option>
+                                    ))}
+                                  </select>
                                 </div>
                                 <div className="field">
-                                  <label>Saldo da pagare €</label>
+                                  <label>Prezzo da saldare alla consegna €</label>
                                   <input
                                     inputMode="decimal"
                                     value={editForm.saldo}

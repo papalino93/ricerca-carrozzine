@@ -11,6 +11,7 @@ import { CategoriesManager } from "./CategoriesManager";
 import { TariffeManager } from "./TariffeManager";
 import { BackupManager } from "./BackupManager";
 import { TwoFactorSettings } from "./TwoFactorSettings";
+import { OperatoriManager } from "./OperatoriManager";
 import { Toast } from "./Toast";
 import { LogoutButton } from "./LogoutButton";
 
@@ -23,6 +24,7 @@ interface SettingsClientProps {
   currentUsername: string;
   currentUserTwoFactorEnabled: boolean;
   twoFactorUsernames: string[];
+  initialOperatori: string[];
 }
 
 type SettingsTab = "azienda" | "categorie" | "tariffe" | "fidelity" | "backup" | "utenti" | "sicurezza";
@@ -46,6 +48,7 @@ export function SettingsClient({
   currentUsername,
   currentUserTwoFactorEnabled,
   twoFactorUsernames,
+  initialOperatori,
 }: SettingsClientProps) {
   const [tab, setTab] = useState<SettingsTab>("azienda");
   const [settings, setSettings] = useState(initialSettings);
@@ -358,6 +361,9 @@ export function SettingsClient({
           currentUsername={currentUsername}
           initialTwoFactorUsernames={twoFactorUsernames}
         />
+        <div style={{ marginTop: 20 }}>
+          <OperatoriManager initialOperatori={initialOperatori} />
+        </div>
       </div>
 
       <div style={{ display: tab === "sicurezza" ? "block" : "none" }}>

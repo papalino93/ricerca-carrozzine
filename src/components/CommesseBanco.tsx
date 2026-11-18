@@ -26,6 +26,9 @@ interface CommesseBancoProps {
   /** Anagrafica clienti, solo nome e telefono: suggerisce i nomi già noti nel
    * campo Cliente e precompila il telefono se corrisponde esattamente. */
   clienti: { nome: string; telefono: string | null }[];
+  /** Elenco gestito da Impostazioni → Utenti: evita di scrivere a mano il
+   * nome di chi ha preso l'ordine ogni volta. */
+  operatori: string[];
 }
 
 const STATUS_PILL: Record<CommessaRecord["stato"], string> = {
@@ -38,12 +41,13 @@ function emptyForm() {
   return {
     cliente: "",
     telefono: "",
-    vendita: false,
+    // Di default "Vendita": è il caso più frequente al banco, e resta un
+    // clic per passare a "Riparazione" quando serve.
+    vendita: true,
     riparazione: false,
+    operatore: "",
     fornitore: "",
     dataOrdine: todayIso(),
-    consegnaPrevista: "",
-    acconto: "",
     saldo: "",
     richiesteParticolari: "",
   };
@@ -61,7 +65,7 @@ function emptyForm() {
  * scrivania, che qui non serve e rallenta. Chi ha bisogno di correggere
  * tutto trova ogni campo in Amministrazione → Commesse, sugli stessi dati.
  */
-export function CommesseBanco({ initialCommesse, initialQuery, clienti }: CommesseBancoProps) {
+export function CommesseBanco({ initialCommesse, initialQuery, clienti, operatori }: CommesseBancoProps) {
   const confirmAction = useConfirm();
   const [commesse, setCommesse] = useState(initialCommesse);
   const [query, setQuery] = useState(initialQuery ?? "");
@@ -122,10 +126,9 @@ export function CommesseBanco({ initialCommesse, initialQuery, clienti }: Commes
       showToast("Nome cliente e telefono sono obbligatori");
       return;
     }
-    const acconto = parseImporto(form.acconto);
     const saldo = parseImporto(form.saldo);
-    if (acconto === "errore" || saldo === "errore") {
-      showToast("Importo non valido in Acconto o Saldo: correggilo prima di continuare");
+    if (saldo === "errore") {
+      showToast("Importo non valido nel prezzo da saldare: correggilo prima di continuare");
       return;
     }
     setSaving(true);
@@ -137,13 +140,13 @@ export function CommesseBanco({ initialCommesse, initialQuery, clienti }: Commes
         cellulare: null,
         vendita: form.vendita,
         riparazione: form.riparazione,
-        operatore: null,
+        operatore: form.operatore || null,
         fornitore: form.fornitore.trim() || null,
         numeroOrdineCliente: null,
         richiesteParticolari: form.richiesteParticolari.trim() || null,
         dataOrdine: form.dataOrdine || todayIso(),
-        consegnaPrevista: form.consegnaPrevista || null,
-        acconto,
+        consegnaPrevista: null,
+        acconto: null,
         saldo,
         richiestaMedica: false,
         documentazione: false,
@@ -174,10 +177,9 @@ export function CommesseBanco({ initialCommesse, initialQuery, clienti }: Commes
       telefono: c.telefono ?? "",
       vendita: c.vendita,
       riparazione: c.riparazione,
+      operatore: c.operatore ?? "",
       fornitore: c.fornitore ?? "",
       dataOrdine: c.dataOrdine ?? "",
-      consegnaPrevista: c.consegnaPrevista ?? "",
-      acconto: c.acconto != null ? String(c.acconto).replace(".", ",") : "",
       saldo: c.saldo != null ? String(c.saldo).replace(".", ",") : "",
       richiesteParticolari: c.richiesteParticolari ?? "",
     });
@@ -188,10 +190,9 @@ export function CommesseBanco({ initialCommesse, initialQuery, clienti }: Commes
       showToast("Il cliente è obbligatorio");
       return;
     }
-    const acconto = parseImporto(editForm.acconto);
     const saldo = parseImporto(editForm.saldo);
-    if (acconto === "errore" || saldo === "errore") {
-      showToast("Importo non valido in Acconto o Saldo: correggilo prima di continuare");
+    if (saldo === "errore") {
+      showToast("Importo non valido nel prezzo da saldare: correggilo prima di continuare");
       return;
     }
     await patch(
@@ -201,10 +202,9 @@ export function CommesseBanco({ initialCommesse, initialQuery, clienti }: Commes
         telefono: editForm.telefono.trim() || null,
         vendita: editForm.vendita,
         riparazione: editForm.riparazione,
+        operatore: editForm.operatore || null,
         fornitore: editForm.fornitore.trim() || null,
         dataOrdine: editForm.dataOrdine || null,
-        consegnaPrevista: editForm.consegnaPrevista || null,
-        acconto,
         saldo,
         richiesteParticolari: editForm.richiesteParticolari.trim() || null,
       },
@@ -323,6 +323,21 @@ export function CommesseBanco({ initialCommesse, initialQuery, clienti }: Commes
                 />
               </div>
               <div className="field">
+                <label htmlFor="banco-operatore">Operatore</label>
+                <select
+                  id="banco-operatore"
+                  value={form.operatore}
+                  onChange={(e) => setForm({ ...form, operatore: e.target.value })}
+                >
+                  <option value="">—</option>
+                  {operatori.map((o) => (
+                    <option key={o} value={o}>
+                      {o}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="field">
                 <label htmlFor="banco-fornitore">Fornitore</label>
                 <input
                   id="banco-fornitore"
@@ -341,26 +356,7 @@ export function CommesseBanco({ initialCommesse, initialQuery, clienti }: Commes
                 />
               </div>
               <div className="field">
-                <label htmlFor="banco-consegna">Consegna prevista</label>
-                <input
-                  id="banco-consegna"
-                  type="date"
-                  value={form.consegnaPrevista}
-                  onChange={(e) => setForm({ ...form, consegnaPrevista: e.target.value })}
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="banco-acconto">Acconto</label>
-                <input
-                  id="banco-acconto"
-                  inputMode="decimal"
-                  placeholder="0,00"
-                  value={form.acconto}
-                  onChange={(e) => setForm({ ...form, acconto: e.target.value })}
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="banco-saldo">Saldo</label>
+                <label htmlFor="banco-saldo">Prezzo da saldare alla consegna</label>
                 <input
                   id="banco-saldo"
                   inputMode="decimal"
@@ -433,11 +429,8 @@ export function CommesseBanco({ initialCommesse, initialQuery, clienti }: Commes
                       {tipo}
                       {c.telefono ? ` · ${c.telefono}` : ""}
                       {c.fornitore ? ` · da ${c.fornitore}` : ""}
-                      {c.stato === "ritirata"
-                        ? ` · ritirata il ${fmtDate(c.ritirataIl)}`
-                        : c.consegnaPrevista
-                          ? ` · consegna ${fmtDate(c.consegnaPrevista)}`
-                          : ""}
+                      {c.operatore ? ` · ${c.operatore}` : ""}
+                      {c.stato === "ritirata" ? ` · ritirata il ${fmtDate(c.ritirataIl)}` : ""}
                       {c.saldo != null ? ` · saldo ${fmtEuro(c.saldo)}` : ""}
                     </span>
                   </div>
@@ -452,11 +445,11 @@ export function CommesseBanco({ initialCommesse, initialQuery, clienti }: Commes
                           patch(
                             c.numero,
                             { stato: "pronta", prontaIl: c.prontaIl ?? todayIso() },
-                            `Scheda n. ${c.numero}: merce ricevuta`
+                            `Scheda n. ${c.numero}: cliente avvisato`
                           )
                         }
                       >
-                        Merce ricevuta
+                        Avvisato cliente
                       </button>
                     ) : null}
 
@@ -538,6 +531,21 @@ export function CommesseBanco({ initialCommesse, initialQuery, clienti }: Commes
                           />
                         </div>
                         <div className="field">
+                          <label htmlFor={`edit-operatore-${c.numero}`}>Operatore</label>
+                          <select
+                            id={`edit-operatore-${c.numero}`}
+                            value={editForm.operatore}
+                            onChange={(e) => setEditForm({ ...editForm, operatore: e.target.value })}
+                          >
+                            <option value="">—</option>
+                            {operatori.map((o) => (
+                              <option key={o} value={o}>
+                                {o}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="field">
                           <label htmlFor={`edit-fornitore-${c.numero}`}>Fornitore</label>
                           <input
                             id={`edit-fornitore-${c.numero}`}
@@ -555,25 +563,7 @@ export function CommesseBanco({ initialCommesse, initialQuery, clienti }: Commes
                           />
                         </div>
                         <div className="field">
-                          <label htmlFor={`edit-consegna-${c.numero}`}>Consegna prevista</label>
-                          <input
-                            id={`edit-consegna-${c.numero}`}
-                            type="date"
-                            value={editForm.consegnaPrevista}
-                            onChange={(e) => setEditForm({ ...editForm, consegnaPrevista: e.target.value })}
-                          />
-                        </div>
-                        <div className="field">
-                          <label htmlFor={`edit-acconto-${c.numero}`}>Acconto</label>
-                          <input
-                            id={`edit-acconto-${c.numero}`}
-                            inputMode="decimal"
-                            value={editForm.acconto}
-                            onChange={(e) => setEditForm({ ...editForm, acconto: e.target.value })}
-                          />
-                        </div>
-                        <div className="field">
-                          <label htmlFor={`edit-saldo-${c.numero}`}>Saldo</label>
+                          <label htmlFor={`edit-saldo-${c.numero}`}>Prezzo da saldare alla consegna</label>
                           <input
                             id={`edit-saldo-${c.numero}`}
                             inputMode="decimal"

@@ -5,6 +5,7 @@ import { listCategories } from "@/lib/categories";
 import { listTariffe } from "@/lib/tariffe";
 import { getSnapshotStatus } from "@/lib/snapshot";
 import { listTwoFactorUsernames } from "@/lib/twofactor";
+import { listOperatori } from "@/lib/operatori";
 import { readSessionToken, SESSION_COOKIE } from "@/lib/session";
 import { SettingsClient } from "@/components/SettingsClient";
 
@@ -23,9 +24,10 @@ export default async function ImpostazioniPage() {
     tariffe: Awaited<ReturnType<typeof listTariffe>>;
     backupStatus: Awaited<ReturnType<typeof getSnapshotStatus>>;
     twoFactorUsernames: string[];
+    operatori: string[];
   };
   try {
-    const [settings, users, categories, tariffe, backupStatus, twoFactorUsernames] = await Promise.all([
+    const [settings, users, categories, tariffe, backupStatus, twoFactorUsernames, operatori] = await Promise.all([
       getSettings(),
       listUsers().catch(() => []),
       listCategories().catch(() => []),
@@ -35,8 +37,9 @@ export default async function ImpostazioniPage() {
         secondario: { configurato: false, ultimo: null, giorni: 0 },
       })),
       listTwoFactorUsernames().catch(() => []),
+      listOperatori().catch(() => []),
     ]);
-    pageData = { settings, users, categories, tariffe, backupStatus, twoFactorUsernames };
+    pageData = { settings, users, categories, tariffe, backupStatus, twoFactorUsernames, operatori };
   } catch (err) {
     return (
       <div className="wrap">
@@ -59,6 +62,7 @@ export default async function ImpostazioniPage() {
       currentUsername={currentUsername}
       currentUserTwoFactorEnabled={normalized.includes(currentUsername.toLowerCase())}
       twoFactorUsernames={pageData.twoFactorUsernames}
+      initialOperatori={pageData.operatori}
     />
   );
 }

@@ -1,5 +1,6 @@
 import { listCommesse } from "@/lib/commesse";
 import { listClients } from "@/lib/clients";
+import { listOperatori } from "@/lib/operatori";
 import { FrontBar } from "@/components/FrontBar";
 import { CommesseBanco } from "@/components/CommesseBanco";
 
@@ -10,16 +11,17 @@ export default async function FrontCommessePage({
 }: {
   searchParams: Promise<{ q?: string }>;
 }) {
-  const [{ q }, commesse, clients] = await Promise.all([
+  const [{ q }, commesse, clients, operatori] = await Promise.all([
     searchParams,
     listCommesse().catch(() => []),
     listClients().catch(() => []),
+    listOperatori().catch(() => []),
   ]);
   const clienti = clients.map((c) => ({ nome: c.nome, telefono: c.telefono || c.cellulare || null }));
   return (
     <>
       <FrontBar />
-      <CommesseBanco initialCommesse={commesse} initialQuery={q} clienti={clienti} />
+      <CommesseBanco initialCommesse={commesse} initialQuery={q} clienti={clienti} operatori={operatori} />
     </>
   );
 }

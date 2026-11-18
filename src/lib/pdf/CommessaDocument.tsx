@@ -43,6 +43,10 @@ const styles = StyleSheet.create({
   noteBox: { marginTop: 20, borderWidth: 1, borderColor: ACCENT, borderRadius: 4, padding: 10 },
   noteLabel: { fontSize: 9, fontWeight: 700, color: ACCENT, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 },
   noteText: { fontSize: 10, color: INK, lineHeight: 1.4 },
+  signatureRow: { flexDirection: "row", justifyContent: "flex-end", marginTop: 30 },
+  signatureBlock: { width: "45%" },
+  signatureLine: { borderTopWidth: 1, borderTopColor: INK, marginBottom: 6, height: 34 },
+  signatureLabel: { fontSize: 9, color: INK_SOFT, textAlign: "center" },
   conditions: { marginTop: 28, fontSize: 7.5, color: INK_SOFT, lineHeight: 1.4 },
 });
 
@@ -140,29 +144,16 @@ export function CommessaDocument({ settings, commessa: c }: CommessaDocumentProp
               <Text style={styles.cellValue}>{extra}</Text>
             </View>
           ) : null}
-          <View style={c.consegnaPrevista ? styles.row : styles.rowLast}>
+          <View style={styles.rowLast}>
             <Text style={styles.cellLabel}>Data ordine</Text>
             <Text style={styles.cellValue}>{fmtDate(c.dataOrdine)}</Text>
           </View>
-          {/* Facoltativa: solo una data sul documento stampato, "Pronto il" e
-              "Ritirato il" sono avanzamento interno del lavoro, non qualcosa
-              che il cliente deve vedere sulla sua copia. */}
-          {c.consegnaPrevista ? (
-            <View style={styles.rowLast}>
-              <Text style={styles.cellLabel}>Consegna prevista</Text>
-              <Text style={styles.cellValue}>{fmtDate(c.consegnaPrevista)}</Text>
-            </View>
-          ) : null}
         </View>
 
         <Text style={styles.sectionLabel}>Pagamento</Text>
         <View style={styles.table}>
-          <View style={styles.row}>
-            <Text style={styles.cellLabel}>Acconto</Text>
-            <Text style={styles.cellValue}>{fmtEuro(c.acconto)}</Text>
-          </View>
           <View style={styles.rowLast}>
-            <Text style={styles.cellLabel}>Saldo da pagare</Text>
+            <Text style={styles.cellLabel}>Prezzo da saldare alla consegna</Text>
             <Text style={styles.cellValue}>{fmtEuro(c.saldo)}</Text>
           </View>
         </View>
@@ -182,6 +173,13 @@ export function CommessaDocument({ settings, commessa: c }: CommessaDocumentProp
         ) : null}
 
         <Text style={styles.conditions}>{settings.informativaPrivacy}</Text>
+
+        <View style={styles.signatureRow}>
+          <View style={styles.signatureBlock}>
+            <View style={styles.signatureLine} />
+            <Text style={styles.signatureLabel}>Firma per presa visione dell&apos;informativa privacy</Text>
+          </View>
+        </View>
       </Page>
     </Document>
   );
