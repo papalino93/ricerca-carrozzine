@@ -104,21 +104,9 @@ export function FascicoloDocument({ settings, cliente, fascicolo, allegatiImmagi
           <Field label="Altezza / Peso" value={`${c.anamnesi.altezzaCm ?? "—"} cm · ${c.anamnesi.pesoKg ?? "—"} kg`} />
           <Field label="Patologia correlata al dispositivo" value={c.anamnesi.patologiaCorrelata || "—"} />
           <Field label="Altre patologie" value={c.anamnesi.altrePatologie || "—"} />
-          <Field
+          <FieldLast
             label="Allergie"
             value={c.anamnesi.nessunaAllergia ? "Dichiara di non averne" : c.anamnesi.allergie || "—"}
-          />
-          <FieldLast
-            label="Capacità psicofisica"
-            value={
-              c.anamnesi.capacitaPsicofisica === "totale"
-                ? "Totale"
-                : c.anamnesi.capacitaPsicofisica === "parziale"
-                  ? "Parziale"
-                  : c.anamnesi.capacitaPsicofisica === "assistenza"
-                    ? "Necessità di assistente"
-                    : "—"
-            }
           />
         </View>
 
@@ -143,6 +131,8 @@ export function FascicoloDocument({ settings, cliente, fascicolo, allegatiImmagi
         <View>
           <Text style={sharedStyles.sectionLabel}>4 · Scheda rilevazione obiettiva</Text>
           {c.esamePiede.motivoVisita ? <Text style={sharedStyles.para}>Motivo della visita: {c.esamePiede.motivoVisita}</Text> : null}
+          {c.esamePiede.numeroPiede ? <Text style={sharedStyles.para}>Numero di scarpa: {c.esamePiede.numeroPiede}</Text> : null}
+          {c.esamePiede.note ? <Text style={sharedStyles.para}>Note: {c.esamePiede.note}</Text> : null}
           <View style={sharedStyles.twoCol}>
             {(["sinistro", "destro"] as const).map((lato) => {
               const l = c.esamePiede[lato];
@@ -203,7 +193,6 @@ export function FascicoloDocument({ settings, cliente, fascicolo, allegatiImmagi
               label="Prova/consegna prevista"
               value={`${fmtDate(c.consegna.dataConsegnaPrevista)}${c.consegna.oraConsegna ? ` alle ${c.consegna.oraConsegna}` : ""}`}
             />
-            <Field label="Consegna effettiva" value={fmtDate(c.consegna.dataConsegnaEffettiva)} />
             <Field label="Follow-up a 2 mesi" value={fmtDate(c.consegna.dataFollowUp)} />
             <FieldLast label="Luogo" value={c.consegna.luogoConsegna || "—"} />
           </View>
@@ -285,8 +274,8 @@ export function FascicoloDocument({ settings, cliente, fascicolo, allegatiImmagi
               Con la presente si comunica che in data odierna è stato consegnato alla/al Sig.ra/Sig.{" "}
               {nomeCompleto}
               {c.consegna.comunicazioneAslDestinatario ? `, per conto di ${c.consegna.comunicazioneAslDestinatario},` : ""} il
-              materiale autorizzato con pratica n.{" "}
-              {c.consegna.comunicazioneAslPraticaNumero || c.prescrizione.autorizzazioneAslNumero || "—"}.
+              materiale autorizzato
+              {c.prescrizione.autorizzazioneAslNumero ? ` con pratica n. ${c.prescrizione.autorizzazioneAslNumero}` : ""}.
             </Text>
             <View style={sharedStyles.signatureRow}>
               <View style={sharedStyles.signatureBlock}>
@@ -294,7 +283,7 @@ export function FascicoloDocument({ settings, cliente, fascicolo, allegatiImmagi
                 <Text style={sharedStyles.signatureLabel}>Firma per ricevuta</Text>
               </View>
               <View style={sharedStyles.signatureBlock}>
-                <Text style={[sharedStyles.metaValue, { textAlign: "center" }]}>Data {fmtDate(c.consegna.dataConsegnaEffettiva)}</Text>
+                <Text style={[sharedStyles.metaValue, { textAlign: "center" }]}>Data {fmtDate(c.consegna.dataConsegnaPrevista)}</Text>
               </View>
             </View>
           </View>

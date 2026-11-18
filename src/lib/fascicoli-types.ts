@@ -106,6 +106,12 @@ function emptyLato(): EsamePiedeLato {
 
 export interface EsamePiedeData {
   motivoVisita: string | null;
+  /** Numero di scarpa/piede del cliente, serve alla produzione dei plantari:
+   * testo libero per ammettere formati diversi (es. "42", "42,5"). */
+  numeroPiede: string | null;
+  /** Campo libero per osservazioni che non rientrano negli altri campi
+   * strutturati di questa sezione. */
+  note: string | null;
   sinistro: EsamePiedeLato;
   destro: EsamePiedeLato;
   destinazioneUso: {
@@ -124,6 +130,8 @@ export interface EsamePiedeData {
 export function emptyEsamePiede(): EsamePiedeData {
   return {
     motivoVisita: null,
+    numeroPiede: null,
+    note: null,
     sinistro: emptyLato(),
     destro: emptyLato(),
     destinazioneUso: { attivitaLavorativa: null, attivitaSportiva: null, attivitaTempoLibero: null },
@@ -155,6 +163,10 @@ export interface PrescrizioneData {
    * all'ente, e mostra il numero di autorizzazione. */
   praticaAsl: boolean;
   autorizzazioneAslNumero: string | null;
+  /** Data dell'autorizzazione ASL (diversa da dataPrescrizione, che è la
+   * data della richiesta medica): serve a comporre la matricola ASL
+   * progressiva, vedi counter.ts nextMatricolaAsl. */
+  dataAutorizzazioneAsl: string | null;
   note: string | null;
 }
 
@@ -171,6 +183,7 @@ export function emptyPrescrizione(): PrescrizioneData {
     documentazioneDiagnostica: false,
     praticaAsl: false,
     autorizzazioneAslNumero: null,
+    dataAutorizzazioneAsl: null,
     note: null,
   };
 }
@@ -409,11 +422,17 @@ export function calcolaCompletamento(f: Pick<FascicoloRecord, "clienteNome" | "c
   return {
     anagrafica: Boolean(f.clienteNome?.trim()),
     privacy: c.consensi.consensoTrattamentoDati,
-    anamnesi: c.anamnesi.capacitaPsicofisica != null,
+    // "capacitaPsicofisica" non si compila più da interfaccia (tolta su
+    // richiesta): l'altezza resta il segnale più affidabile che l'anamnesi
+    // sia stata almeno iniziata.
+    anamnesi: c.anamnesi.altezzaCm != null,
     esamePiede: Boolean(c.esamePiede.motivoVisita?.trim()),
     prescrizione: Boolean(c.prescrizione.descrizioneMateriale?.trim() && c.prescrizione.importo != null),
     produzione: Boolean(c.produzione.dataInizioLavori),
-    consegna: Boolean(c.consegna.dataConsegnaEffettiva),
+    // "dataConsegnaEffettiva" non si compila più da interfaccia (tolta su
+    // richiesta, era ridondante con questa): la data di consegna prevista
+    // resta il segnale che la sezione consegna è stata compilata.
+    consegna: Boolean(c.consegna.dataConsegnaPrevista),
     controlli: c.consegna.visiteControllo.length > 0,
   };
 }

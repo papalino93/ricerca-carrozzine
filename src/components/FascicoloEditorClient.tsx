@@ -984,17 +984,6 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
                 />
               </Field>
             ) : null}
-            <Field label="Capacità psicofisica al corretto utilizzo">
-              <RadioToggle
-                value={c.anamnesi.capacitaPsicofisica}
-                options={[
-                  { key: "totale", label: "Totale" },
-                  { key: "parziale", label: "Parziale" },
-                  { key: "assistenza", label: "Necessità di assistente" },
-                ]}
-                onChange={(v) => updateContenuto("anamnesi", { capacitaPsicofisica: v })}
-              />
-            </Field>
           </>
         ) : null}
 
@@ -1005,6 +994,21 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
               <textarea
                 value={c.esamePiede.motivoVisita ?? ""}
                 onChange={(e) => updateContenuto("esamePiede", { motivoVisita: e.target.value || null })}
+              />
+            </Field>
+            <div className="form-grid">
+              <Field label="Numero di scarpa">
+                <input
+                  value={c.esamePiede.numeroPiede ?? ""}
+                  onChange={(e) => updateContenuto("esamePiede", { numeroPiede: e.target.value || null })}
+                  placeholder="Es. 42"
+                />
+              </Field>
+            </div>
+            <Field label="Note">
+              <textarea
+                value={c.esamePiede.note ?? ""}
+                onChange={(e) => updateContenuto("esamePiede", { note: e.target.value || null })}
               />
             </Field>
             <div className="fascicolo-piede-grid">
@@ -1230,12 +1234,23 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
               onChange={(v) => updateContenuto("prescrizione", { praticaAsl: v })}
             />
             {c.prescrizione.praticaAsl ? (
-              <Field label="Numero autorizzazione ASL">
-                <input
-                  value={c.prescrizione.autorizzazioneAslNumero ?? ""}
-                  onChange={(e) => updateContenuto("prescrizione", { autorizzazioneAslNumero: e.target.value || null })}
-                />
-              </Field>
+              <>
+                <Field label="Numero autorizzazione ASL">
+                  <input
+                    value={c.prescrizione.autorizzazioneAslNumero ?? ""}
+                    onChange={(e) => updateContenuto("prescrizione", { autorizzazioneAslNumero: e.target.value || null })}
+                  />
+                </Field>
+                <Field label="Data autorizzazione ASL">
+                  <input
+                    type="date"
+                    value={c.prescrizione.dataAutorizzazioneAsl ?? ""}
+                    onChange={(e) =>
+                      updateContenuto("prescrizione", { dataAutorizzazioneAsl: e.target.value || null })
+                    }
+                  />
+                </Field>
+              </>
             ) : null}
             <Field label="Note">
               <textarea value={c.prescrizione.note ?? ""} onChange={(e) => updateContenuto("prescrizione", { note: e.target.value || null })} />
@@ -1380,11 +1395,6 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
                   <div className="meta">{fase.controlli}</div>
                 </div>
                 <input
-                  type="date"
-                  value={fase.data ?? ""}
-                  onChange={(e) => updateFase(fase.numero, { data: e.target.value || null })}
-                />
-                <input
                   placeholder="Operatore"
                   value={fase.operatore ?? ""}
                   onChange={(e) => updateFase(fase.numero, { operatore: e.target.value || null })}
@@ -1463,13 +1473,6 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
                   onChange={(e) => updateContenuto("consegna", { oraConsegna: e.target.value || null })}
                 />
               </Field>
-              <Field label="Data consegna effettiva">
-                <input
-                  type="date"
-                  value={c.consegna.dataConsegnaEffettiva ?? ""}
-                  onChange={(e) => updateContenuto("consegna", { dataConsegnaEffettiva: e.target.value || null })}
-                />
-              </Field>
               <Field label="Data follow-up (controllo a 2 mesi)">
                 <input
                   type="date"
@@ -1491,11 +1494,8 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
                       onChange={(e) => updateContenuto("consegna", { comunicazioneAslDestinatario: e.target.value || null })}
                     />
                   </Field>
-                  <Field label="Numero pratica">
-                    <input
-                      value={c.consegna.comunicazioneAslPraticaNumero ?? ""}
-                      onChange={(e) => updateContenuto("consegna", { comunicazioneAslPraticaNumero: e.target.value || null })}
-                    />
+                  <Field label="Numero pratica (dalla Prescrizione)">
+                    <input value={c.prescrizione.autorizzazioneAslNumero ?? ""} readOnly disabled />
                   </Field>
                 </div>
               </>

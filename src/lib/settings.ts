@@ -7,6 +7,10 @@ export interface CompanySettings {
   partitaIva: string;
   telefono: string;
   logoUrl: string;
+  /** Firma caricata una volta sola da Impostazioni, inserita automaticamente
+   * al posto della riga vuota "Firma della direzione" nella stampa di
+   * consegna dei fascicoli plantari (dichiarazione di conformità). */
+  firmaDirezioneUrl: string;
   /** Testo segnaposto delle condizioni generali, mostrato in corpo piccolo sui documenti. */
   condizioniGenerali: string;
   /** Testo segnaposto dell'informativa privacy, mostrato in corpo piccolo sui documenti. */
@@ -35,6 +39,7 @@ const HEADER = [
   "PartitaIVA",
   "Telefono",
   "LogoURL",
+  "FirmaDirezioneURL",
   "CondizioniGenerali",
   "InformativaPrivacy",
   "PuntiPerEuro",
@@ -80,6 +85,7 @@ export const EMPTY_SETTINGS: CompanySettings = {
   partitaIva: "",
   telefono: "",
   logoUrl: "",
+  firmaDirezioneUrl: "",
   condizioniGenerali: DEFAULT_CONDIZIONI_GENERALI,
   informativaPrivacy: DEFAULT_INFORMATIVA_PRIVACY,
   puntiPerEuro: DEFAULT_PUNTI_PER_EURO,
@@ -120,6 +126,7 @@ export async function getSettings(): Promise<CompanySettings> {
     partitaIva,
     telefono,
     logoUrl,
+    firmaDirezioneUrl,
     condizioniGenerali,
     informativaPrivacy,
     puntiPerEuro,
@@ -135,6 +142,7 @@ export async function getSettings(): Promise<CompanySettings> {
     partitaIva: partitaIva || "",
     telefono: telefono || "",
     logoUrl: logoUrl || "",
+    firmaDirezioneUrl: firmaDirezioneUrl || "",
     condizioniGenerali: condizioniGenerali || DEFAULT_CONDIZIONI_GENERALI,
     informativaPrivacy: informativaPrivacy || DEFAULT_INFORMATIVA_PRIVACY,
     puntiPerEuro: numOrDefault(puntiPerEuro, DEFAULT_PUNTI_PER_EURO),
@@ -182,6 +190,10 @@ export async function saveSettings(settings: CompanySettings): Promise<void> {
   if (settings.logoUrl && !settings.logoUrl.startsWith("data:image/")) {
     throw new Error("Logo non valido: usa il caricamento immagine, non un URL esterno.");
   }
+  // Stesso motivo e stessa regola del logo qui sopra.
+  if (settings.firmaDirezioneUrl && !settings.firmaDirezioneUrl.startsWith("data:image/")) {
+    throw new Error("Firma non valida: usa il caricamento immagine, non un URL esterno.");
+  }
   await writeSheet(TAB, [
     HEADER,
     [
@@ -190,6 +202,7 @@ export async function saveSettings(settings: CompanySettings): Promise<void> {
       settings.partitaIva,
       settings.telefono,
       settings.logoUrl,
+      settings.firmaDirezioneUrl,
       settings.condizioniGenerali,
       settings.informativaPrivacy,
       String(settings.puntiPerEuro),

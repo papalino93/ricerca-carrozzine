@@ -1,4 +1,4 @@
-import { Document, Page, Text, View } from "@react-pdf/renderer";
+import { Document, Image, Page, Text, View } from "@react-pdf/renderer";
 import type { CompanySettings } from "@/lib/settings";
 import type { ClientRecord } from "@/lib/clients";
 import type { FascicoloRecord } from "@/lib/fascicoli-types";
@@ -49,15 +49,25 @@ export function DichiarazioneConformitaDocument({ settings, cliente, fascicolo }
         </Text>
         <View style={sharedStyles.signatureRow}>
           <View style={sharedStyles.signatureBlock}>
-            <View style={sharedStyles.signatureLine} />
+            {settings.firmaDirezioneUrl ? (
+              // eslint-disable-next-line jsx-a11y/alt-text
+              <Image style={sharedStyles.signatureImage} src={settings.firmaDirezioneUrl} />
+            ) : (
+              <View style={sharedStyles.signatureLine} />
+            )}
             <Text style={sharedStyles.signatureLabel}>Firma della direzione</Text>
           </View>
           <View style={sharedStyles.signatureBlock}>
             <Text style={[sharedStyles.metaValue, { textAlign: "center" }]}>
-              Scandicci, {fmtDate(c.consegna.dataConsegnaEffettiva || c.prescrizione.dataOrdine)}
+              Scandicci, {fmtDate(c.consegna.dataConsegnaPrevista || c.prescrizione.dataOrdine)}
             </Text>
           </View>
         </View>
+        {c.consegna.dataFollowUp ? (
+          <Text style={[sharedStyles.para, { marginTop: 4 }]}>
+            Prossimo controllo: {fmtDate(c.consegna.dataFollowUp)}
+          </Text>
+        ) : null}
 
         <View>
           <Text style={sharedStyles.sectionLabel}>Note informative, istruzioni per l&apos;uso e garanzia</Text>
@@ -82,8 +92,8 @@ export function DichiarazioneConformitaDocument({ settings, cliente, fascicolo }
               Con la presente si comunica che in data odierna è stato consegnato alla/al Sig.ra/Sig.{" "}
               {[nomeProprio, cognome].filter(Boolean).join(" ") || cliente.nome}
               {c.consegna.comunicazioneAslDestinatario ? `, per conto di ${c.consegna.comunicazioneAslDestinatario},` : ""} il
-              materiale autorizzato con pratica n.{" "}
-              {c.consegna.comunicazioneAslPraticaNumero || c.prescrizione.autorizzazioneAslNumero || "—"}.
+              materiale autorizzato
+              {c.prescrizione.autorizzazioneAslNumero ? ` con pratica n. ${c.prescrizione.autorizzazioneAslNumero}` : ""}.
             </Text>
             <View style={sharedStyles.signatureRow}>
               <View style={sharedStyles.signatureBlock}>
@@ -91,7 +101,7 @@ export function DichiarazioneConformitaDocument({ settings, cliente, fascicolo }
                 <Text style={sharedStyles.signatureLabel}>Firma per ricevuta</Text>
               </View>
               <View style={sharedStyles.signatureBlock}>
-                <Text style={[sharedStyles.metaValue, { textAlign: "center" }]}>Data {fmtDate(c.consegna.dataConsegnaEffettiva)}</Text>
+                <Text style={[sharedStyles.metaValue, { textAlign: "center" }]}>Data {fmtDate(c.consegna.dataConsegnaPrevista)}</Text>
               </View>
             </View>
           </View>

@@ -6,6 +6,7 @@ const HEADER = ["Chiave", "Valore"];
 const KEY_NOLEGGIO = "numeroNoleggio";
 const KEY_COMMESSA = "numeroCommessa";
 const KEY_FIDELITY = "numeroFidelity";
+const KEY_MATRICOLA_ASL = "matricolaAsl";
 
 // Primo numero progressivo assegnato: i noleggi già in corso prima di questa
 // funzione hanno numeri di contratto manuali più bassi (max osservato in
@@ -21,6 +22,11 @@ const START_COMMESSA = 1;
 // (fedelta.store), che sono numeriche o esadecimali pure e non usano mai
 // lettere+trattino — zero rischio di collisione.
 const START_FIDELITY = 1;
+
+// Il prossimo numero di matricola ASL da assegnare (comunicato
+// dall'operatrice, che fino ad oggi lo ha tenuto a mano su un foglio
+// Excel): da qui in poi lo assegna l'app, mai più a mano.
+const START_MATRICOLA_ASL = 5236;
 
 // I fascicoli plantari ripartono da 1 ogni anno solare (PL-2026-0001,
 // PL-2026-0048, poi PL-2027-0001...): la chiave del contatore include
@@ -89,4 +95,15 @@ export async function nextNumeroFidelity(): Promise<string> {
 export async function nextNumeroFascicolo(anno: number): Promise<string> {
   const n = await nextCounter(`numeroFascicolo:${anno}`, START_FASCICOLO);
   return `PL-${anno}-${n.padStart(4, "0")}`;
+}
+
+/**
+ * Solo la parte progressiva della matricola ASL (riparte da 5236, vedi
+ * START_MATRICOLA_ASL): il resto della matricola — il codice fisso "221"
+ * di Medical Center, il numero di autorizzazione ASL e la sua data, presi
+ * dalla pratica — si aggiungono altrove quando il formato completo sarà
+ * confermato.
+ */
+export async function nextMatricolaAslProgressivo(): Promise<string> {
+  return nextCounter(KEY_MATRICOLA_ASL, START_MATRICOLA_ASL);
 }

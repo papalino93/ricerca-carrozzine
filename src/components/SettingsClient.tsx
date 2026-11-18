@@ -58,6 +58,8 @@ export function SettingsClient({
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingFirma, setUploadingFirma] = useState(false);
+  const firmaInputRef = useRef<HTMLInputElement>(null);
 
   function showToast(message: string) {
     setToast(message);
@@ -82,6 +84,28 @@ export function SettingsClient({
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  // Stesso endpoint del logo: /api/upload-logo si limita a trasformare
+  // un'immagine in data URI, non è specifico del logo.
+  async function handleFirmaChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingFirma(true);
+    setError(null);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/upload-logo", { method: "POST", body: form });
+      const body = await readJson(res);
+      if (!res.ok) throw new Error(body.error || "Caricamento della firma non riuscito");
+      setSettings((s) => ({ ...s, firmaDirezioneUrl: body.url }));
+    } catch (err) {
+      setError(networkErrorMessage(err));
+    } finally {
+      setUploadingFirma(false);
+      if (firmaInputRef.current) firmaInputRef.current.value = "";
     }
   }
 
@@ -204,6 +228,36 @@ export function SettingsClient({
                 Nessun logo caricato: sui documenti verrà mostrata solo la ragione sociale in testo.
               </p>
             ) : null}
+          </div>
+
+          <div className="field">
+            <label>Firma per le fascicolazioni plantari</label>
+            <p className="hint" style={{ marginTop: -4, marginBottom: 8 }}>
+              Sostituisce la riga vuota &quot;Firma della direzione&quot; nella stampa di consegna dei plantari:
+              caricala una volta sola, da quel momento compare automaticamente su ogni stampa.
+            </p>
+            <div className="logo-row">
+              {settings.firmaDirezioneUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={settings.firmaDirezioneUrl} alt="Firma della direzione" className="logo-preview" />
+              ) : null}
+              <input
+                ref={firmaInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFirmaChange}
+                disabled={uploadingFirma}
+                style={{ display: "none" }}
+              />
+              <button
+                className="btn"
+                type="button"
+                onClick={() => firmaInputRef.current?.click()}
+                disabled={uploadingFirma}
+              >
+                {uploadingFirma ? "Caricamento…" : settings.firmaDirezioneUrl ? "Cambia firma" : "Carica firma"}
+              </button>
+            </div>
           </div>
 
           <div className="card-actions">

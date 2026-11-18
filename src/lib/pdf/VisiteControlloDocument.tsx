@@ -48,7 +48,7 @@ export function VisiteControlloDocument({ settings, cliente, fascicolo }: Visite
           <Field label="Cliente" value={cliente.nome} />
           <Field label="Codice fiscale" value={cliente.codiceFiscale || "—"} />
           <Field label="Fascicolazione" value={fascicolo.numero} />
-          <FieldLast label="Data consegna" value={fmtDate(fascicolo.contenuto.consegna.dataConsegnaEffettiva)} />
+          <FieldLast label="Data consegna" value={fmtDate(fascicolo.contenuto.consegna.dataConsegnaPrevista)} />
         </View>
 
         <View style={[sharedStyles.table, { marginTop: 10 }]}>
