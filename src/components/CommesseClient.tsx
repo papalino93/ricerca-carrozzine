@@ -686,7 +686,7 @@ export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery, cl
                               </div>
                               <div className="field-row">
                                 <div className="field">
-                                  <label>Pronto il</label>
+                                  <label>Avvisato il</label>
                                   <input
                                     type="date"
                                     value={editForm.prontaIl}

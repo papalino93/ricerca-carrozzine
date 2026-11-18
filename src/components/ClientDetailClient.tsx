@@ -503,7 +503,7 @@ export function ClientDetailClient({
               {fascicoli.map((f) => (
                 <li key={f.numero}>
                   <Link href={`/admin/fascicoli/${f.numero}`} className="search-result-item">
-                    <strong>{f.numero}</strong> · creato il {fmtDate(f.dataCreazione)}{" "}
+                    <strong>{f.numero}</strong> · creata il {fmtDate(f.dataCreazione)}{" "}
                     <span className={`pill fascicolo-${f.stato}`}>{FASCICOLO_STATO_LABEL[f.stato]}</span>
                   </Link>
                 </li>

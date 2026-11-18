@@ -431,7 +431,7 @@ export function CommesseBanco({ initialCommesse, initialQuery, clienti, operator
                       {c.fornitore ? ` · da ${c.fornitore}` : ""}
                       {c.operatore ? ` · ${c.operatore}` : ""}
                       {c.stato === "ritirata" ? ` · ritirata il ${fmtDate(c.ritirataIl)}` : ""}
-                      {c.saldo != null ? ` · saldo ${fmtEuro(c.saldo)}` : ""}
+                      {c.saldo != null ? ` · da saldare ${fmtEuro(c.saldo)}` : ""}
                     </span>
                   </div>
 

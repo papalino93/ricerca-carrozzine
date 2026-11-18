@@ -32,7 +32,7 @@ export function fmtEuro(n: number | null): string {
 }
 
 const STEP_ORDER: CommessaRecord["stato"][] = ["in_lavorazione", "pronta", "ritirata"];
-const STEP_LABELS = ["Ordinata", "Pronta", "Ritirata"];
+const STEP_LABELS = ["Ordinata", "Avvisata", "Ritirata"];
 
 /** Le 3 tappe del ciclo di vita di una commessa, per un indicatore di
  * avanzamento sola lettura: dice dov'è arrivata la scheda, non impone un

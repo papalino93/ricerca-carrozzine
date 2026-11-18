@@ -24,10 +24,10 @@ export type FascicoloStato =
 export const FASCICOLO_STATO_OPTIONS: { key: FascicoloStato; label: string }[] = [
   { key: "bozza", label: "Bozza" },
   { key: "in_lavorazione", label: "In lavorazione" },
-  { key: "completo", label: "Completo" },
-  { key: "prodotto", label: "Prodotto" },
-  { key: "consegnato", label: "Consegnato" },
-  { key: "archiviato", label: "Archiviato" },
+  { key: "completo", label: "Completa" },
+  { key: "prodotto", label: "Prodotta" },
+  { key: "consegnato", label: "Consegnata" },
+  { key: "archiviato", label: "Archiviata" },
 ];
 
 export const FASCICOLO_STATO_LABEL: Record<FascicoloStato, string> = Object.fromEntries(

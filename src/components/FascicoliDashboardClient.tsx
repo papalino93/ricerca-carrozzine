@@ -63,7 +63,7 @@ export function FascicoliDashboardClient({ fascicoli, clients }: FascicoliDashbo
   const tiles = [
     { key: "totale", label: "Fascicolazioni totali", value: fascicoli.length, color: "#175c22", active: false },
     { key: "da_completare", label: "Da completare", value: daCompletare, color: "#2F5A8A", active: false },
-    { key: "completati", label: "Completati", value: completati, color: "#1F7A3D", active: false },
+    { key: "completati", label: "Completate", value: completati, color: "#1F7A3D", active: false },
   ];
 
   return (
@@ -152,7 +152,7 @@ export function FascicoliDashboardClient({ fascicoli, clients }: FascicoliDashbo
             {ultimiCreati.map((f) => (
               <li key={f.numero}>
                 <Link href={`/admin/fascicoli/${f.numero}`} className="search-result-item">
-                  <strong>{f.numero}</strong> — {f.clienteNome} · creato il {fmtDateOra(f.dataCreazione)}{" "}
+                  <strong>{f.numero}</strong> — {f.clienteNome} · creata il {fmtDateOra(f.dataCreazione)}{" "}
                   <span className={`pill fascicolo-${f.stato}`}>{FASCICOLO_STATO_LABEL[f.stato]}</span>
                 </Link>
               </li>
