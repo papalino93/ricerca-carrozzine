@@ -175,7 +175,7 @@ export function DocTitleBlock({
       <View style={sharedStyles.titleRow}>
         <Text style={sharedStyles.title}>{title}</Text>
         <View style={sharedStyles.metaBlock}>
-          <Text style={sharedStyles.metaLine}>N. Fascicolo</Text>
+          <Text style={sharedStyles.metaLine}>N. Fascicolazione</Text>
           <Text style={sharedStyles.metaValue}>{fascicoloNumero}</Text>
           {stato ? (
             <>

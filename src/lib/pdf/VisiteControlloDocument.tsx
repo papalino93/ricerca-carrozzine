@@ -38,7 +38,7 @@ export function VisiteControlloDocument({ settings, cliente, fascicolo }: Visite
     <Document>
       <Page size="A4" style={sharedStyles.page}>
         <DocHeader settings={settings} />
-        <DocFooter left={`Fascicolo ${fascicolo.numero} · ${cliente.nome}`} />
+        <DocFooter left={`Fascicolazione ${fascicolo.numero} · ${cliente.nome}`} />
 
         <Text style={sharedStyles.title}>Visite di controllo</Text>
         <Text style={sharedStyles.sub}>Riepilogo delle visite successive alla consegna del dispositivo su misura.</Text>
@@ -47,7 +47,7 @@ export function VisiteControlloDocument({ settings, cliente, fascicolo }: Visite
         <View style={sharedStyles.table}>
           <Field label="Cliente" value={cliente.nome} />
           <Field label="Codice fiscale" value={cliente.codiceFiscale || "—"} />
-          <Field label="Fascicolo" value={fascicolo.numero} />
+          <Field label="Fascicolazione" value={fascicolo.numero} />
           <FieldLast label="Data consegna" value={fmtDate(fascicolo.contenuto.consegna.dataConsegnaEffettiva)} />
         </View>
 

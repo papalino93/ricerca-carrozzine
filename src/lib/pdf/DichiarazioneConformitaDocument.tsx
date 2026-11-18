@@ -23,7 +23,7 @@ export function DichiarazioneConformitaDocument({ settings, cliente, fascicolo }
   const c = fascicolo.contenuto;
   const cognome = cliente.cognome || cliente.nome;
   const nomeProprio = cliente.nomeProprio || "";
-  const footerLeft = `Fascicolo ${fascicolo.numero} · ${cliente.nome}`;
+  const footerLeft = `Fascicolazione ${fascicolo.numero} · ${cliente.nome}`;
 
   return (
     <Document>

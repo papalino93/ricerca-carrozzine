@@ -107,8 +107,8 @@ export function DeskSearch({ devices, clients, commesse, fascicoli }: DeskSearch
       .forEach((f) =>
         out.push({
           key: `f-${f.numero}`,
-          categoria: "Fascicoli",
-          titolo: `Fascicolo ${f.numero}`,
+          categoria: "Fascicolazioni",
+          titolo: `Fascicolazione ${f.numero}`,
           sottotitolo: f.clienteNome,
           href: `/admin/fascicoli/${encodeURIComponent(f.numero)}`,
         })
@@ -183,7 +183,7 @@ export function DeskSearch({ devices, clients, commesse, fascicoli }: DeskSearch
               setOpen(false);
             }
           }}
-          placeholder="Cerca un cliente, un ausilio, una commessa, un fascicolo…"
+          placeholder="Cerca un cliente, un ausilio, una commessa, una fascicolazione…"
           aria-label="Cerca"
           autoComplete="off"
         />

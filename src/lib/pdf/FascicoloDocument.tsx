@@ -76,7 +76,7 @@ export function FascicoloDocument({ settings, cliente, fascicolo, allegatiImmagi
         <DocFooter left={footerLeft} />
 
         <DocTitleBlock
-          title="Fascicolo plantare — stampa interna completa"
+          title="Fascicolazione plantare — stampa interna completa"
           fascicoloNumero={fascicolo.numero}
           stato={FASCICOLO_STATO_LABEL[fascicolo.stato]}
         />

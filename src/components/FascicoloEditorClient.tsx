@@ -267,14 +267,14 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
         // versione ormai superata, riscrivere sopra rischierebbe di
         // cancellare a nostra volta il salvataggio dell'altra scheda.
         setSaveState("error");
-        showToast(body.error || "Fascicolo modificato altrove: ricarica la pagina prima di continuare.");
+        showToast(body.error || "Fascicolazione modificata altrove: ricarica la pagina prima di continuare.");
         return false;
       }
       if (!res.ok) throw new Error(body.error || "Salvataggio non riuscito");
       setFascicolo(body.fascicolo);
       setSaveState("saved");
       setDirty(false);
-      if (!opts?.silent) showToast("Fascicolo salvato");
+      if (!opts?.silent) showToast("Fascicolazione salvata");
       return true;
     } catch (err) {
       setSaveState("error");
@@ -518,7 +518,7 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
   // "Anteprima", pensate per essere ristampate quante volte serve senza
   // lasciare traccia sul fascicolo.
   const STAMPA_OPTIONS: { key: TipoStampa; label: string; sub: string }[] = [
-    { key: "interna", label: "Stampa interna fascicolo", sub: "Tutto il fascicolo, per l'archivio" },
+    { key: "interna", label: "Stampa interna fascicolazione", sub: "Tutta la fascicolazione, per l'archivio" },
     { key: "cliente", label: "Stampa cliente — primo appuntamento", sub: "Anagrafica, privacy, condizioni, prezzo" },
     { key: "conformita", label: "Stampa cliente — consegna plantari", sub: "Conformità, libretto d'uso, avvenuta consegna" },
     { key: "controllo", label: "Stampa visita di controllo", sub: "Riepilogo delle visite registrate" },
@@ -709,7 +709,7 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
                 "Generazione…"
               ) : (
                 <>
-                  <span className="btn-icon"><IconScarica /></span> Stampa fascicolo…
+                  <span className="btn-icon"><IconScarica /></span> Stampa fascicolazione…
                 </>
               )}
             </button>
@@ -729,8 +729,8 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
         </div>
       </div>
       <p className="hint" style={{ marginTop: -6, marginBottom: 14 }}>
-        &quot;Anteprima interna&quot; è libera, non lascia traccia. Solo la &quot;Stampa interna fascicolo&quot; nel
-        menu finalizza davvero: incrementa la versione del fascicolo (oggi alla {fascicolo.versione}ª) e, se
+        &quot;Anteprima interna&quot; è libera, non lascia traccia. Solo la &quot;Stampa interna fascicolazione&quot; nel
+        menu finalizza davvero: incrementa la versione della fascicolazione (oggi alla {fascicolo.versione}ª) e, se
         configurato, lo archivia su Drive — le altre tre stampe si possono rigenerare quante volte serve.
       </p>
 
@@ -874,7 +874,7 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
               </button>
             </div>
 
-            <h2 style={{ marginTop: 22 }}>Dati fascicolo</h2>
+            <h2 style={{ marginTop: 22 }}>Dati fascicolazione</h2>
             <div className="form-grid">
               <Field label="Tipo dispositivo">
                 <input value={fascicolo.tipoDispositivo} onChange={(e) => updateTop({ tipoDispositivo: e.target.value })} />
@@ -1416,7 +1416,7 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
             </h3>
             <CheckLine
               checked={c.produzione.includiAllegatoA}
-              label="Includi l'Allegato A come ultima pagina del fascicolo"
+              label="Includi l'Allegato A come ultima pagina della fascicolazione"
               onChange={(v) => updateContenuto("produzione", { includiAllegatoA: v })}
             />
             <div className="card-actions">
@@ -1425,8 +1425,8 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
               </a>
             </div>
             <p className="hint">
-              Procedura aziendale fissa (uguale per ogni commessa): puoi allegarla al fascicolo con la casella qui
-              sopra, oppure stamparla da sola senza toccare il fascicolo.
+              Procedura aziendale fissa (uguale per ogni commessa): puoi allegarla alla fascicolazione con la casella
+              qui sopra, oppure stamparla da sola senza toccare la fascicolazione.
             </p>
           </>
         ) : null}
@@ -1596,7 +1596,7 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
               setConfirmingDelete(true);
             }}
           >
-            Elimina fascicolo
+            Elimina fascicolazione
           </button>
         ) : (
           <div className="delete-confirm">

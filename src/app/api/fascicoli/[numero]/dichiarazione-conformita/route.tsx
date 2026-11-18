@@ -34,7 +34,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ nume
     return new NextResponse(new Blob([bytes]), {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `inline; filename="fascicolo-${fascicolo.numero}-dichiarazione-conformita.pdf"`,
+        "Content-Disposition": `inline; filename="fascicolazione-${fascicolo.numero}-dichiarazione-conformita.pdf"`,
         "Cache-Control": "no-store",
       },
     });

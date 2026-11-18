@@ -15,7 +15,7 @@ export default async function FascicoloPage({ params }: { params: Promise<{ nume
   } catch (err) {
     return (
       <div className="wrap">
-        <div className="banner error">Impossibile leggere il fascicolo da Google Sheets: {(err as Error).message}</div>
+        <div className="banner error">Impossibile leggere la fascicolazione da Google Sheets: {(err as Error).message}</div>
       </div>
     );
   }

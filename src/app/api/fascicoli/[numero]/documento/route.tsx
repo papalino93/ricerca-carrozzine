@@ -100,7 +100,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ nume
     if (finalizza) {
       if (isFascicoliDriveConfigured()) {
         try {
-          const filename = `fascicolo-${fascicolo.numero}-v${fascicolo.versione}.pdf`;
+          const filename = `fascicolazione-${fascicolo.numero}-v${fascicolo.versione}.pdf`;
           driveUrl = await uploadFascicoloPdf(filename, buffer);
         } catch (driveErr) {
           // best-effort, stesso pattern di /api/documento: un problema su
@@ -125,7 +125,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ nume
     const bytes = new Uint8Array(buffer);
     const headers: Record<string, string> = {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `${inline ? "inline" : "attachment"}; filename="fascicolo-${fascicolo.numero}.pdf"`,
+      "Content-Disposition": `${inline ? "inline" : "attachment"}; filename="fascicolazione-${fascicolo.numero}.pdf"`,
       "Cache-Control": "no-store",
     };
     if (driveUrl) headers["X-Drive-Url"] = driveUrl;

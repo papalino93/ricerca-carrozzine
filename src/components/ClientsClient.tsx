@@ -319,7 +319,7 @@ export function ClientsClient({
         <div className="panel">
           <p className="hint" style={{ marginBottom: 10 }}>
             {showMobileClients ? "Tocca" : "Clicca"} su un cliente per vedere anagrafica completa,
-            fascicoli plantari collegati e storico.
+            fascicolazioni plantari collegate e storico.
           </p>
           {showMobileClients ? (
             <div className="clients-mobile-list">

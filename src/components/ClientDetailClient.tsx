@@ -21,7 +21,7 @@ const TAB_LABEL: Record<ClientTab, string> = {
   commesse: "Commesse",
   storico: "Storico",
   fidelity: "Fidelity",
-  fascicoli: "Fascicoli",
+  fascicoli: "Fascicolazioni",
 };
 
 function isClientTab(v: string | undefined): v is ClientTab {
@@ -353,7 +353,7 @@ export function ClientDetailClient({
                   required
                 />
                 <p className="hint" style={{ margin: "4px 0 0" }}>
-                  Correggendolo, si aggiorna anche su noleggi, commesse, storico e fascicoli già collegati a questo cliente.
+                  Correggendolo, si aggiorna anche su noleggi, commesse, storico e fascicolazioni già collegate a questo cliente.
                 </p>
               </div>
               <div className="field">
@@ -493,10 +493,10 @@ export function ClientDetailClient({
 
       {tab === "fascicoli" ? (
         <div className="panel">
-          <h2>Fascicoli plantari</h2>
+          <h2>Fascicolazioni plantari</h2>
           {fascicoli.length === 0 ? (
             <p className="hint" style={{ margin: 0 }}>
-              Nessun fascicolo plantare per questo cliente.
+              Nessuna fascicolazione plantare per questo cliente.
             </p>
           ) : (
             <ul className="search-result-list">

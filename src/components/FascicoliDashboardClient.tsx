@@ -60,7 +60,7 @@ export function FascicoliDashboardClient({ fascicoli, clients }: FascicoliDashbo
   }, [query, clients, fascicoli]);
 
   const tiles = [
-    { key: "totale", label: "Fascicoli totali", value: fascicoli.length, color: "#175c22", active: false },
+    { key: "totale", label: "Fascicolazioni totali", value: fascicoli.length, color: "#175c22", active: false },
     { key: "da_completare", label: "Da completare", value: daCompletare, color: "#2F5A8A", active: false },
     { key: "completati", label: "Completati", value: completati, color: "#1F7A3D", active: false },
   ];
@@ -70,12 +70,12 @@ export function FascicoliDashboardClient({ fascicoli, clients }: FascicoliDashbo
       <header className="page-header with-action">
         <div className="page-header-text">
           <div className="page-title-row">
-            <h1>Fascicoli Plantari</h1>
+            <h1>Fascicolazioni Plantari</h1>
           </div>
-          <p className="sub">Anagrafica, anamnesi e produzione dei plantari su misura, in un unico fascicolo digitale.</p>
+          <p className="sub">Anagrafica, anamnesi e produzione dei plantari su misura, in un&apos;unica fascicolazione digitale.</p>
         </div>
         <Link href="/admin/fascicoli/nuovo" className="btn primary">
-          + Nuovo fascicolo
+          + Nuova fascicolazione
         </Link>
       </header>
 
@@ -91,16 +91,16 @@ export function FascicoliDashboardClient({ fascicoli, clients }: FascicoliDashbo
       </div>
 
       <div className="panel">
-        <h2><span className="btn-icon"><IconCerca /></span> Cerca cliente o fascicolo</h2>
+        <h2><span className="btn-icon"><IconCerca /></span> Cerca cliente o fascicolazione</h2>
         <input
           className="searchbox"
-          placeholder="Nome, codice fiscale, numero fascicolo o commessa…"
+          placeholder="Nome, codice fiscale, numero fascicolazione o commessa…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
         {query.trim() ? (
           risultatiRicerca.clientiTrovati.length === 0 && risultatiRicerca.fascicoliTrovati.length === 0 ? (
-            <p className="hint">Nessun risultato. Puoi creare un nuovo fascicolo da qui.</p>
+            <p className="hint">Nessun risultato. Puoi creare una nuova fascicolazione da qui.</p>
           ) : (
             <>
               {risultatiRicerca.fascicoliTrovati.length > 0 ? (
@@ -121,7 +121,7 @@ export function FascicoliDashboardClient({ fascicoli, clients }: FascicoliDashbo
                     <li key={c.nome}>
                       <Link href={`/admin/fascicoli/nuovo?cliente=${encodeURIComponent(c.nome)}`} className="search-result-item">
                         <strong>{c.nome}</strong>
-                        {c.codiceFiscale ? ` — CF ${c.codiceFiscale}` : ""} — nuovo fascicolo per questo cliente
+                        {c.codiceFiscale ? ` — CF ${c.codiceFiscale}` : ""} — nuova fascicolazione per questo cliente
                       </Link>
                     </li>
                   ))}
@@ -134,15 +134,15 @@ export function FascicoliDashboardClient({ fascicoli, clients }: FascicoliDashbo
 
       <div className="panel">
         <div className="page-title-row" style={{ marginBottom: 12 }}>
-          <h2 style={{ margin: 0 }}>Ultimi fascicoli creati</h2>
+          <h2 style={{ margin: 0 }}>Ultime fascicolazioni create</h2>
           <Link href="/admin/fascicoli/archivio" className="btn-link">
             <span className="btn-icon"><IconFascicoli /></span> Vai all&apos;archivio
           </Link>
         </div>
         {ultimiCreati.length === 0 ? (
           <p className="empty">
-            <b>Nessun fascicolo ancora</b>
-            Crea il primo fascicolo plantare con &quot;+ Nuovo fascicolo&quot;.
+            <b>Nessuna fascicolazione ancora</b>
+            Crea la prima fascicolazione plantare con &quot;+ Nuova fascicolazione&quot;.
           </p>
         ) : (
           <ul className="search-result-list">

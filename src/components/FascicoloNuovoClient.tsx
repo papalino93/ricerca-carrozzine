@@ -89,7 +89,7 @@ export function FascicoloNuovoClient({ clients, fascicoli, commesse, initialClie
         }),
       });
       const body = await readJson(res);
-      if (!res.ok) throw new Error(body.error || "Errore nella creazione del fascicolo");
+      if (!res.ok) throw new Error(body.error || "Errore nella creazione della fascicolazione");
       router.push(`/admin/fascicoli/${body.fascicolo.numero}`);
     } catch (err) {
       setError(networkErrorMessage(err));
@@ -139,7 +139,7 @@ export function FascicoloNuovoClient({ clients, fascicoli, commesse, initialClie
 
   const datiFascicoloForm = (
     <div className="panel">
-      <h2>Dati fascicolo</h2>
+      <h2>Dati fascicolazione</h2>
       <div className="form-grid">
         <div className="field">
           <label>Tipo dispositivo</label>
@@ -166,7 +166,7 @@ export function FascicoloNuovoClient({ clients, fascicoli, commesse, initialClie
     <div className="wrap">
       <header className="page-header">
         <div className="page-header-text">
-          <h1>Nuovo fascicolo</h1>
+          <h1>Nuova fascicolazione</h1>
           <p className="sub">Cerca prima il cliente: evita di creare doppioni in anagrafica.</p>
         </div>
       </header>
@@ -228,7 +228,7 @@ export function FascicoloNuovoClient({ clients, fascicoli, commesse, initialClie
                       <strong>{c.nome}</strong>
                       {c.codiceFiscale ? ` — CF ${c.codiceFiscale}` : ""}
                       <div className="meta">
-                        {nFascicoli > 0 ? `${nFascicoli} fascicolo/i precedente/i` : "Nessun fascicolo precedente"}
+                        {nFascicoli > 0 ? `${nFascicoli} fascicolazione/i precedente/i` : "Nessuna fascicolazione precedente"}
                       </div>
                     </button>
                   </li>
@@ -338,7 +338,7 @@ export function FascicoloNuovoClient({ clients, fascicoli, commesse, initialClie
             {datiFascicoloForm}
             <div className="card-actions">
               <button type="submit" className="btn primary" disabled={submitting}>
-                {submitting ? "Creazione in corso…" : "Crea cliente e fascicolo"}
+                {submitting ? "Creazione in corso…" : "Crea cliente e fascicolazione"}
               </button>
             </div>
           </form>
@@ -350,7 +350,7 @@ export function FascicoloNuovoClient({ clients, fascicoli, commesse, initialClie
           {datiFascicoloForm}
           <div className="card-actions">
             <button type="button" className="btn primary" disabled={submitting} onClick={handleUsaEsistente}>
-              {submitting ? "Creazione in corso…" : "Crea fascicolo"}
+              {submitting ? "Creazione in corso…" : "Crea fascicolazione"}
             </button>
           </div>
         </>

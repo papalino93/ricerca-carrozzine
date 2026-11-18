@@ -81,8 +81,8 @@ export function FascicoliArchivioClient({ fascicoli }: FascicoliArchivioClientPr
     <div className="wrap wide">
       <header className="page-header">
         <div className="page-header-text">
-          <h1>Archivio fascicoli</h1>
-          <p className="sub">{filtrati.length} di {fascicoli.length} fascicoli</p>
+          <h1>Archivio fascicolazioni</h1>
+          <p className="sub">{filtrati.length} di {fascicoli.length} fascicolazioni</p>
         </div>
       </header>
 
@@ -144,7 +144,7 @@ export function FascicoliArchivioClient({ fascicoli }: FascicoliArchivioClientPr
       <div className="panel">
         {filtrati.length === 0 ? (
           <p className="empty">
-            <b>Nessun fascicolo trovato</b>
+            <b>Nessuna fascicolazione trovata</b>
             Prova a modificare i filtri, oppure crea un nuovo fascicolo.
           </p>
         ) : (

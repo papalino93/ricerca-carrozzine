@@ -27,7 +27,7 @@ export function StampaClienteDocument({ settings, cliente, fascicolo }: StampaCl
     .filter(Boolean)
     .join(", ");
   const telefono = [cliente.telefono, cliente.cellulare].filter(Boolean).join(" · ");
-  const footerLeft = `Fascicolo ${fascicolo.numero} · ${cliente.nome}`;
+  const footerLeft = `Fascicolazione ${fascicolo.numero} · ${cliente.nome}`;
   const haPraticaAsl = c.prescrizione.praticaAsl;
   const haPrescrizioneMedica = c.prescrizione.richiestaMedica;
 
@@ -38,7 +38,7 @@ export function StampaClienteDocument({ settings, cliente, fascicolo }: StampaCl
         <DocFooter left={footerLeft} />
 
         <DocTitleBlock
-          title="Fascicolo plantare — primo appuntamento"
+          title="Fascicolazione plantare — primo appuntamento"
           fascicoloNumero={fascicolo.numero}
           stato={FASCICOLO_STATO_LABEL[fascicolo.stato]}
         />

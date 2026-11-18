@@ -24,7 +24,7 @@ const NAV_ITEMS = [
   { href: "/admin", label: "Magazzino", icon: <IconMagazzino /> },
   { href: "/admin/registro", label: "Registro noleggi", icon: <IconNoleggio /> },
   { href: "/admin/commesse", label: "Commesse", icon: <IconCommessa /> },
-  { href: "/admin/fascicoli", label: "Fascicoli Plantari", icon: <IconFascicoli /> },
+  { href: "/admin/fascicoli", label: "Fascicolazioni Plantari", icon: <IconFascicoli /> },
   { href: "/admin/clienti", label: "Clienti", icon: <IconClienti /> },
   { href: "/admin/fidelity", label: "Fidelity", icon: <IconFidelity /> },
 ];
