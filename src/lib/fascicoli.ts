@@ -1,6 +1,6 @@
 import "server-only";
 import { readSheet, writeSheet } from "./sheets";
-import { nextNumeroFascicolo } from "./counter";
+import { nextMatricolaAslProgressivo, nextNumeroFascicolo } from "./counter";
 import { normalizeName } from "./clients";
 import { removeAllFascicoloAllegati } from "./fascicoli-allegati";
 import {
@@ -301,6 +301,44 @@ export async function updateFascicolo(numero: string, patch: UpdateFascicoloInpu
  * per tenere un fascicolo concluso fuori dai filtri attivi restando
  * consultabile. Questa è la cancellazione vera e propria — irreversibile,
  * per questo l'interfaccia la protegge con una doppia conferma. */
+/**
+ * Costruisce (o, se già fatto, riporta) la matricola ASL completa di un
+ * fascicolo: "221" (fisso, identifica Medical Center) + il progressivo
+ * (assegnato una sola volta, mai più la seconda volta che si preme il
+ * pulsante) + il numero di autorizzazione così come scritto in Prescrizione
+ * + la data di autorizzazione in formato gg.mm.aaaa — esempio reale fornito:
+ * "221.5230.16/6203.64983.19.10.2026".
+ */
+const CODICE_MEDICAL_CENTER = "221";
+
+export async function generaMatricolaAsl(numero: string): Promise<FascicoloRecord> {
+  const fascicolo = await getFascicolo(numero);
+  if (!fascicolo) throw new Error(`Fascicolo ${numero} non trovato`);
+
+  const { prescrizione, produzione } = fascicolo.contenuto;
+  if (!prescrizione.praticaAsl) {
+    throw new Error('Spunta "Pratica autorizzata da ASL/SSN" in Prescrizione prima di generare la matricola.');
+  }
+  const autorizzazione = prescrizione.autorizzazioneAslNumero?.trim();
+  if (!autorizzazione) {
+    throw new Error("Inserisci il numero di autorizzazione ASL in Prescrizione prima di generare la matricola.");
+  }
+  if (!prescrizione.dataAutorizzazioneAsl) {
+    throw new Error("Inserisci la data di autorizzazione ASL in Prescrizione prima di generare la matricola.");
+  }
+  const [anno, mese, giorno] = prescrizione.dataAutorizzazioneAsl.split("-");
+  if (!anno || !mese || !giorno) {
+    throw new Error("Data di autorizzazione ASL non valida.");
+  }
+
+  const progressivo = produzione.matricolaAslProgressivo || (await nextMatricolaAslProgressivo());
+  const matricola = `${CODICE_MEDICAL_CENTER}.${progressivo}.${autorizzazione}.${giorno}.${mese}.${anno}`;
+
+  return updateFascicolo(numero, {
+    contenuto: { produzione: { ...produzione, matricolaAslProgressivo: progressivo, matricola } },
+  });
+}
+
 export async function deleteFascicolo(numero: string): Promise<void> {
   const fascicoli = await readFascicoli();
   const next = fascicoli.filter((f) => f.numero !== numero);

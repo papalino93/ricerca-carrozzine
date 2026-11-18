@@ -249,6 +249,10 @@ export function emptyFasiProduzione(): FaseProduzione[] {
 
 export interface ProduzioneData {
   matricola: string | null;
+  /** Solo la parte progressiva della matricola ASL (vedi
+   * counter.ts nextMatricolaAslProgressivo), assegnata una sola volta:
+   * generarla di nuovo non deve consumare un secondo numero. */
+  matricolaAslProgressivo: string | null;
   codice: string | null;
   /** Di norma il tecnico ortopedico responsabile (es. "T.O. Claudia Amulfi"),
    * distinto dall'operatore che segue materialmente la commessa. */
@@ -269,6 +273,7 @@ export interface ProduzioneData {
 export function emptyProduzione(): ProduzioneData {
   return {
     matricola: null,
+    matricolaAslProgressivo: null,
     codice: null,
     responsabileProgetto: "T.O. Claudia Amulfi",
     dataInizioLavori: null,

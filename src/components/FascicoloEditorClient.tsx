@@ -115,7 +115,7 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
   // corso: senza, un doppio click (o doppio tap su tablet) su "Genera
   // fascicolo e scarica PDF" incrementava la versione due volte e caricava
   // due PDF distinti su Drive per una singola azione dell'operatore.
-  const [azioneInCorso, setAzioneInCorso] = useState<null | "salva" | "anteprima" | "genera">(null);
+  const [azioneInCorso, setAzioneInCorso] = useState<null | "salva" | "anteprima" | "genera" | "matricola">(null);
   const [stampaMenuOpen, setStampaMenuOpen] = useState(false);
   const stampaMenuRef = useRef<HTMLDivElement>(null);
   const [dirty, setDirty] = useState(false);
@@ -498,6 +498,27 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
     if (!dirty) return true;
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
     return persist({ silent: true });
+  }
+
+  async function handleGeneraMatricolaAsl() {
+    if (azioneInCorso) return;
+    setAzioneInCorso("matricola");
+    try {
+      // La matricola si costruisce dal numero/data di autorizzazione appena
+      // scritti in Prescrizione: deve prima essere tutto salvato, altrimenti
+      // il server genererebbe la matricola su dati ormai superati.
+      const salvato = await assicuraSalvato();
+      if (!salvato) return;
+      const res = await fetch(`/api/fascicoli/${fascicolo.numero}/matricola-asl`, { method: "POST" });
+      const body = await readJson(res);
+      if (!res.ok) throw new Error(body.error || "Generazione della matricola non riuscita");
+      setFascicolo(body.fascicolo);
+      showToast("Matricola ASL generata");
+    } catch (err) {
+      showToast(networkErrorMessage(err));
+    } finally {
+      setAzioneInCorso(null);
+    }
   }
 
   async function handleAnteprima() {
@@ -1349,6 +1370,17 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
             <div className="form-grid">
               <Field label="Matricola">
                 <input value={c.produzione.matricola ?? ""} onChange={(e) => updateContenuto("produzione", { matricola: e.target.value || null })} />
+                {c.prescrizione.praticaAsl ? (
+                  <button
+                    type="button"
+                    className="btn"
+                    style={{ marginTop: 6 }}
+                    disabled={Boolean(azioneInCorso)}
+                    onClick={handleGeneraMatricolaAsl}
+                  >
+                    {azioneInCorso === "matricola" ? "Generazione…" : "Genera matricola ASL"}
+                  </button>
+                ) : null}
               </Field>
               <Field label="Codice">
                 <input value={c.produzione.codice ?? ""} onChange={(e) => updateContenuto("produzione", { codice: e.target.value || null })} />
