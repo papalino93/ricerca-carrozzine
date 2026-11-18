@@ -92,7 +92,7 @@ function toRow(f: FascicoloRecord): string[] {
   const json = JSON.stringify(f.contenuto);
   if (json.length > MAX_CONTENUTO_LENGTH) {
     throw new Error(
-      `Il fascicolo ${f.numero} contiene troppe note/testo libero: abbrevia i campi più lunghi prima di salvare.`
+      `La fascicolazione ${f.numero} contiene troppe note/testo libero: abbrevia i campi più lunghi prima di salvare.`
     );
   }
   return [
@@ -236,7 +236,7 @@ export interface UpdateFascicoloInput {
 export class FascicoloConflictError extends Error {
   constructor(numero: string) {
     super(
-      `Il fascicolo ${numero} è stato modificato nel frattempo (un'altra scheda aperta, o un altro operatore): ricarica la pagina prima di continuare, per non perdere quel salvataggio.`
+      `La fascicolazione ${numero} è stata modificata nel frattempo (un'altra scheda aperta, o un altro operatore): ricarica la pagina prima di continuare, per non perdere quel salvataggio.`
     );
     this.name = "FascicoloConflictError";
   }
@@ -245,7 +245,7 @@ export class FascicoloConflictError extends Error {
 export async function updateFascicolo(numero: string, patch: UpdateFascicoloInput): Promise<FascicoloRecord> {
   const fascicoli = await readFascicoli();
   const idx = fascicoli.findIndex((f) => f.numero === numero);
-  if (idx === -1) throw new Error(`Fascicolo ${numero} non trovato`);
+  if (idx === -1) throw new Error(`Fascicolazione ${numero} non trovata`);
 
   const prev = fascicoli[idx];
   if (patch.ifUltimaModifica != null && patch.ifUltimaModifica !== prev.ultimaModifica) {
@@ -313,7 +313,7 @@ const CODICE_MEDICAL_CENTER = "221";
 
 export async function generaMatricolaAsl(numero: string): Promise<FascicoloRecord> {
   const fascicolo = await getFascicolo(numero);
-  if (!fascicolo) throw new Error(`Fascicolo ${numero} non trovato`);
+  if (!fascicolo) throw new Error(`Fascicolazione ${numero} non trovata`);
 
   const { prescrizione, produzione } = fascicolo.contenuto;
   if (!prescrizione.praticaAsl) {
@@ -343,7 +343,7 @@ export async function deleteFascicolo(numero: string): Promise<void> {
   const fascicoli = await readFascicoli();
   const next = fascicoli.filter((f) => f.numero !== numero);
   if (next.length === fascicoli.length) {
-    throw new Error(`Fascicolo ${numero} non trovato`);
+    throw new Error(`Fascicolazione ${numero} non trovata`);
   }
   await writeSheet(TAB, [HEADER, ...next.map(toRow)]);
   try {

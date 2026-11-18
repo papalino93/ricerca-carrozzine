@@ -36,7 +36,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ num
   try {
     const { numero } = await params;
     if (!(await getFascicolo(numero))) {
-      return NextResponse.json({ error: `Fascicolo ${numero} non trovato` }, { status: 404 });
+      return NextResponse.json({ error: `Fascicolazione ${numero} non trovata` }, { status: 404 });
     }
 
     const form = await req.formData();

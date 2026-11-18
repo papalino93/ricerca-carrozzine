@@ -20,7 +20,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ nume
     const { numero } = await params;
     const fascicolo = await getFascicolo(numero);
     if (!fascicolo) {
-      return NextResponse.json({ error: `Fascicolo ${numero} non trovato` }, { status: 404 });
+      return NextResponse.json({ error: `Fascicolazione ${numero} non trovata` }, { status: 404 });
     }
     const settings = await getSettings();
     const buffer = await renderToBuffer(<ProcessoProduttivoDocument settings={settings} fascicolo={fascicolo} />);

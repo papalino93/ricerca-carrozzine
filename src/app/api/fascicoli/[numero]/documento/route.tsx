@@ -58,7 +58,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ nume
 
     let fascicolo = await getFascicolo(numero);
     if (!fascicolo) {
-      return NextResponse.json({ error: `Fascicolo ${numero} non trovato` }, { status: 404 });
+      return NextResponse.json({ error: `Fascicolazione ${numero} non trovata` }, { status: 404 });
     }
     if (finalizza) {
       fascicolo = await updateFascicolo(numero, { incrementaVersione: true });

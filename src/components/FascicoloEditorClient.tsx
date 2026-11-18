@@ -789,7 +789,7 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
             </div>
             <p className="hint">
               Questi dati sono quelli dell&apos;anagrafica clienti: modificarli qui li aggiorna ovunque, non solo su
-              questo fascicolo. Nella scheda cliente trovi anche lo storico noleggi e gli altri eventuali fascicoli.
+              questa fascicolazione. Nella scheda cliente trovi anche lo storico noleggi e le altre eventuali fascicolazioni.
             </p>
             <div className="form-grid">
               <Field label="Codice fiscale">
@@ -951,7 +951,7 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
               />
             </Field>
             <p className="hint" style={{ marginTop: 10 }}>
-              La firma resta su carta dopo la stampa del fascicolo: la firma digitale sullo schermo è predisposta nel
+              La firma resta su carta dopo la stampa della fascicolazione: la firma digitale sullo schermo è predisposta nel
               sistema ma non ancora attiva.
             </p>
           </>
@@ -1282,7 +1282,7 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
             </h3>
             <p className="hint" style={{ marginBottom: 10 }}>
               Prescrizione medica, autorizzazione ASL o altra documentazione: immagini o PDF. Finiscono nella stampa
-              interna completa del fascicolo, non negli altri tipi di stampa.
+              interna completa della fascicolazione, non negli altri tipi di stampa.
               {!driveConfigured ? " Google Drive non è configurato: puoi caricare solo immagini, non PDF." : ""}
             </p>
             {allegatoError ? (
@@ -1535,7 +1535,7 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente, commes
 
             <p className="hint" style={{ marginTop: 12 }}>
               Le note informative, le istruzioni per l&apos;uso e la garanzia sono un testo standard, uguale per ogni
-              fascicolo: compaiono automaticamente nel PDF, non c&apos;è nulla da scrivere qui.
+              fascicolazione: compaiono automaticamente nel PDF, non c&apos;è nulla da scrivere qui.
             </p>
           </>
         ) : null}
