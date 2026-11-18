@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireBasicAuth } from "@/lib/basic-auth";
-import { readSessionToken, SESSION_COOKIE } from "@/lib/session";
+import { requireBasicAuth, safeEqual } from "@/lib/basic-auth";
+import { accountStillExists } from "@/lib/users";
+import { createSessionToken, needsRevalidation, readSessionToken, SESSION_COOKIE, SESSION_MAX_AGE } from "@/lib/session";
 
 const SITE_URL = "https://medical-center-scandicci.vercel.app";
 const TITLE = "Medical Center";
@@ -56,7 +57,10 @@ export default async function proxy(req: NextRequest) {
   // sempre 401 prima ancora di arrivare al gestore.
   if (req.nextUrl.pathname === "/api/backup") {
     const cronSecret = process.env.CRON_SECRET;
-    if (cronSecret && req.headers.get("authorization") === `Bearer ${cronSecret}`) {
+    // safeEqual (stessa usata in basic-auth.ts per le credenziali
+    // d'ambiente), non "===": CRON_SECRET è un segreto di lunga durata come
+    // le altre, con la stessa esposizione a un confronto non a tempo costante.
+    if (cronSecret && safeEqual(req.headers.get("authorization") ?? "", `Bearer ${cronSecret}`)) {
       return NextResponse.next();
     }
     return NextResponse.json({ error: "Accesso non autorizzato" }, { status: 401 });
@@ -85,25 +89,69 @@ export default async function proxy(req: NextRequest) {
     req.nextUrl.pathname.startsWith("/api/auth/recovery/");
   if (isLoginRoute) return NextResponse.next();
 
-  if (readSessionToken(req.cookies.get(SESSION_COOKIE)?.value)) {
-    return NextResponse.next();
+  // Il token è autoconsistente (username + scadenza, firmato): valido non
+  // vuol dire "l'account esiste ancora davvero". Senza ricontrollarlo mai,
+  // rimuovere un utente o revocare un accesso non aveva alcun effetto sulle
+  // sessioni già aperte fino alla scadenza naturale (fino a 12 ore). Non lo
+  // si ricontrolla ad OGNI richiesta — sarebbe una chiamata a Google Sheets
+  // su ogni pagina, immagine e chiamata API di chiunque stia lavorando — ma
+  // solo ogni SESSION_REVALIDATE_MS di attività (vedi needsRevalidation).
+  let sessionRevocata = false;
+  const sessionPayload = readSessionToken(req.cookies.get(SESSION_COOKIE)?.value);
+  if (sessionPayload) {
+    if (!needsRevalidation(sessionPayload)) {
+      return NextResponse.next();
+    }
+    try {
+      if (await accountStillExists(sessionPayload.username)) {
+        // Token rinnovato con un nuovo "verificato il": la prossima
+        // rivalidazione sarà tra SESSION_REVALIDATE_MS, non alla
+        // richiesta successiva.
+        const res = NextResponse.next();
+        res.cookies.set(SESSION_COOKIE, createSessionToken(sessionPayload.username), {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+          path: "/",
+          maxAge: SESSION_MAX_AGE,
+        });
+        return res;
+      }
+      sessionRevocata = true;
+    } catch {
+      // Google Sheets non raggiungibile in questo momento: non è motivo per
+      // disconnettere chi sta già lavorando. Il token non viene rinnovato,
+      // quindi resta "da rivalidare" e si riprova alla prossima richiesta
+      // utile, non fra 12 ore.
+      return NextResponse.next();
+    }
   }
 
   // Compatibilità per integrazioni o postazioni che inviano già
   // Authorization: Basic. In assenza dell'header non restituiamo più 401
   // con WWW-Authenticate, quindi il browser non apre la vecchia finestrella.
+  //
+  // trustSessionCookie: false — se siamo arrivati fin qui è perché sopra
+  // NON c'era una sessione valida da rivalidare (nessun cookie, oppure
+  // l'account risulta revocato): requireBasicAuth rileggerebbe altrimenti
+  // lo stesso cookie di sessione e lo considererebbe comunque valido,
+  // riammettendo un account appena revocato attraverso questo ramo.
   if (req.headers.get("authorization")?.startsWith("Basic ")) {
-    const unauthorized = await requireBasicAuth(req);
+    const unauthorized = await requireBasicAuth(req, { trustSessionCookie: false });
     if (!unauthorized) return NextResponse.next();
   }
 
   if (req.nextUrl.pathname.startsWith("/api/")) {
-    return NextResponse.json({ error: "Sessione scaduta: accedi di nuovo." }, { status: 401 });
+    const res = NextResponse.json({ error: "Sessione scaduta: accedi di nuovo." }, { status: 401 });
+    if (sessionRevocata) res.cookies.delete(SESSION_COOKIE);
+    return res;
   }
 
   const loginUrl = new URL("/login", req.url);
   loginUrl.searchParams.set("next", `${req.nextUrl.pathname}${req.nextUrl.search}`);
-  return NextResponse.redirect(loginUrl);
+  const res = NextResponse.redirect(loginUrl);
+  if (sessionRevocata) res.cookies.delete(SESSION_COOKIE);
+  return res;
 }
 
 // Il matcher deve essere una stringa statica (Next.js lo analizza a

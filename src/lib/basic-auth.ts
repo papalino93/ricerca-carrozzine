@@ -7,8 +7,11 @@ import { readSessionToken, SESSION_COOKIE } from "./session";
 const REALM = "Area amministrazione";
 
 /** Confronto a tempo costante, per non far filtrare la lunghezza corretta
- * delle credenziali d'ambiente tramite il tempo di risposta. */
-function safeEqual(a: string, b: string): boolean {
+ * delle credenziali d'ambiente tramite il tempo di risposta. Esportata
+ * perché serve anche fuori da questo file (vedi api/backup/route.ts, che
+ * confronta CRON_SECRET — un segreto di lunga durata come le credenziali
+ * qui sopra, con la stessa esposizione a un confronto "===" non costante). */
+export function safeEqual(a: string, b: string): boolean {
   const ah = createHash("sha256").update(a).digest();
   const bh = createHash("sha256").update(b).digest();
   return timingSafeEqual(ah, bh);
@@ -28,6 +31,12 @@ function safeEqual(a: string, b: string): boolean {
 const CACHE_OK_MS = 300_000;
 const CACHE_NO_MS = 30_000;
 let cache: { key: string; ok: boolean; expires: number } | null = null;
+
+/** Ultimo esito CONFERMATO (non da un fallback) di "esiste un override sul
+ * foglio per l'account d'ambiente?", per lo stesso account d'ambiente.
+ * Serve solo al ramo qui sotto quando Google non risponde: vedi commento
+ * lì per il motivo. */
+let envOverrideCache: { username: string; overridePresente: boolean; expires: number } | null = null;
 
 /** Esito della verifica. "verifica-fallita" non è un rifiuto: vuol dire che
  * non è stato possibile controllare — Google Sheets non ha risposto — e va
@@ -60,16 +69,28 @@ export async function verifyCredentials(username: string, password: string): Pro
   const envUser = process.env.ADMIN_USER;
   const envPass = process.env.ADMIN_PASSWORD;
   if (envUser && envPass && safeEqual(username.toLowerCase(), envUser.toLowerCase())) {
+    const usernameKey = username.toLowerCase();
     try {
       const sheetState = await verifySheetCredentialState(username, password);
       // Un account omonimo nel foglio è l'override creato dal recupero: la
       // vecchia password d'ambiente non deve continuare a funzionare.
+      envOverrideCache = { username: usernameKey, overridePresente: sheetState !== "absent", expires: Date.now() + CACHE_OK_MS };
       if (sheetState === "valid") return "ok";
       if (sheetState === "invalid") return "negato";
     } catch {
-      // L'account d'ambiente resta la rete di sicurezza se Google non è
-      // raggiungibile e non è possibile controllare l'eventuale override.
-      return safeEqual(password, envPass) ? "ok" : "verifica-fallita";
+      // Se un controllo recente ha confermato che NON esiste un override
+      // (il caso comune, nessun recupero è mai stato fatto), l'account
+      // d'ambiente resta la rete di sicurezza quando Google non risponde.
+      // Ma se l'ultimo controllo ha trovato un override (qualcuno ha
+      // recuperato l'accesso proprio per revocare questa password) — o non
+      // sappiamo nulla perché non è mai stato possibile controllare — un
+      // intoppo di Google non deve far accettare una password che potrebbe
+      // essere esattamente quella appena revocata.
+      const cached = envOverrideCache;
+      if (cached && cached.username === usernameKey && cached.expires > Date.now() && !cached.overridePresente) {
+        return safeEqual(password, envPass) ? "ok" : "verifica-fallita";
+      }
+      return "verifica-fallita";
     }
     return safeEqual(password, envPass) ? "ok" : "negato";
   }
@@ -115,12 +136,22 @@ async function isAuthorized(req: NextRequest): Promise<EsitoAuth> {
  * richiede le credenziali facendo credere che siano da rifare, e senza
  * cache, quindi al ricaricamento successivo si entra.
  */
-export async function requireBasicAuth(req: NextRequest): Promise<NextResponse | null> {
+export async function requireBasicAuth(
+  req: NextRequest,
+  options?: { trustSessionCookie?: boolean }
+): Promise<NextResponse | null> {
   // Le rotte API storiche chiamano ancora questo helper direttamente. Una
   // sessione valida deve quindi essere riconosciuta anche qui, non soltanto
   // dal proxy, altrimenti l'interfaccia si apre ma le operazioni vengono
   // respinte subito dopo il nuovo login.
-  if (readSessionToken(req.cookies.get(SESSION_COOKIE)?.value)) return null;
+  //
+  // trustSessionCookie: false disattiva questa scorciatoia — usato dal
+  // proxy quando ha già accertato che la sessione va rifiutata (account
+  // revocato dopo la rivalidazione periodica): senza questo, il ramo di
+  // compatibilità Basic Auth del proxy rileggerebbe lo stesso cookie qui
+  // sotto e lo considererebbe comunque valido, vanificando la rivalidazione.
+  const trustSessionCookie = options?.trustSessionCookie ?? true;
+  if (trustSessionCookie && readSessionToken(req.cookies.get(SESSION_COOKIE)?.value)) return null;
 
   const esito = await isAuthorized(req);
   if (esito === "ok") return null;

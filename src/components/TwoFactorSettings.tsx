@@ -23,6 +23,16 @@ export function TwoFactorSettings({ initialEnabled }: TwoFactorSettingsProps) {
   const [confirmCode, setConfirmCode] = useState("");
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [disablePassword, setDisablePassword] = useState("");
+  const [copiedBackupCodes, setCopiedBackupCodes] = useState(false);
+
+  async function copyBackupCodes() {
+    try {
+      await navigator.clipboard.writeText(backupCodes.join("\n"));
+      setCopiedBackupCodes(true);
+    } catch {
+      setError("Non è stato possibile copiare i codici. Selezionali e copiali manualmente.");
+    }
+  }
 
   async function startReconfigure() {
     if (
@@ -69,6 +79,7 @@ export function TwoFactorSettings({ initialEnabled }: TwoFactorSettingsProps) {
       const body = await readJson(res);
       if (!res.ok) throw new Error(body.error || "Codice non valido");
       setBackupCodes(body.backupCodes);
+      setCopiedBackupCodes(false);
       setEnabled(true);
       setStage("backup-codes");
     } catch (err) {
@@ -191,16 +202,19 @@ export function TwoFactorSettings({ initialEnabled }: TwoFactorSettingsProps) {
 
       {stage === "backup-codes" ? (
         <div>
-          <p className="hint" style={{ marginBottom: 10 }}>
+          <p className="hint two-factor-backup-intro">
             2FA attivato. Salva questi codici di recupero in un posto sicuro: ognuno funziona una
             sola volta e serve se perdi il telefono. Non saranno mostrati di nuovo.
           </p>
-          <ul style={{ fontFamily: "monospace", fontSize: 15, lineHeight: 1.8 }}>
+          <ul className="two-factor-backup-codes" aria-label="Codici di recupero">
             {backupCodes.map((c) => (
               <li key={c}>{c}</li>
             ))}
           </ul>
           <div className="card-actions">
+            <button className="btn" type="button" onClick={copyBackupCodes}>
+              {copiedBackupCodes ? "Codici copiati" : "Copia codici"}
+            </button>
             <button className="btn primary" type="button" onClick={() => setStage("status")}>
               Ho salvato i codici
             </button>

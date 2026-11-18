@@ -34,13 +34,32 @@ function registerFailedAttempt(key: string): void {
   }
 }
 
+// Senza pulizia, ogni username che abbia mai sbagliato un codice
+// resterebbe per sempre in memoria per tutta la vita dell'istanza: una
+// voce scaduta non blocca più nessuno (tooManyAttempts la ignora già), va
+// solo tolta.
+function sweepAttempts(): void {
+  const now = Date.now();
+  for (const [key, entry] of attempts) {
+    if (entry.resetAt <= now) attempts.delete(key);
+  }
+}
+
 export async function POST(req: NextRequest) {
+  sweepAttempts();
   const pending = readPendingTwoFactorToken(req.cookies.get(PENDING_2FA_COOKIE)?.value);
   if (!pending) {
     return NextResponse.json({ error: "Sessione di accesso scaduta: rifai il login." }, { status: 401 });
   }
 
-  if (tooManyAttempts(pending.username)) {
+  // Chiave in minuscolo: la verifica di credenziali/codice è case-insensitive
+  // (vedi verifyTwoFactorCode/verifySheetCredentialState), ma lo username nel
+  // cookie mantiene la scrittura esatta digitata al login. Usare quella
+  // com'è renderebbe il limite di tentativi aggirabile provando varianti di
+  // maiuscole/minuscole dello stesso account, ognuna con il proprio contatore.
+  const throttleKey = pending.username.toLowerCase();
+
+  if (tooManyAttempts(throttleKey)) {
     return NextResponse.json(
       { error: "Troppi tentativi: rifai il login e riprova tra qualche minuto." },
       { status: 429 }
@@ -70,10 +89,10 @@ export async function POST(req: NextRequest) {
   }
 
   if (!valid) {
-    registerFailedAttempt(pending.username);
+    registerFailedAttempt(throttleKey);
     return NextResponse.json({ error: "Codice non valido" }, { status: 401 });
   }
-  attempts.delete(pending.username);
+  attempts.delete(throttleKey);
 
   const response = NextResponse.json({ ok: true });
   response.cookies.set(SESSION_COOKIE, createSessionToken(pending.username), {

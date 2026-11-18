@@ -6,25 +6,35 @@ import Link from "next/link";
 import type { ClientRecord } from "@/lib/clients";
 import {
   calcolaCompletamento,
+  deriveStatoAttivo,
   FASCICOLO_STATO_LABEL,
-  FASCICOLO_STATO_OPTIONS,
+  MAX_ALLEGATI_PER_FASCICOLO,
   SEZIONI_FASCICOLO,
   type EsamePiedeLato,
   type FascicoloContenuto,
   type FascicoloRecord,
-  type FascicoloStato,
+  type FaseProduzione,
   type SezioneFascicolo,
+  type VisitaControllo,
 } from "@/lib/fascicoli-types";
+import { CODICE_FISCALE_LUNGHEZZA, codiceFiscaleAvviso } from "@/lib/codice-fiscale";
+import type { FascicoloAllegatoMeta } from "@/lib/fascicoli-allegati";
 import { networkErrorMessage, readJson } from "@/lib/fetch-json";
 import { IconAnteprima, IconSalva, IconScarica, IconStampa } from "./ReceptionIcons";
 import { Toast } from "./Toast";
+import { AutocompleteInput } from "./AutocompleteInput";
 
 interface FascicoloEditorClientProps {
   initialFascicolo: FascicoloRecord;
   initialCliente: ClientRecord;
+  /** Numeri commessa già aperti in Amministrazione → Commesse, per
+   * l'autocompletamento: il fascicolo può comunque restare abbinato a un
+   * testo libero se la commessa non è (ancora) stata aperta lì. */
+  commesse: { numero: string; cliente: string }[];
 }
 
 type SaveState = "idle" | "saving" | "saved" | "error";
+type TipoStampa = "interna" | "cliente" | "conformita" | "controllo";
 
 const AUTOSAVE_DELAY_MS = 1500;
 
@@ -95,7 +105,7 @@ function CheckLine({ checked, label, onChange }: { checked: boolean; label: stri
 
 const DITA_OPTIONS = [1, 2, 3, 4, 5];
 
-export function FascicoloEditorClient({ initialFascicolo, initialCliente }: FascicoloEditorClientProps) {
+export function FascicoloEditorClient({ initialFascicolo, initialCliente, commesse }: FascicoloEditorClientProps) {
   const router = useRouter();
   const [fascicolo, setFascicolo] = useState(initialFascicolo);
   const [cliente, setCliente] = useState(initialCliente);
@@ -106,6 +116,8 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
   // fascicolo e scarica PDF" incrementava la versione due volte e caricava
   // due PDF distinti su Drive per una singola azione dell'operatore.
   const [azioneInCorso, setAzioneInCorso] = useState<null | "salva" | "anteprima" | "genera">(null);
+  const [stampaMenuOpen, setStampaMenuOpen] = useState(false);
+  const stampaMenuRef = useRef<HTMLDivElement>(null);
   const [dirty, setDirty] = useState(false);
   const [clienteDirty, setClienteDirty] = useState(false);
   const [clienteSaving, setClienteSaving] = useState(false);
@@ -115,6 +127,16 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [allegati, setAllegati] = useState<FascicoloAllegatoMeta[]>([]);
+  const [allegatoEtichetta, setAllegatoEtichetta] = useState("");
+  const [uploadingAllegato, setUploadingAllegato] = useState(false);
+  const [allegatoError, setAllegatoError] = useState<string | null>(null);
+  // Sapere PRIMA di un caricamento se Drive è configurato per i PDF (vedi
+  // drive.ts, isFascicoliDriveConfigured) evita che l'unico avviso sia un
+  // banner rosso dopo un tentativo fallito: qui si mostra subito un
+  // suggerimento neutro (le immagini funzionano comunque, solo i PDF
+  // richiedono Drive).
+  const [driveConfigured, setDriveConfigured] = useState(true);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fascicoloRef = useRef(fascicolo);
@@ -122,6 +144,71 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
   useEffect(() => {
     fascicoloRef.current = fascicolo;
   }, [fascicolo]);
+
+  useEffect(() => {
+    if (!stampaMenuOpen) return;
+    function onDocMouseDown(e: MouseEvent) {
+      if (stampaMenuRef.current && !stampaMenuRef.current.contains(e.target as Node)) {
+        setStampaMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onDocMouseDown);
+    return () => document.removeEventListener("mousedown", onDocMouseDown);
+  }, [stampaMenuOpen]);
+
+  useEffect(() => {
+    fetch(`/api/fascicoli/${initialFascicolo.numero}/allegati`)
+      .then((res) => readJson(res))
+      .then((body) => setAllegati(body.allegati ?? []))
+      .catch(() => {});
+  }, [initialFascicolo.numero]);
+
+  useEffect(() => {
+    fetch("/api/drive-status")
+      .then((res) => res.json())
+      .then((body) => setDriveConfigured(Boolean(body.fascicoliConfigurato)))
+      .catch(() => setDriveConfigured(true));
+  }, []);
+
+  async function handleAllegatoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploadingAllegato(true);
+    setAllegatoError(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("etichetta", allegatoEtichetta);
+      const res = await fetch(`/api/fascicoli/${fascicolo.numero}/allegati`, { method: "POST", body: fd });
+      const body = await readJson(res);
+      if (!res.ok) throw new Error(body.error || "Caricamento allegato non riuscito");
+      setAllegati(body.allegati);
+      setAllegatoEtichetta("");
+    } catch (err) {
+      setAllegatoError(networkErrorMessage(err));
+    } finally {
+      setUploadingAllegato(false);
+    }
+  }
+
+  async function handleAllegatoRemove(id: string) {
+    setUploadingAllegato(true);
+    setAllegatoError(null);
+    try {
+      const res = await fetch(
+        `/api/fascicoli/${fascicolo.numero}/allegati?id=${encodeURIComponent(id)}`,
+        { method: "DELETE" }
+      );
+      const body = await readJson(res);
+      if (!res.ok) throw new Error(body.error || "Rimozione allegato non riuscita");
+      setAllegati(body.allegati);
+    } catch (err) {
+      setAllegatoError(networkErrorMessage(err));
+    } finally {
+      setUploadingAllegato(false);
+    }
+  }
 
   function showToast(msg: string) {
     setToast(msg);
@@ -159,7 +246,13 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          stato: current.stato,
+          // Lo stato non si manda più scelto a mano: il server lo
+          // ricalcola sempre dal contenuto (vedi deriveStatoAttivo in
+          // fascicoli-types.ts). L'unica leva che resta lato client è
+          // l'archiviazione, esplicita e "sticky" — qui si riconferma
+          // sempre quella già nota, il pulsante Archivia/Riattiva la
+          // cambia aggiornando prima lo stato locale (vedi handleToggleArchiviato).
+          archiviato: current.stato === "archiviato",
           commessa: current.commessa,
           tipoDispositivo: current.tipoDispositivo,
           operatore: current.operatore,
@@ -241,8 +334,23 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
     };
   }, []);
 
-  function updateTop(patch: Partial<Pick<FascicoloRecord, "stato" | "commessa" | "tipoDispositivo" | "operatore">>) {
+  function updateTop(patch: Partial<Pick<FascicoloRecord, "commessa" | "tipoDispositivo" | "operatore">>) {
     setFascicolo((prev) => ({ ...prev, ...patch }));
+    scheduleAutosave();
+  }
+
+  // Lo stato non si sceglie più a mano: si ricalcola dal contenuto
+  // (deriveStatoAttivo, la stessa funzione usata dal server — vedi
+  // fascicoli.ts) e resta sempre coerente con le sezioni compilate. Resta
+  // manuale solo l'archiviazione, una decisione dell'operatore non
+  // deducibile da nessun dato: qui si aggiorna subito lo stato locale
+  // (per un riscontro immediato) e si passa dall'autosave come ogni altro
+  // campo, che invierà "archiviato: true/false" nel prossimo salvataggio.
+  function handleToggleArchiviato() {
+    setFascicolo((prev) => ({
+      ...prev,
+      stato: prev.stato === "archiviato" ? deriveStatoAttivo(prev) : "archiviato",
+    }));
     scheduleAutosave();
   }
 
@@ -254,10 +362,125 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
     scheduleAutosave();
   }
 
-  function updateLato(lato: "sinistro" | "destro", patch: Partial<EsamePiedeLato>) {
-    updateContenuto("esamePiede", {
-      [lato]: { ...fascicolo.contenuto.esamePiede[lato], ...patch },
-    } as Partial<FascicoloContenuto["esamePiede"]>);
+  // Le tre funzioni qui sotto aggiornano un oggetto ANNIDATO dentro
+  // "esamePiede" (un piede, la destinazione d'uso, la calzatura di
+  // collegamento) leggendo lo stato PIÙ RECENTE via setFascicolo, non un
+  // valore catturato dalla chiusura del render: due campi diversi dello
+  // stesso oggetto annidato toccati in rapida successione (es. due
+  // checkbox della stessa calzatura) partivano altrimenti dallo stesso
+  // valore di partenza, e l'ultimo a scrivere cancellava l'altro — stessa
+  // corsa critica già vista e risolta per le fasi di lavorazione.
+  // Il patch può anche essere una funzione: serve per i campi doppiamente
+  // annidati (tallone, ulcerazioni), il cui aggiornamento parte a sua volta
+  // dal valore del sotto-oggetto — passando una funzione lo si legge dallo
+  // stato più recente al momento dell'aggiornamento, non da quello
+  // catturato al render, altrimenti la stessa corsa critica si sposta solo
+  // di un livello più sotto.
+  function updateLato(
+    lato: "sinistro" | "destro",
+    patch: Partial<EsamePiedeLato> | ((prevLato: EsamePiedeLato) => Partial<EsamePiedeLato>)
+  ) {
+    setFascicolo((prev) => {
+      const prevLato = prev.contenuto.esamePiede[lato];
+      const resolved = typeof patch === "function" ? patch(prevLato) : patch;
+      return {
+        ...prev,
+        contenuto: {
+          ...prev.contenuto,
+          esamePiede: {
+            ...prev.contenuto.esamePiede,
+            [lato]: { ...prevLato, ...resolved },
+          },
+        },
+      };
+    });
+    scheduleAutosave();
+  }
+
+  function updateDestinazioneUso(patch: Partial<FascicoloContenuto["esamePiede"]["destinazioneUso"]>) {
+    setFascicolo((prev) => ({
+      ...prev,
+      contenuto: {
+        ...prev.contenuto,
+        esamePiede: {
+          ...prev.contenuto.esamePiede,
+          destinazioneUso: { ...prev.contenuto.esamePiede.destinazioneUso, ...patch },
+        },
+      },
+    }));
+    scheduleAutosave();
+  }
+
+  function updateCalzaturaCollegamento(patch: Partial<FascicoloContenuto["esamePiede"]["calzaturaCollegamento"]>) {
+    setFascicolo((prev) => ({
+      ...prev,
+      contenuto: {
+        ...prev.contenuto,
+        esamePiede: {
+          ...prev.contenuto.esamePiede,
+          calzaturaCollegamento: { ...prev.contenuto.esamePiede.calzaturaCollegamento, ...patch },
+        },
+      },
+    }));
+    scheduleAutosave();
+  }
+
+  // Data ordine, data privacy, data inizio lavori e data 1° appuntamento
+  // coincidono quasi sempre nella pratica reale: la prima che viene
+  // compilata si ripropone automaticamente in quelle ancora vuote, così non
+  // va reinserita a mano su ogni tab. Restano indipendenti la data di
+  // prescrizione medica (arriva spesso in un giorno diverso dall'ordine) e
+  // le date rivolte in avanti (consegna prevista/effettiva, follow-up,
+  // visite di controllo).
+  function updateDataSincronizzata(
+    value: string | null,
+    campo: "dataOrdine" | "dataConsenso" | "dataInizioLavori" | "dataPrimoAppuntamento"
+  ) {
+    setFascicolo((prev) => {
+      const cc = prev.contenuto;
+      const valori = {
+        dataOrdine: cc.prescrizione.dataOrdine,
+        dataConsenso: cc.consensi.dataConsenso,
+        dataInizioLavori: cc.produzione.dataInizioLavori,
+        dataPrimoAppuntamento: cc.consegna.dataPrimoAppuntamento,
+      };
+      valori[campo] = value;
+      if (value) {
+        for (const k of Object.keys(valori) as (keyof typeof valori)[]) {
+          if (k !== campo && !valori[k]) valori[k] = value;
+        }
+      }
+      return {
+        ...prev,
+        contenuto: {
+          ...cc,
+          prescrizione: { ...cc.prescrizione, dataOrdine: valori.dataOrdine },
+          consensi: { ...cc.consensi, dataConsenso: valori.dataConsenso },
+          produzione: { ...cc.produzione, dataInizioLavori: valori.dataInizioLavori },
+          consegna: { ...cc.consegna, dataPrimoAppuntamento: valori.dataPrimoAppuntamento },
+        },
+      };
+    });
+    scheduleAutosave();
+  }
+
+  // Aggiorna una singola fase leggendo lo stato PIÙ RECENTE (funzione di
+  // aggiornamento, non la "c" catturata dalla chiusura del render): due
+  // checkbox diverse spuntate a distanza ravvicinata (doppio tap, tastiera)
+  // partivano altrimenti dalla stessa "fasi" di partenza, e l'ultima a
+  // scrivere sovrascriveva silenziosamente la modifica dell'altra.
+  function updateFase(numero: number, patch: Partial<FaseProduzione>) {
+    setFascicolo((prev) => ({
+      ...prev,
+      contenuto: {
+        ...prev.contenuto,
+        produzione: {
+          ...prev.contenuto.produzione,
+          fasi: prev.contenuto.produzione.fasi.map((f) => (f.numero === numero ? { ...f, ...patch } : f)),
+        },
+      },
+    }));
+    scheduleAutosave();
   }
 
   async function handleSalva() {
@@ -289,19 +512,35 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
     }
   }
 
-  // Finalizza (incrementa la versione, archivia su Drive se configurato) e
-  // scarica: prima erano due pulsanti separati ("Genera fascicolo" apriva
-  // inline, "Scarica PDF" scaricava) che facevano esattamente la stessa
-  // cosa lato dati — unificati per non lasciar credere che siano due azioni
-  // diverse.
-  async function handleGeneraEScarica() {
+  // Le quattro stampe possibili, scelte da un menu invece di un solo
+  // pulsante: solo "interna" finalizza davvero (incrementa la versione,
+  // archivia su Drive se configurato) — le altre tre sono libere come
+  // "Anteprima", pensate per essere ristampate quante volte serve senza
+  // lasciare traccia sul fascicolo.
+  const STAMPA_OPTIONS: { key: TipoStampa; label: string; sub: string }[] = [
+    { key: "interna", label: "Stampa interna fascicolo", sub: "Tutto il fascicolo, per l'archivio" },
+    { key: "cliente", label: "Stampa cliente — primo appuntamento", sub: "Anagrafica, privacy, condizioni, prezzo" },
+    { key: "conformita", label: "Stampa cliente — consegna plantari", sub: "Conformità, libretto d'uso, avvenuta consegna" },
+    { key: "controllo", label: "Stampa visita di controllo", sub: "Riepilogo delle visite registrate" },
+  ];
+
+  async function handleStampa(tipo: TipoStampa) {
     if (azioneInCorso) return;
+    setStampaMenuOpen(false);
     setAzioneInCorso("genera");
     try {
       const ok = await assicuraSalvato();
       if (!ok) return;
-      window.open(`/api/fascicoli/${fascicolo.numero}/documento?finalizza=1`, "_blank");
-      showToast("PDF generato");
+      const url =
+        tipo === "interna"
+          ? `/api/fascicoli/${fascicolo.numero}/documento?finalizza=1`
+          : tipo === "cliente"
+            ? `/api/fascicoli/${fascicolo.numero}/stampa-cliente`
+            : tipo === "conformita"
+              ? `/api/fascicoli/${fascicolo.numero}/dichiarazione-conformita`
+              : `/api/fascicoli/${fascicolo.numero}/visite-controllo`;
+      window.open(url, "_blank");
+      showToast(tipo === "interna" ? "PDF generato" : "PDF pronto");
     } finally {
       setAzioneInCorso(null);
     }
@@ -361,6 +600,52 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
     }
   }
 
+  // Visite di controllo: numero libero (1ª, 2ª, 3ª...), aggiunte quando
+  // servono davvero, non un numero fisso deciso in partenza.
+  function addVisita() {
+    setFascicolo((prev) => {
+      const visite = prev.contenuto.consegna.visiteControllo;
+      const numero = visite.length > 0 ? Math.max(...visite.map((v) => v.numero)) + 1 : 1;
+      const nuova: VisitaControllo = { numero, data: new Date().toISOString().slice(0, 10), nota: null };
+      return {
+        ...prev,
+        contenuto: {
+          ...prev.contenuto,
+          consegna: { ...prev.contenuto.consegna, visiteControllo: [...visite, nuova] },
+        },
+      };
+    });
+    scheduleAutosave();
+  }
+
+  function updateVisita(numero: number, patch: Partial<VisitaControllo>) {
+    setFascicolo((prev) => ({
+      ...prev,
+      contenuto: {
+        ...prev.contenuto,
+        consegna: {
+          ...prev.contenuto.consegna,
+          visiteControllo: prev.contenuto.consegna.visiteControllo.map((v) => (v.numero === numero ? { ...v, ...patch } : v)),
+        },
+      },
+    }));
+    scheduleAutosave();
+  }
+
+  function removeVisita(numero: number) {
+    setFascicolo((prev) => ({
+      ...prev,
+      contenuto: {
+        ...prev.contenuto,
+        consegna: {
+          ...prev.contenuto.consegna,
+          visiteControllo: prev.contenuto.consegna.visiteControllo.filter((v) => v.numero !== numero),
+        },
+      },
+    }));
+    scheduleAutosave();
+  }
+
   const c = fascicolo.contenuto;
   // "Sezione successiva": la scheda ha 8 tab e alcune (Esame del piede,
   // Produzione) sono lunghe da scorrere. Senza questo, passare alla
@@ -380,19 +665,20 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
         <div className="page-header-text">
           <div className="page-title-row">
             <h1>{fascicolo.numero}</h1>
-            <select
-              value={fascicolo.stato}
-              onChange={(e) => updateTop({ stato: e.target.value as FascicoloStato })}
-              style={{ maxWidth: 220 }}
+            <span
+              className={`pill fascicolo-${fascicolo.stato}`}
+              title="Calcolato automaticamente in base ai dati compilati nelle sezioni sottostanti"
             >
-              {FASCICOLO_STATO_OPTIONS.map((o) => (
-                <option key={o.key} value={o.key}>
-                  {FASCICOLO_STATO_LABEL[o.key]}
-                </option>
-              ))}
-            </select>
+              {FASCICOLO_STATO_LABEL[fascicolo.stato]}
+            </span>
+            <button type="button" className="btn ghost" onClick={handleToggleArchiviato}>
+              {fascicolo.stato === "archiviato" ? "Riattiva" : "Archivia"}
+            </button>
           </div>
           <p className="sub">{fascicolo.clienteNome}</p>
+          <p className="hint" style={{ marginTop: 2 }}>
+            Lo stato si aggiorna da solo mano a mano che le sezioni vengono compilate.
+          </p>
         </div>
         <div className="fascicolo-savestate-wrap">
           {saveLabel[saveState].text ? (
@@ -410,28 +696,42 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
             <span className="btn-icon"><IconSalva /></span> Salva
           </button>
           <button type="button" className="btn" onClick={handleAnteprima} disabled={Boolean(azioneInCorso)}>
-            <span className="btn-icon"><IconAnteprima /></span> Anteprima / Stampa
+            <span className="btn-icon"><IconAnteprima /></span> Anteprima interna
           </button>
-          <button
-            type="button"
-            className="btn primary"
-            onClick={handleGeneraEScarica}
-            disabled={Boolean(azioneInCorso)}
-          >
-            {azioneInCorso === "genera" ? (
-              "Generazione…"
-            ) : (
-              <>
-                <span className="btn-icon"><IconScarica /></span> Genera fascicolo e scarica PDF
-              </>
-            )}
-          </button>
+          <div className="autocomplete" ref={stampaMenuRef} style={{ display: "inline-block" }}>
+            <button
+              type="button"
+              className="btn primary"
+              onClick={() => setStampaMenuOpen((v) => !v)}
+              disabled={Boolean(azioneInCorso)}
+            >
+              {azioneInCorso === "genera" ? (
+                "Generazione…"
+              ) : (
+                <>
+                  <span className="btn-icon"><IconScarica /></span> Stampa fascicolo…
+                </>
+              )}
+            </button>
+            {stampaMenuOpen ? (
+              <ul className="autocomplete-menu" style={{ left: "auto", right: 0, minWidth: 300 }}>
+                {STAMPA_OPTIONS.map((o) => (
+                  <li key={o.key}>
+                    <button type="button" className="autocomplete-option" onClick={() => handleStampa(o.key)}>
+                      <span className="autocomplete-option-label">{o.label}</span>
+                      <span className="autocomplete-option-sub">{o.sub}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
         </div>
       </div>
       <p className="hint" style={{ marginTop: -6, marginBottom: 14 }}>
-        &quot;Anteprima / Stampa&quot; è libera, non lascia traccia. &quot;Genera fascicolo e scarica PDF&quot;
-        invece finalizza: incrementa la versione del fascicolo (oggi alla {fascicolo.versione}ª) e, se configurato,
-        lo archivia su Drive.
+        &quot;Anteprima interna&quot; è libera, non lascia traccia. Solo la &quot;Stampa interna fascicolo&quot; nel
+        menu finalizza davvero: incrementa la versione del fascicolo (oggi alla {fascicolo.versione}ª) e, se
+        configurato, lo archivia su Drive — le altre tre stampe si possono rigenerare quante volte serve.
       </p>
 
       <div className="fascicolo-progress">
@@ -474,11 +774,15 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
               <Field label="Codice fiscale">
                 <input
                   value={cliente.codiceFiscale ?? ""}
+                  maxLength={CODICE_FISCALE_LUNGHEZZA}
                   onChange={(e) => {
                     setCliente({ ...cliente, codiceFiscale: e.target.value.toUpperCase() || null });
                     setClienteDirty(true);
                   }}
                 />
+                {codiceFiscaleAvviso(cliente.codiceFiscale) ? (
+                  <p className="hint">{codiceFiscaleAvviso(cliente.codiceFiscale)}</p>
+                ) : null}
               </Field>
               <Field label="Data di nascita">
                 <input
@@ -579,7 +883,17 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
                 <input value={fascicolo.operatore ?? ""} onChange={(e) => updateTop({ operatore: e.target.value || null })} />
               </Field>
               <Field label="Commessa collegata">
-                <input value={fascicolo.commessa ?? ""} onChange={(e) => updateTop({ commessa: e.target.value || null })} />
+                <AutocompleteInput
+                  value={fascicolo.commessa ?? ""}
+                  onChange={(v) => updateTop({ commessa: v || null })}
+                  options={commesse.map((cm) => ({ value: cm.numero, sublabel: cm.cliente }))}
+                  placeholder="Numero commessa, se già aperta in Amministrazione"
+                />
+                <p className="hint">
+                  Digitando compaiono i numeri delle commesse già aperte in Amministrazione → Commesse (con il
+                  relativo cliente): è solo un testo di collegamento, non un vincolo, quindi puoi anche scriverne uno
+                  non ancora aperto lì.
+                </p>
               </Field>
             </div>
           </>
@@ -591,12 +905,12 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
             <CheckLine
               checked={c.consensi.consensoTrattamentoDati}
               label="Consenso al trattamento dei dati personali e particolari"
-              onChange={(v) =>
-                updateContenuto("consensi", {
-                  consensoTrattamentoDati: v,
-                  dataConsenso: v && !c.consensi.dataConsenso ? new Date().toISOString().slice(0, 10) : c.consensi.dataConsenso,
-                })
-              }
+              onChange={(v) => {
+                updateContenuto("consensi", { consensoTrattamentoDati: v });
+                if (v && !c.consensi.dataConsenso) {
+                  updateDataSincronizzata(new Date().toISOString().slice(0, 10), "dataConsenso");
+                }
+              }}
             />
             <CheckLine
               checked={c.consensi.presaVisioneInformativa}
@@ -612,7 +926,7 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
               <input
                 type="date"
                 value={c.consensi.dataConsenso ?? ""}
-                onChange={(e) => updateContenuto("consensi", { dataConsenso: e.target.value || null })}
+                onChange={(e) => updateDataSincronizzata(e.target.value || null, "dataConsenso")}
               />
             </Field>
             <p className="hint" style={{ marginTop: 10 }}>
@@ -746,12 +1060,12 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
                       <CheckLine
                         checked={l.tallone.talalgie}
                         label="Talalgie"
-                        onChange={(v) => updateLato(lato, { tallone: { ...l.tallone, talalgie: v } })}
+                        onChange={(v) => updateLato(lato, (prevLato) => ({ tallone: { ...prevLato.tallone, talalgie: v } }))}
                       />
                       <CheckLine
                         checked={l.tallone.spinaCalcaneare}
                         label="Spina calcaneare"
-                        onChange={(v) => updateLato(lato, { tallone: { ...l.tallone, spinaCalcaneare: v } })}
+                        onChange={(v) => updateLato(lato, (prevLato) => ({ tallone: { ...prevLato.tallone, spinaCalcaneare: v } }))}
                       />
                     </Field>
                     <Field label="Ginocchio">
@@ -776,17 +1090,17 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
                       <CheckLine
                         checked={l.ulcerazioni.dorsali}
                         label="Dorsali"
-                        onChange={(v) => updateLato(lato, { ulcerazioni: { ...l.ulcerazioni, dorsali: v } })}
+                        onChange={(v) => updateLato(lato, (prevLato) => ({ ulcerazioni: { ...prevLato.ulcerazioni, dorsali: v } }))}
                       />
                       <CheckLine
                         checked={l.ulcerazioni.plantari}
                         label="Plantari"
-                        onChange={(v) => updateLato(lato, { ulcerazioni: { ...l.ulcerazioni, plantari: v } })}
+                        onChange={(v) => updateLato(lato, (prevLato) => ({ ulcerazioni: { ...prevLato.ulcerazioni, plantari: v } }))}
                       />
                       <CheckLine
                         checked={l.ulcerazioni.calcaneari}
                         label="Calcaneari"
-                        onChange={(v) => updateLato(lato, { ulcerazioni: { ...l.ulcerazioni, calcaneari: v } })}
+                        onChange={(v) => updateLato(lato, (prevLato) => ({ ulcerazioni: { ...prevLato.ulcerazioni, calcaneari: v } }))}
                       />
                     </Field>
                     <Field label="Traumi">
@@ -804,31 +1118,19 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
               <Field label="Attività lavorativa">
                 <input
                   value={c.esamePiede.destinazioneUso.attivitaLavorativa ?? ""}
-                  onChange={(e) =>
-                    updateContenuto("esamePiede", {
-                      destinazioneUso: { ...c.esamePiede.destinazioneUso, attivitaLavorativa: e.target.value || null },
-                    })
-                  }
+                  onChange={(e) => updateDestinazioneUso({ attivitaLavorativa: e.target.value || null })}
                 />
               </Field>
               <Field label="Attività sportiva">
                 <input
                   value={c.esamePiede.destinazioneUso.attivitaSportiva ?? ""}
-                  onChange={(e) =>
-                    updateContenuto("esamePiede", {
-                      destinazioneUso: { ...c.esamePiede.destinazioneUso, attivitaSportiva: e.target.value || null },
-                    })
-                  }
+                  onChange={(e) => updateDestinazioneUso({ attivitaSportiva: e.target.value || null })}
                 />
               </Field>
               <Field label="Attività tempo libero">
                 <input
                   value={c.esamePiede.destinazioneUso.attivitaTempoLibero ?? ""}
-                  onChange={(e) =>
-                    updateContenuto("esamePiede", {
-                      destinazioneUso: { ...c.esamePiede.destinazioneUso, attivitaTempoLibero: e.target.value || null },
-                    })
-                  }
+                  onChange={(e) => updateDestinazioneUso({ attivitaTempoLibero: e.target.value || null })}
                 />
               </Field>
             </div>
@@ -836,30 +1138,22 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
               <CheckLine
                 checked={c.esamePiede.calzaturaCollegamento.ciabattaPredisposta}
                 label="Ciabatta predisposta"
-                onChange={(v) =>
-                  updateContenuto("esamePiede", { calzaturaCollegamento: { ...c.esamePiede.calzaturaCollegamento, ciabattaPredisposta: v } })
-                }
+                onChange={(v) => updateCalzaturaCollegamento({ ciabattaPredisposta: v })}
               />
               <CheckLine
                 checked={c.esamePiede.calzaturaCollegamento.scarpaPredisposta}
                 label="Scarpa predisposta"
-                onChange={(v) =>
-                  updateContenuto("esamePiede", { calzaturaCollegamento: { ...c.esamePiede.calzaturaCollegamento, scarpaPredisposta: v } })
-                }
+                onChange={(v) => updateCalzaturaCollegamento({ scarpaPredisposta: v })}
               />
               <CheckLine
                 checked={c.esamePiede.calzaturaCollegamento.antinfortunistica}
                 label="Antinfortunistica"
-                onChange={(v) =>
-                  updateContenuto("esamePiede", { calzaturaCollegamento: { ...c.esamePiede.calzaturaCollegamento, antinfortunistica: v } })
-                }
+                onChange={(v) => updateCalzaturaCollegamento({ antinfortunistica: v })}
               />
               <CheckLine
                 checked={c.esamePiede.calzaturaCollegamento.scarpaGinnastica}
                 label="Scarpa da ginnastica"
-                onChange={(v) =>
-                  updateContenuto("esamePiede", { calzaturaCollegamento: { ...c.esamePiede.calzaturaCollegamento, scarpaGinnastica: v } })
-                }
+                onChange={(v) => updateCalzaturaCollegamento({ scarpaGinnastica: v })}
               />
             </Field>
           </>
@@ -894,7 +1188,7 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
                 <input
                   type="date"
                   value={c.prescrizione.dataOrdine ?? ""}
-                  onChange={(e) => updateContenuto("prescrizione", { dataOrdine: e.target.value || null })}
+                  onChange={(e) => updateDataSincronizzata(e.target.value || null, "dataOrdine")}
                 />
               </Field>
             </div>
@@ -946,6 +1240,91 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
             <Field label="Note">
               <textarea value={c.prescrizione.note ?? ""} onChange={(e) => updateContenuto("prescrizione", { note: e.target.value || null })} />
             </Field>
+
+            <h3 className="fascicolo-lato-title" style={{ marginTop: 18 }}>
+              Allegati ({allegati.length}/{MAX_ALLEGATI_PER_FASCICOLO})
+            </h3>
+            <p className="hint" style={{ marginBottom: 10 }}>
+              Prescrizione medica, autorizzazione ASL o altra documentazione: immagini o PDF. Finiscono nella stampa
+              interna completa del fascicolo, non negli altri tipi di stampa.
+              {!driveConfigured ? " Google Drive non è configurato: puoi caricare solo immagini, non PDF." : ""}
+            </p>
+            {allegatoError ? (
+              <div className="banner error" style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                <span style={{ flex: 1 }}>{allegatoError}</span>
+                <button
+                  type="button"
+                  className="btn ghost"
+                  style={{ padding: "2px 8px" }}
+                  onClick={() => setAllegatoError(null)}
+                >
+                  ✕
+                </button>
+              </div>
+            ) : null}
+            {allegati.length > 0 ? (
+              <div className="gallery-grid" style={{ marginBottom: 12 }}>
+                {allegati.map((a) => (
+                  <div key={a.id} className="gallery-item">
+                    {a.formato === "immagine" ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={`/api/fascicoli/${fascicolo.numero}/allegati/${a.id}`}
+                        alt={a.etichetta || a.nome || "Allegato"}
+                        className="gallery-thumb"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <a
+                        href={a.driveUrl ?? "#"}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="gallery-thumb"
+                        style={{ display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}
+                      >
+                        Apri PDF ↗
+                      </a>
+                    )}
+                    <div className="gallery-caption">{a.etichetta || a.nome || "—"}</div>
+                    <button
+                      className="btn danger"
+                      type="button"
+                      onClick={() => handleAllegatoRemove(a.id)}
+                      disabled={uploadingAllegato}
+                    >
+                      Rimuovi
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="hint">Nessun allegato caricato.</p>
+            )}
+            {allegati.length < MAX_ALLEGATI_PER_FASCICOLO ? (
+              <div className="card-actions">
+                <input
+                  className="input-inline"
+                  value={allegatoEtichetta}
+                  onChange={(e) => setAllegatoEtichetta(e.target.value)}
+                  placeholder="Etichetta (facoltativa): es. Prescrizione medica, Autorizzazione ASL…"
+                  style={{ maxWidth: 320 }}
+                />
+                <label className="btn">
+                  {uploadingAllegato ? "Caricamento…" : "Aggiungi allegato"}
+                  <input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    onChange={handleAllegatoUpload}
+                    disabled={uploadingAllegato}
+                    style={{ display: "none" }}
+                  />
+                </label>
+              </div>
+            ) : (
+              <p className="hint">
+                Limite di {MAX_ALLEGATI_PER_FASCICOLO} allegati raggiunto: rimuovine uno per aggiungerne altri.
+              </p>
+            )}
           </>
         ) : null}
 
@@ -969,7 +1348,7 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
                 <input
                   type="date"
                   value={c.produzione.dataInizioLavori ?? ""}
-                  onChange={(e) => updateContenuto("produzione", { dataInizioLavori: e.target.value || null })}
+                  onChange={(e) => updateDataSincronizzata(e.target.value || null, "dataInizioLavori")}
                 />
               </Field>
               <Field label="Data pronta consegna">
@@ -987,16 +1366,12 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
             <h3 className="fascicolo-lato-title" style={{ marginTop: 16 }}>
               Fasi di lavorazione
             </h3>
-            {c.produzione.fasi.map((fase, i) => (
+            {c.produzione.fasi.map((fase) => (
               <div key={fase.numero} className="fascicolo-fase-row">
                 <input
                   type="checkbox"
                   checked={fase.completata}
-                  onChange={(e) => {
-                    const fasi = [...c.produzione.fasi];
-                    fasi[i] = { ...fase, completata: e.target.checked };
-                    updateContenuto("produzione", { fasi });
-                  }}
+                  onChange={(e) => updateFase(fase.numero, { completata: e.target.checked })}
                 />
                 <div>
                   <strong>
@@ -1007,20 +1382,12 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
                 <input
                   type="date"
                   value={fase.data ?? ""}
-                  onChange={(e) => {
-                    const fasi = [...c.produzione.fasi];
-                    fasi[i] = { ...fase, data: e.target.value || null };
-                    updateContenuto("produzione", { fasi });
-                  }}
+                  onChange={(e) => updateFase(fase.numero, { data: e.target.value || null })}
                 />
                 <input
                   placeholder="Operatore"
                   value={fase.operatore ?? ""}
-                  onChange={(e) => {
-                    const fasi = [...c.produzione.fasi];
-                    fasi[i] = { ...fase, operatore: e.target.value || null };
-                    updateContenuto("produzione", { fasi });
-                  }}
+                  onChange={(e) => updateFase(fase.numero, { operatore: e.target.value || null })}
                 />
               </div>
             ))}
@@ -1072,7 +1439,7 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
                 <input
                   type="date"
                   value={c.consegna.dataPrimoAppuntamento ?? ""}
-                  onChange={(e) => updateContenuto("consegna", { dataPrimoAppuntamento: e.target.value || null })}
+                  onChange={(e) => updateDataSincronizzata(e.target.value || null, "dataPrimoAppuntamento")}
                 />
               </Field>
               <Field label="Data prova/consegna prevista">
@@ -1141,6 +1508,57 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
           </>
         ) : null}
 
+        {tab === "controlli" ? (
+          <>
+            <h2>Visite di controllo</h2>
+            <p className="hint">
+              Una riga per ogni visita successiva alla consegna (1ª, 2ª, 3ª…): aggiungine quante servono davvero, non
+              c&apos;è un numero previsto in partenza.
+            </p>
+            {c.consegna.visiteControllo.length === 0 ? (
+              <p className="empty">
+                <b>Nessuna visita registrata</b>
+                Aggiungi la prima visita di controllo con il pulsante qui sotto.
+              </p>
+            ) : (
+              [...c.consegna.visiteControllo]
+                .sort((a, b) => a.numero - b.numero)
+                .map((v) => (
+                  <div key={v.numero} className="fascicolo-visita-row">
+                    <strong>{v.numero}ª</strong>
+                    <input type="date" value={v.data ?? ""} onChange={(e) => updateVisita(v.numero, { data: e.target.value || null })} />
+                    <input
+                      placeholder="Nota del tecnico"
+                      value={v.nota ?? ""}
+                      onChange={(e) => updateVisita(v.numero, { nota: e.target.value || null })}
+                    />
+                    <button type="button" className="btn-link" onClick={() => removeVisita(v.numero)}>
+                      Rimuovi
+                    </button>
+                  </div>
+                ))
+            )}
+            <div className="card-actions" style={{ marginTop: 14 }}>
+              <button type="button" className="btn" onClick={addVisita}>
+                + Aggiungi visita
+              </button>
+              {c.consegna.visiteControllo.length > 0 ? (
+                <a
+                  className="btn"
+                  href={`/api/fascicoli/${fascicolo.numero}/visite-controllo`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <span className="btn-icon">
+                    <IconStampa />
+                  </span>{" "}
+                  Stampa visite di controllo
+                </a>
+              ) : null}
+            </div>
+          </>
+        ) : null}
+
         {nextSezione ? (
           <div className="fascicolo-next-section">
             <button type="button" className="btn" onClick={() => setTab(nextSezione.key)}>
@@ -1157,11 +1575,11 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
           fondo a qualunque sezione, non solo dalla savebar in cima: per
           riprendere in mano un fascicolo già completo (es. il cliente torna
           e chiede un'altra copia) senza dover risalire. Non finalizza a sua
-          volta — stesso comportamento libero di "Anteprima / Stampa". */}
+          volta — stesso comportamento libero di "Anteprima interna". */}
       {fascicolo.versione > 1 ? (
         <div className="card-actions" style={{ justifyContent: "flex-end", marginTop: 20 }}>
           <button type="button" className="btn" onClick={handleAnteprima} disabled={Boolean(azioneInCorso)}>
-            <span className="btn-icon"><IconStampa /></span> Ristampa PDF
+            <span className="btn-icon"><IconStampa /></span> Riapri anteprima interna
           </button>
         </div>
       ) : null}
@@ -1187,6 +1605,7 @@ export function FascicoloEditorClient({ initialFascicolo, initialCliente }: Fasc
             </p>
             <div className="card-actions">
               <input
+                className="input-inline"
                 value={deleteConfirmText}
                 onChange={(e) => setDeleteConfirmText(e.target.value)}
                 placeholder={fascicolo.numero}

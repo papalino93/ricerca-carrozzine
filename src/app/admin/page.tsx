@@ -1,15 +1,16 @@
 import { listDevices } from "@/lib/devices";
 import { listCategories } from "@/lib/categories";
 import { listTariffe } from "@/lib/tariffe";
+import { listClients } from "@/lib/clients";
 import { AdminDevicesClient } from "@/components/AdminDevicesClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
   // Sono letture indipendenti dello stesso caricamento: avviarle insieme
-  // evita che l'apertura del magazzino sommi i tempi di tre richieste a
+  // evita che l'apertura del magazzino sommi i tempi di più richieste a
   // Google Sheets, soprattutto quando l'istanza server è appena partita.
-  const [devicesResult, categories, tariffe] = await Promise.all([
+  const [devicesResult, categories, tariffe, clients] = await Promise.all([
     listDevices().then(
       (devices) => ({ devices, error: null as string | null }),
       (err: unknown) => ({
@@ -19,6 +20,7 @@ export default async function AdminPage() {
     ),
     listCategories().catch(() => []),
     listTariffe().catch(() => []),
+    listClients().catch(() => []),
   ]);
 
   if (devicesResult.error) {
@@ -31,5 +33,14 @@ export default async function AdminPage() {
     );
   }
 
-  return <AdminDevicesClient initialDevices={devicesResult.devices} categories={categories} tariffe={tariffe} />;
+  const clienti = clients.map((c) => ({ nome: c.nome, telefono: c.telefono || c.cellulare || null }));
+
+  return (
+    <AdminDevicesClient
+      initialDevices={devicesResult.devices}
+      categories={categories}
+      tariffe={tariffe}
+      clienti={clienti}
+    />
+  );
 }

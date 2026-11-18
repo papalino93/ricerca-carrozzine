@@ -1,7 +1,7 @@
 "use client";
 
 import { networkErrorMessage, readJson } from "@/lib/fetch-json";
-import { addDaysIso, todayIso } from "@/lib/dates";
+import { todayIso } from "@/lib/dates";
 import { useEffect, useRef, useState } from "react";
 import {
   ARCHIVE_LABEL,
@@ -17,7 +17,6 @@ import {
   calcolaTotale,
   findTariffa,
   fmtEuro,
-  giorniTra,
   sottocategoriaSenzaTariffaSpecifica,
   type Tariffa,
 } from "@/lib/tariffe-types";
@@ -25,6 +24,7 @@ import { parseNumero } from "@/lib/importo";
 import { Toast } from "./Toast";
 import { useConfirm } from "./ConfirmDialog";
 import { useModalA11y } from "./useModalA11y";
+import { AutocompleteInput } from "./AutocompleteInput";
 
 // Deve combaciare con MAX_PHOTOS_PER_DEVICE in src/lib/photos.ts (server-only,
 // non importabile qui): solo per mostrare il conteggio, il limite reale è
@@ -76,6 +76,9 @@ interface DeviceDetailModalProps {
   sottocategorie: string[];
   marche: string[];
   tariffe: Tariffa[];
+  /** Anagrafica clienti, solo nome e telefono: suggerisce i nomi già noti nel
+   * campo Cliente e precompila il telefono se corrisponde esattamente. */
+  clienti: { nome: string; telefono: string | null }[];
   existingCodici: string[];
   onClose: () => void;
   onSaved: (devices: Device[]) => void;
@@ -101,6 +104,7 @@ export function DeviceDetailModal({
   sottocategorie,
   marche,
   tariffe,
+  clienti,
   existingCodici,
   onClose,
   onSaved,
@@ -122,7 +126,7 @@ export function DeviceDetailModal({
   const [rentCliente, setRentCliente] = useState("");
   const [rentTelefono, setRentTelefono] = useState("");
   const [rentDal, setRentDal] = useState(todayIso());
-  const [rentAlPrevisto, setRentAlPrevisto] = useState(addDaysIso(todayIso(), 30));
+  const [rentNota, setRentNota] = useState("");
   // Prefillato dal tariffario, ma modificabile per questo singolo noleggio
   // (es. uno sconto concordato): vedi anche QuickRentModal, stessa idea.
   const [rentPrezzo, setRentPrezzo] = useState(() => {
@@ -317,16 +321,16 @@ export function DeviceDetailModal({
   // tariffa registrata, senza che l'operatore se ne accorga.
   const rentPrezzoNum = parseNumero(rentPrezzo) ?? NaN;
   const rentCostoConsegnaNum = parseNumero(rentCostoConsegna);
-  const rentTotaleStimato =
-    tariffa && rentAlPrevisto && rentPrezzoNum > 0
-      ? calcolaTotale(rentPrezzoNum, tariffa.unita, giorniTra(rentDal, rentAlPrevisto))
-      : null;
+  // Il rientro previsto non è più un campo del form (vedi devices.ts,
+  // rentDevice lo calcola da sé): questa stima assume gli stessi 30 giorni
+  // di default, solo per dare un'idea del totale senza promettere una data.
+  const rentTotaleStimato = tariffa && rentPrezzoNum > 0 ? calcolaTotale(rentPrezzoNum, tariffa.unita, 30) : null;
 
   function resetRentForm() {
     setRentCliente("");
     setRentTelefono("");
     setRentDal(todayIso());
-    setRentAlPrevisto(addDaysIso(todayIso(), 30));
+    setRentNota("");
     setRentPrezzo(tariffa ? String(tariffa.importo).replace(".", ",") : "");
     setRentCostoConsegna(tariffa?.costoConsegna != null ? String(tariffa.costoConsegna).replace(".", ",") : "");
   }
@@ -353,11 +357,12 @@ export function DeviceDetailModal({
           cliente: rentCliente,
           telefono: rentTelefono,
           dal: rentDal,
-          alPrevisto: rentAlPrevisto || null,
+          alPrevisto: null,
           tariffaApplicata: tariffa && rentPrezzoNum > 0 ? rentPrezzoNum : null,
           tariffaUnita: tariffa && rentPrezzoNum > 0 ? tariffa.unita : null,
           costoConsegna: rentCostoConsegnaNum,
           notaTariffa: tariffa?.nota ?? null,
+          notaNoleggio: rentNota.trim() || null,
         }),
       });
       const body = await readJson(res);
@@ -640,7 +645,17 @@ export function DeviceDetailModal({
   const mainContent = (
     <div className="detail-main">
       {renting ? (
-        <form className="panel" onSubmit={handleConfirmRent} style={{ margin: "0 0 16px" }}>
+        <form
+          className="panel"
+          onSubmit={handleConfirmRent}
+          style={{ margin: "0 0 16px" }}
+          onKeyDown={(e) => {
+            const tag = (e.target as HTMLElement).tagName;
+            if (e.key === "Enter" && tag !== "TEXTAREA" && tag !== "BUTTON") {
+              e.preventDefault();
+            }
+          }}
+        >
           <h2>Assegna a un cliente</h2>
           {mismatchSottocategoria ? (
             <div className="banner" style={{ marginBottom: 12 }}>
@@ -671,14 +686,22 @@ export function DeviceDetailModal({
           ) : null}
           {rentTotaleStimato != null ? (
             <p className="hint" style={{ margin: "0 0 14px" }}>
-              Totale stimato fino al rientro previsto: <b>{fmtEuro(rentTotaleStimato)}</b>
+              Totale stimato per 30 giorni: <b>{fmtEuro(rentTotaleStimato)}</b>
             </p>
           ) : null}
           <div className="field">
             <label>Cliente</label>
-            <input
+            <AutocompleteInput
               value={rentCliente}
-              onChange={(e) => setRentCliente(e.target.value)}
+              onChange={setRentCliente}
+              options={clienti.map((c) => ({ value: c.nome, sublabel: c.telefono }))}
+              onSelect={(o) => {
+                // Non sovrascrive un telefono già scritto a mano.
+                if (!rentTelefono) {
+                  const match = clienti.find((c) => c.nome === o.value);
+                  if (match?.telefono) setRentTelefono(match.telefono);
+                }
+              }}
               placeholder="Nome e cognome"
               autoFocus
             />
@@ -690,34 +713,18 @@ export function DeviceDetailModal({
           <p className="hint" style={{ margin: "0 0 12px" }}>
             Il numero di noleggio viene assegnato automaticamente alla conferma.
           </p>
-          <div className="field-row">
-            <div className="field">
-              <label>Dal</label>
-              <input type="date" value={rentDal} onChange={(e) => setRentDal(e.target.value)} />
-            </div>
-            <div className="field">
-              <label>Rientro previsto (facoltativo)</label>
-              <input
-                type="date"
-                value={rentAlPrevisto}
-                onChange={(e) => setRentAlPrevisto(e.target.value)}
-              />
-            </div>
+          <div className="field">
+            <label>Dal</label>
+            <input type="date" value={rentDal} onChange={(e) => setRentDal(e.target.value)} />
           </div>
-          <div className="chips" style={{ marginBottom: 14 }}>
-            {[15, 30, 60, 90].map((days) => (
-              <button
-                key={days}
-                type="button"
-                className="chip"
-                onClick={() => setRentAlPrevisto(addDaysIso(rentDal, days))}
-              >
-                +{days} giorni
-              </button>
-            ))}
-            <button type="button" className="chip" onClick={() => setRentAlPrevisto("")}>
-              Nessuna scadenza
-            </button>
+          <div className="field">
+            <label>Note (facoltative)</label>
+            <textarea
+              value={rentNota}
+              onChange={(e) => setRentNota(e.target.value)}
+              placeholder="Es. consegna al piano 3, ritiro concordato per venerdì…"
+              rows={2}
+            />
           </div>
           <div className="card-actions">
             <button
@@ -753,7 +760,20 @@ export function DeviceDetailModal({
       ) : null}
 
       {isNew || tab === "dati" ? (
-      <form onSubmit={handleSave}>
+      <form
+        onSubmit={handleSave}
+        // Un campo con datalist (es. Marca/Sottocategoria) sottomette il
+        // form all'Invio che chiude il suggerimento del browser, anche se
+        // l'operatore stava solo scegliendo un'opzione o passando al campo
+        // successivo — non solo un problema del campo Marca, di qualunque
+        // campo di questo form tranne il bottone di submit vero e proprio.
+        onKeyDown={(e) => {
+          const tag = (e.target as HTMLElement).tagName;
+          if (e.key === "Enter" && tag !== "TEXTAREA" && tag !== "BUTTON") {
+            e.preventDefault();
+          }
+        }}
+      >
         <div className="field-row">
           <div className="field">
             <label>Codice</label>
@@ -785,17 +805,12 @@ export function DeviceDetailModal({
         <div className="field-row">
           <div className="field">
             <label>Sottocategoria (facoltativa)</label>
-            <input
-              list="detail-sottocategorie-list"
+            <AutocompleteInput
               value={form.sottocategoria ?? ""}
-              onChange={(e) => setForm({ ...form, sottocategoria: e.target.value || null })}
+              onChange={(v) => setForm({ ...form, sottocategoria: v || null })}
+              options={sottocategorie.map((s) => ({ value: s }))}
               placeholder="es. Autospinta, Transito, Bimbi…"
             />
-            <datalist id="detail-sottocategorie-list">
-              {sottocategorie.map((s) => (
-                <option key={s} value={s} />
-              ))}
-            </datalist>
           </div>
           <div className="field">
             <label>Stato</label>
@@ -830,16 +845,11 @@ export function DeviceDetailModal({
         <div className="field-row">
           <div className="field">
             <label>Marca</label>
-            <input
-              list="detail-marche-list"
+            <AutocompleteInput
               value={form.marca}
-              onChange={(e) => setForm({ ...form, marca: e.target.value })}
+              onChange={(v) => setForm({ ...form, marca: v })}
+              options={marche.map((m) => ({ value: m }))}
             />
-            <datalist id="detail-marche-list">
-              {marche.map((m) => (
-                <option key={m} value={m} />
-              ))}
-            </datalist>
           </div>
           <div className="field">
             <label>Modello</label>
@@ -984,7 +994,10 @@ export function DeviceDetailModal({
           {!isNew ? (
             <div className="photo-field">
               {form.foto ? (
-                <img className="photo-preview" src={form.foto} alt={`Foto ${form.codice}`} />
+                // La preview è un data URI della foto appena caricata o già salvata: non
+                // passa dal loader remoto di next/image e non genera richieste aggiuntive.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img className="photo-preview" src={form.foto} alt={`Foto ${form.codice}`} decoding="async" />
               ) : null}
               <div className="card-actions" style={{ marginTop: 0 }}>
                 <label className="btn">
@@ -1061,6 +1074,7 @@ export function DeviceDetailModal({
           {gallery.length < MAX_GALLERY_PHOTOS ? (
             <div className="card-actions" style={{ marginTop: 12 }}>
               <input
+                className="input-inline"
                 value={galleryTipo}
                 onChange={(e) => setGalleryTipo(e.target.value)}
                 placeholder="Etichetta (facoltativa): es. Laterale, Etichetta, Difetto…"
@@ -1192,6 +1206,7 @@ export function DeviceDetailModal({
               </p>
               <div className="card-actions">
                 <input
+                  className="input-inline"
                   value={deleteConfirmText}
                   onChange={(e) => setDeleteConfirmText(e.target.value)}
                   placeholder={form.codice}

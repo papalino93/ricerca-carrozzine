@@ -41,6 +41,7 @@ const EMPTY_FORM: Device = {
   notaTariffa: null,
   dataInserimento: null,
   dataArchiviazione: null,
+  notaNoleggio: null,
 };
 
 type IssueFilter = "stale" | "incomplete" | "overdue" | "duesoon" | "longrental" | null;
@@ -73,9 +74,12 @@ interface AdminDevicesClientProps {
   initialDevices: Device[];
   categories: string[];
   tariffe: Tariffa[];
+  /** Anagrafica clienti, solo nome e telefono: suggerisce i nomi già noti
+   * quando si noleggia un ausilio, come già in Commesse. */
+  clienti: { nome: string; telefono: string | null }[];
 }
 
-export function AdminDevicesClient({ initialDevices, categories, tariffe }: AdminDevicesClientProps) {
+export function AdminDevicesClient({ initialDevices, categories, tariffe, clienti }: AdminDevicesClientProps) {
   const confirmAction = useConfirm();
   const [devices, setDevices] = useState(initialDevices);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
@@ -582,7 +586,15 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
                   if (!saving) openExisting(d);
                 }}
               >
-                <td>{d.foto ? <img className="photo-thumb" src={d.foto} alt="" /> : null}</td>
+                <td>
+                  {d.foto ? (
+                    // Le foto sono data URI già compresse nel foglio: il loader remoto di
+                    // next/image non può ottimizzarle ulteriormente. Manteniamo quindi un
+                    // <img> nativo, ma ritardiamo decoding e caricamento fuori viewport.
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img className="photo-thumb" src={d.foto} alt="" loading="lazy" decoding="async" />
+                  ) : null}
+                </td>
                 <td className="sticky-col sticky-left">{d.codice}</td>
                 <td>{d.categoria}</td>
                 <td>{d.sottocategoria ?? "—"}</td>
@@ -702,6 +714,7 @@ export function AdminDevicesClient({ initialDevices, categories, tariffe }: Admi
           sottocategorie={sottocategorie}
           marche={marche}
           tariffe={tariffe}
+          clienti={clienti}
           existingCodici={devices.map((d) => d.codice)}
           onClose={() => setDetail(null)}
           onSaved={(updated) => setDevices(updated)}

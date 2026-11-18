@@ -3,6 +3,7 @@ import { getSettings } from "@/lib/settings";
 import { listDevices } from "@/lib/devices";
 import { listCommesse } from "@/lib/commesse";
 import { listClients } from "@/lib/clients";
+import { listFascicoli } from "@/lib/fascicoli";
 import { getWeather } from "@/lib/weather";
 import { IconClienti, IconCommessa, IconFidelity, IconNoleggio } from "@/components/ReceptionIcons";
 import { DeskClock } from "@/components/DeskClock";
@@ -45,7 +46,7 @@ export default async function ReceptionPage() {
   // aggiungerebbe un round-trip verso Google Sheets per ognuna a ogni
   // apertura della home. Ogni lettura fallisce per conto suo: se il foglio
   // non risponde la home resta comunque utilizzabile come menu.
-  const [settingsR, devicesR, commesseR, clientsR, weather] = await Promise.all([
+  const [settingsR, devicesR, commesseR, clientsR, fascicoliR, weather] = await Promise.all([
     getSettings().then(
       (v) => ({ ok: true as const, v }),
       () => ({ ok: false as const, v: null })
@@ -62,6 +63,13 @@ export default async function ReceptionPage() {
       (v) => ({ ok: true as const, v }),
       () => ({ ok: false as const, v: [] as Awaited<ReturnType<typeof listClients>> })
     ),
+    // Solo per la ricerca globale in cima alla home: se il foglio dei
+    // fascicoli non risponde, la ricerca funziona lo stesso sugli altri tre
+    // tipi invece di far fallire l'intera home.
+    listFascicoli().then(
+      (v) => v,
+      () => [] as Awaited<ReturnType<typeof listFascicoli>>
+    ),
     getWeather(),
   ]);
 
@@ -69,6 +77,7 @@ export default async function ReceptionPage() {
   const devices = devicesR.v;
   const commesse = commesseR.v;
   const clients = clientsR.v;
+  const fascicoli = fascicoliR;
   // Se anche una sola lettura è fallita i numeri qui sotto non sono reali:
   // vanno dichiarati tali, altrimenti la home mostrerebbe "0 disponibili,
   // nessuna scadenza" — indistinguibile da una giornata tranquilla, sulla
@@ -165,7 +174,12 @@ export default async function ReceptionPage() {
                 <img src="/medical-center-brand.png" alt="Medical Center" />
               </span>
             </Link>
-            <DeskSearch />
+            <DeskSearch
+              devices={attivi.map((d) => ({ codice: d.codice, marca: d.marca, modello: d.modello, categoria: d.categoria }))}
+              clients={clients.map((c) => ({ nome: c.nome, telefono: c.telefono || c.cellulare || null }))}
+              commesse={commesse.map((c) => ({ numero: c.numero, cliente: c.cliente }))}
+              fascicoli={fascicoli.map((f) => ({ numero: f.numero, clienteNome: f.clienteNome }))}
+            />
             <div className="desk-top-right">
               <DeskClock weather={weather} iniziale={oraDiScandicci()} />
               <Link href="/admin" className="desk-admin-link">

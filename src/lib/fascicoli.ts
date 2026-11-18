@@ -2,7 +2,9 @@ import "server-only";
 import { readSheet, writeSheet } from "./sheets";
 import { nextNumeroFascicolo } from "./counter";
 import { normalizeName } from "./clients";
+import { removeAllFascicoloAllegati } from "./fascicoli-allegati";
 import {
+  deriveStatoAttivo,
   emptyFascicoloContenuto,
   FASCICOLO_STATO_OPTIONS,
   type FascicoloContenuto,
@@ -166,23 +168,27 @@ export async function createFascicolo(input: {
   const anno = new Date().getFullYear();
   const numero = await nextNumeroFascicolo(anno);
   const now = new Date().toISOString();
-  const empty = emptyFascicoloContenuto();
+  const contenuto: FascicoloContenuto = {
+    ...emptyFascicoloContenuto(),
+    ...input.contenutoIniziale,
+  };
 
   const fascicolo: FascicoloRecord = {
     numero,
     clienteNome,
     clienteCF: input.clienteCF || null,
     commessa: input.commessa || null,
-    stato: "bozza",
+    // Quasi sempre "bozza" su un fascicolo appena creato, ma se in futuro
+    // contenutoIniziale dovesse portare già dati clinici (oggi non succede,
+    // vedi createFascicolo sopra) lo stato di partenza li rifletterebbe
+    // subito invece di mentire fino al primo salvataggio.
+    stato: deriveStatoAttivo({ clienteNome, contenuto }),
     tipoDispositivo: input.tipoDispositivo || "Plantari su misura",
     operatore: input.operatore || null,
     dataCreazione: now,
     ultimaModifica: now,
     versione: 1,
-    contenuto: {
-      ...empty,
-      ...input.contenutoIniziale,
-    },
+    contenuto,
   };
 
   const fascicoli = await readFascicoli();
@@ -195,7 +201,13 @@ export interface UpdateFascicoloInput {
   clienteNome?: string;
   clienteCF?: string | null;
   commessa?: string | null;
-  stato?: FascicoloStato;
+  /** Unica leva manuale rimasta sullo stato (vedi FascicoloStato in
+   * fascicoli-types.ts): tutti gli altri valori vengono ricalcolati da
+   * updateFascicolo in base al contenuto (deriveStatoAttivo), non più
+   * scelti a mano. true/false archivia o riporta tra gli attivi; omesso,
+   * mantiene invariata l'eventuale archiviazione già in corso (comportamento
+   * "sticky" sui normali autosalvataggi, che non toccano questo campo). */
+  archiviato?: boolean;
   tipoDispositivo?: string;
   operatore?: string | null;
   /** Merge parziale per sezione: { contenuto: { anamnesi: {...} } }
@@ -239,7 +251,7 @@ export async function updateFascicolo(numero: string, patch: UpdateFascicoloInpu
   if (patch.ifUltimaModifica != null && patch.ifUltimaModifica !== prev.ultimaModifica) {
     throw new FascicoloConflictError(numero);
   }
-  const { contenuto, incrementaVersione, ...rest } = patch;
+  const { contenuto, incrementaVersione, archiviato, ...rest } = patch;
   const next: FascicoloRecord = {
     ...prev,
     ...rest,
@@ -256,6 +268,13 @@ export async function updateFascicolo(numero: string, patch: UpdateFascicoloInpu
     ultimaModifica: new Date().toISOString(),
     versione: incrementaVersione ? prev.versione + 1 : prev.versione,
   };
+
+  // Lo stato non è più un campo scelto a mano dal chiamante: si ricalcola
+  // sempre dal contenuto appena aggiornato (vedi deriveStatoAttivo), tranne
+  // "archiviato" che resta l'unica decisione manuale — sticky quando questo
+  // salvataggio non la tocca (il normale autosave di ogni sezione).
+  const isArchiviato = archiviato ?? prev.stato === "archiviato";
+  next.stato = isArchiviato ? "archiviato" : deriveStatoAttivo(next);
 
   // Il client ha min/max sugli input, ma quello non impedisce una scrittura
   // diretta all'API: qui è dove un'altezza o un importo negativo/assurdo
@@ -289,4 +308,10 @@ export async function deleteFascicolo(numero: string): Promise<void> {
     throw new Error(`Fascicolo ${numero} non trovato`);
   }
   await writeSheet(TAB, [HEADER, ...next.map(toRow)]);
+  try {
+    await removeAllFascicoloAllegati(numero);
+  } catch {
+    // best-effort: il fascicolo è comunque eliminato, gli allegati orfani
+    // non bloccano né vanno ricreati.
+  }
 }

@@ -17,6 +17,14 @@ export function LoginForm({ nextPath }: LoginFormProps) {
   const [code, setCode] = useState("");
   const [remember, setRemember] = useState(false);
 
+  function returnToCredentials() {
+    setStep("credentials");
+    setCode("");
+    setRemember(false);
+    setError(null);
+    setSubmitting(false);
+  }
+
   async function handleCredentials(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
@@ -71,24 +79,33 @@ export function LoginForm({ nextPath }: LoginFormProps) {
   if (step === "2fa") {
     return (
       <form className="login-form" onSubmit={handleTwoFactor}>
+        <div className="login-step-header">
+          <span>Verifica in due passaggi</span>
+          <button className="login-step-back" type="button" onClick={returnToCredentials}>
+            ← Cambia account
+          </button>
+        </div>
         <div className="field">
           <label htmlFor="login-2fa-code">Codice a 6 cifre</label>
-          <p className="hint" style={{ marginTop: -2, marginBottom: 8 }}>
+          <p id="login-2fa-help" className="hint login-2fa-help">
             Apri l&apos;app authenticator sul telefono e inserisci il codice mostrato
             (oppure un codice di recupero).
           </p>
           <input
             id="login-2fa-code"
             name="code"
+            className="login-2fa-input"
             inputMode="numeric"
             autoComplete="one-time-code"
+            aria-describedby="login-2fa-help"
+            spellCheck={false}
             value={code}
             onChange={(e) => setCode(e.target.value)}
             required
             autoFocus
           />
         </div>
-        <label className="login-remember" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <label className="login-remember">
           <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
           Non chiedere più su questo dispositivo per 30 giorni
         </label>

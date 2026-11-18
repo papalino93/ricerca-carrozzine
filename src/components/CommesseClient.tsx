@@ -16,6 +16,7 @@ import {
 } from "@/lib/commesse-form";
 import { Toast } from "./Toast";
 import { useConfirm } from "./ConfirmDialog";
+import { AutocompleteInput } from "./AutocompleteInput";
 
 interface CommesseClientProps {
   initialCommesse: CommessaRecord[];
@@ -340,26 +341,17 @@ export function CommesseClient({ initialCommesse, puntiPerEuro, initialQuery, cl
           <form onSubmit={handleCreate}>
             <div className="field">
               <label>Cliente</label>
-              <input
-                list="admin-clienti-list"
+              <AutocompleteInput
                 value={form.cliente}
-                onChange={(e) => {
-                  const nome = e.target.value;
-                  // Se il nome digitato corrisponde esattamente a un cliente
-                  // già in anagrafica e il telefono è ancora vuoto, lo
-                  // precompila: senza sovrascrivere un numero già scritto.
-                  const match = !form.telefono
-                    ? clienti.find((c) => c.nome.trim().toLowerCase() === nome.trim().toLowerCase())
-                    : null;
-                  setForm({ ...form, cliente: nome, telefono: match?.telefono || form.telefono });
+                onChange={(v) => setForm({ ...form, cliente: v })}
+                options={clienti.map((c) => ({ value: c.nome, sublabel: c.telefono }))}
+                onSelect={(o) => {
+                  if (!form.telefono) {
+                    const match = clienti.find((c) => c.nome === o.value);
+                    if (match?.telefono) setForm({ ...form, cliente: o.value, telefono: match.telefono });
+                  }
                 }}
-                required
               />
-              <datalist id="admin-clienti-list">
-                {clienti.map((c) => (
-                  <option key={c.nome} value={c.nome} />
-                ))}
-              </datalist>
             </div>
             <div className="field">
               <label>Indirizzo</label>

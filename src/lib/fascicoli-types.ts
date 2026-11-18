@@ -8,6 +8,11 @@
 // Ogni campo qui è annotato con la sua provenienza nel documento originale,
 // utile a chi in futuro deve verificare che non manchi nulla.
 
+/** Tetto al numero di allegati per fascicolo (vedi fascicoli-allegati.ts):
+ * condiviso qui, non in quel file (che ha "server-only"), perché serve
+ * anche al componente client per disabilitare il pulsante di upload. */
+export const MAX_ALLEGATI_PER_FASCICOLO = 12;
+
 export type FascicoloStato =
   | "bozza"
   | "in_lavorazione"
@@ -219,7 +224,10 @@ export function emptyFasiProduzione(): FaseProduzione[] {
     numero: i + 1,
     nome: f.nome,
     controlli: f.controlli,
-    completata: false,
+    // Di default tutte spuntate: nella pratica la maggior parte delle fasi
+    // viene davvero eseguita, deflaggare le poche eccezioni è più veloce
+    // che spuntare tutte le altre una per una.
+    completata: true,
     data: null,
     operatore: null,
     note: null,
@@ -260,6 +268,15 @@ export function emptyProduzione(): ProduzioneData {
   };
 }
 
+/** Una visita di controllo post-consegna: numero libero (1ª, 2ª, 3ª...),
+ * aggiunte quando servono davvero — non un numero fisso di controlli
+ * previsti in partenza. */
+export interface VisitaControllo {
+  numero: number;
+  data: string | null;
+  nota: string | null;
+}
+
 /** Consegna/istruzioni (pag. 4, 7, 10). */
 export interface ConsegnaData {
   dataPrimoAppuntamento: string | null;
@@ -272,18 +289,24 @@ export interface ConsegnaData {
    * avvenuta consegna" (pag. 7), indirizzata all'ente che ha autorizzato. */
   comunicazioneAslDestinatario: string | null;
   comunicazioneAslPraticaNumero: string | null;
+  /** Visite di controllo dopo la consegna: elenco libero, il tecnico ne
+   * aggiunge quante servono nel tempo. */
+  visiteControllo: VisitaControllo[];
 }
 
 export function emptyConsegna(): ConsegnaData {
   return {
     dataPrimoAppuntamento: null,
     dataConsegnaPrevista: null,
-    luogoConsegna: null,
+    // Quasi tutte le consegne avvengono in sede: precompilato ma
+    // modificabile, invece di farlo ridigitare ogni volta.
+    luogoConsegna: "Scandicci",
     oraConsegna: null,
     dataConsegnaEffettiva: null,
     dataFollowUp: null,
     comunicazioneAslDestinatario: null,
     comunicazioneAslPraticaNumero: null,
+    visiteControllo: [],
   };
 }
 
@@ -360,7 +383,8 @@ export type SezioneFascicolo =
   | "esamePiede"
   | "prescrizione"
   | "produzione"
-  | "consegna";
+  | "consegna"
+  | "controlli";
 
 export const SEZIONI_FASCICOLO: { key: SezioneFascicolo; label: string }[] = [
   { key: "anagrafica", label: "Anagrafica" },
@@ -370,6 +394,7 @@ export const SEZIONI_FASCICOLO: { key: SezioneFascicolo; label: string }[] = [
   { key: "prescrizione", label: "Prescrizione" },
   { key: "produzione", label: "Produzione" },
   { key: "consegna", label: "Consegna" },
+  { key: "controlli", label: "Visite di controllo" },
 ];
 
 /**
@@ -389,5 +414,34 @@ export function calcolaCompletamento(f: Pick<FascicoloRecord, "clienteNome" | "c
     prescrizione: Boolean(c.prescrizione.descrizioneMateriale?.trim() && c.prescrizione.importo != null),
     produzione: Boolean(c.produzione.dataInizioLavori),
     consegna: Boolean(c.consegna.dataConsegnaEffettiva),
+    controlli: c.consegna.visiteControllo.length > 0,
   };
+}
+
+/**
+ * Stato "attivo" del fascicolo (tutti tranne "archiviato", l'unica
+ * decisione manuale — vedi sotto), derivato dai dati realmente compilati
+ * invece che scelto a mano: prima lo stato era un menu libero senza alcun
+ * legame con anamnesi/prescrizione/produzione/consegna, quindi poteva
+ * restare "Bozza" su un fascicolo già consegnato, o "Consegnato" senza che
+ * nessuna data di consegna fosse mai stata inserita — bastava dimenticarsi
+ * di aggiornarlo. Le soglie ricalcano lo stesso indicatore di completamento
+ * per sezione già mostrato nell'editor (calcolaCompletamento), così le due
+ * cose raccontano sempre la stessa storia invece di poter contraddirsi.
+ * "Archiviato" resta invece una scelta esplicita dell'operatore (vedi
+ * updateFascicolo in fascicoli.ts): non è implicito in nessun dato, un
+ * fascicolo può restare "Consegnato" per anni senza mai essere archiviato,
+ * o essere archiviato anche se abbandonato a metà.
+ */
+export function deriveStatoAttivo(
+  f: Pick<FascicoloRecord, "clienteNome" | "contenuto">
+): Exclude<FascicoloStato, "archiviato"> {
+  const done = calcolaCompletamento(f);
+  if (done.consegna) return "consegnato";
+  if (f.contenuto.produzione.controlloFinale != null) return "prodotto";
+  if (done.anamnesi && done.esamePiede && done.prescrizione) return "completo";
+  if (done.anamnesi || done.esamePiede || done.prescrizione || f.contenuto.produzione.dataInizioLavori) {
+    return "in_lavorazione";
+  }
+  return "bozza";
 }
